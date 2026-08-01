@@ -1,0 +1,45 @@
+.live-grid-map-container {
+  width: 100%;
+  height: 600px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-dark);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  position: relative;
+  z-index: 1;
+}
+
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  background-color: var(--bg-primary); /* Dark background for water/empty tiles */
+}
+
+/* Customizing the Leaflet dark theme map if needed */
+.leaflet-tile {
+  filter: contrast(1.2) brightness(0.8) hue-rotate(200deg) invert(1);
+}
+
+.leaflet-popup-content-wrapper {
+  background: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--gold-primary);
+  border-radius: var(--radius-sm);
+}
+
+.leaflet-popup-tip {
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--gold-primary);
+}
+
+.territory-popup-content h4 {
+  color: var(--gold-primary);
+  margin-top: 0;
+  margin-bottom: var(--space-sm);
+  font-family: var(--font-heading);
+}
+
+.territory-popup-content p {
+  margin: 4px 0;
+  font-size: 0.9rem;
+}

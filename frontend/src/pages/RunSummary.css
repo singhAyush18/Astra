@@ -1,0 +1,204 @@
+.run-summary-container {
+  min-height: 100vh;
+  background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+}
+
+.summary-main {
+  flex: 1;
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+  padding: calc(var(--nav-height) + var(--space-xl)) var(--space-xl) var(--space-2xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xl);
+}
+
+.summary-header {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.victory-icon {
+  color: var(--gold-primary);
+  background: rgba(212, 175, 55, 0.1);
+  padding: 24px;
+  border-radius: var(--radius-round);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  box-shadow: 0 0 30px rgba(212, 175, 55, 0.2);
+  margin-bottom: var(--space-sm);
+}
+
+.summary-header h1 {
+  font-family: var(--font-heading);
+  font-size: 3rem;
+  letter-spacing: 0.05em;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: var(--space-lg);
+}
+
+.summary-card {
+  background: rgba(18, 18, 42, 0.6);
+  border: 1px solid rgba(212, 175, 55, 0.15);
+  border-radius: var(--radius-xl);
+  padding: var(--space-xl);
+  backdrop-filter: blur(12px);
+}
+
+.summary-card h3 {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  color: var(--text-primary);
+  margin-bottom: var(--space-lg);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+  padding-bottom: var(--space-sm);
+}
+
+.stats-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.stat-box {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  background: rgba(255, 255, 255, 0.03);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+}
+
+.stat-box .stat-icon {
+  color: var(--gold-primary);
+}
+
+.stat-val {
+  font-family: var(--font-stats);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-left: auto;
+}
+
+.stat-unit {
+  font-family: var(--font-ui);
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  width: 50px;
+}
+
+.rewards-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.reward-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  background: rgba(255, 255, 255, 0.03);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+}
+
+.reward-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+}
+
+.gold-glow {
+  color: #ffd700;
+  background: rgba(255, 215, 0, 0.1);
+  border: 1px solid rgba(255, 215, 0, 0.3);
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
+}
+
+.blue-glow {
+  color: #00e5ff;
+  background: rgba(0, 229, 255, 0.1);
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  box-shadow: 0 0 15px rgba(0, 229, 255, 0.2);
+}
+
+.purple-glow {
+  color: #b388ff;
+  background: rgba(179, 136, 255, 0.1);
+  border: 1px solid rgba(179, 136, 255, 0.3);
+  box-shadow: 0 0 15px rgba(179, 136, 255, 0.2);
+}
+
+.reward-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.reward-amount {
+  font-family: var(--font-stats);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.reward-label {
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.grid-ruler {
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  color: var(--gold-primary);
+  margin-top: 4px;
+}
+
+.summary-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-xl);
+}
+
+.return-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  background: var(--gradient-gold-subtle);
+  border: none;
+  padding: 16px 32px;
+  border-radius: var(--radius-md);
+  color: #0a0a1a;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.return-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-gold-intense);
+}
+
+@media (max-width: 768px) {
+  .summary-header h1 {
+    font-size: 2.25rem;
+  }
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+}

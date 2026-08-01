@@ -1,0 +1,79 @@
+.weekly-chart-card {
+  background: rgba(18, 18, 42, 0.6);
+  border: 1px solid rgba(212, 175, 55, 0.15);
+  border-radius: var(--radius-xl);
+  padding: var(--space-xl);
+  backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  height: 100%;
+}
+
+.chart-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+  padding-bottom: var(--space-sm);
+}
+
+.chart-header h3 {
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.chart-icon {
+  color: var(--gold-primary);
+}
+
+.chart-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  height: 150px;
+  padding-top: 20px;
+}
+
+.chart-bar-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  flex: 1;
+}
+
+.chart-bar-wrapper {
+  height: 120px;
+  width: 32px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: flex-end;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.chart-bar {
+  width: 100%;
+  background: var(--gradient-gold-subtle);
+  border-radius: var(--radius-sm);
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.chart-val {
+  position: absolute;
+  top: -22px;
+  font-family: var(--font-stats);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.chart-label {
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
