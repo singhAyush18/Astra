@@ -1,5 +1,5 @@
 const Grid = require("../models/Grid");
-const GridInfluence = require("../models/GridInfluence");
+const GridInfluence = require("../models/Gridinfluence");
 
 const GRID_SIZE_METERS = 500;
 const CLAIM_THRESHOLD = 1500;
