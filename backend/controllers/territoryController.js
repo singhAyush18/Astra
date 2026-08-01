@@ -1,5 +1,5 @@
 const Grid = require("../models/Grid");
-const GridInfluence = require("../models/GridInfluence");
+const GridInfluence = require("../models/Gridinfluence");
 
 const getAllGrids = async (req, res) => {
     try {
@@ -34,7 +34,7 @@ const getAllGrids = async (req, res) => {
 };
 
 const getGridDetails = async (req, res) => {
-     try {
+    try {
         const { gridId } = req.params;
 
         const grid = await Grid.findOne({
@@ -51,8 +51,8 @@ const getGridDetails = async (req, res) => {
         const leaderboard = await GridInfluence.find({
             gridId: grid._id
         })
-        .populate("userId", "username")
-        .sort({ influence: -1 });
+            .populate("userId", "username")
+            .sort({ influence: -1 });
 
         res.status(200).json({
             success: true,
