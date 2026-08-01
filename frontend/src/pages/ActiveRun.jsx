@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Play, Square, MapPin, Clock, Gauge, Loader, Pause } from 'lucide-react';
 import { MapContainer, TileLayer, Polyline, Marker } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
 import './ActiveRun.css';
 import { useAuth } from '../context/AuthContext';
 import { runsAPI } from '../api';
@@ -71,9 +70,10 @@ function ActiveRun() {
       watchId = navigator.geolocation.watchPosition(
         (pos) => {
           const { latitude: lat, longitude: lng, accuracy } = pos.coords;
+
           // Filter out wildly inaccurate GPS readings (worse than 40 meters)
           if (accuracy > 40) return;
-          
+
           setCoords({ lat, lng });
           setPath(prev => [...prev, [lat, lng]]);
 
@@ -84,7 +84,7 @@ function ActiveRun() {
               if (data?.success) {
                 const newDistance = data.data.distance;
                 const distDelta = newDistance - distanceRef.current;
-                
+
                 if (distDelta > 0) {
                   const timeDelta = (Date.now() - lastMoveTimeRef.current) / 1000;
                   if (timeDelta > 0) {
@@ -92,24 +92,24 @@ function ActiveRun() {
                     let mins = Math.floor(paceMin);
                     let secs = Math.round((paceMin - mins) * 60);
                     if (secs === 60) { mins++; secs = 0; }
-                    
+
                     // Cap the pace display if it's absurdly slow (e.g. > 99 min/km)
                     if (mins > 99) {
-                        setCurrentPace('99+');
+                      setCurrentPace('99+');
                     } else {
-                        setCurrentPace(`${mins}:${secs.toString().padStart(2, '0')}`);
+                      setCurrentPace(`${mins}:${secs.toString().padStart(2, '0')}`);
                     }
                   }
-                  
+
                   distanceRef.current = newDistance;
                   lastMoveTimeRef.current = Date.now();
                 }
                 setDistance(newDistance);
               }
             })
-            .catch(() => {});
+            .catch(() => { });
         },
-        () => {},
+        () => { },
         { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
       );
     }
@@ -209,9 +209,9 @@ function ActiveRun() {
       {/* Mini Map */}
       {coords && (
         <div className="run-mini-map">
-          <MapContainer 
-            center={[coords.lat, coords.lng]} 
-            zoom={16} 
+          <MapContainer
+            center={[coords.lat, coords.lng]}
+            zoom={16}
             scrollWheelZoom={false}
             zoomControl={false}
             dragging={false}
@@ -226,7 +226,7 @@ function ActiveRun() {
       {/* Main stats */}
       <div className="run-stats-display">
         {/* Distance - hero stat */}
-        <motion.div 
+        <motion.div
           className="run-hero-stat"
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
