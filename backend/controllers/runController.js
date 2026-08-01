@@ -138,6 +138,7 @@ const getRunById = async (req, res) => {
 const endRun = async (req, res) => {
     try {
         const { id } = req.params;
+        const { duration: frontendDuration } = req.body || {};
 
         // Validate ObjectId format
         if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -174,7 +175,7 @@ const endRun = async (req, res) => {
         }
 
         run.endTime = new Date();
-        run.duration = Math.floor((run.endTime - run.startTime) / 1000);
+        run.duration = frontendDuration !== undefined ? frontendDuration : Math.floor((run.endTime - run.startTime) / 1000);
 
         const paceInMinutes =
             run.distance > 0 ? run.duration / 60 / run.distance : 0;
@@ -330,10 +331,12 @@ const updateLocation = async (req, res) => {
             );
             if (segmentDistance > 0.005) {
                 run.distance += segmentDistance;
+                run.path.push({ lat, lng });
             }
+        } else {
+            run.path.push({ lat, lng });
         }
 
-        run.path.push({ lat, lng });
         await run.save();
 
         res.status(200).json({

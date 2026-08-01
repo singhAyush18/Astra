@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Play, Square, MapPin, Clock, Gauge, Loader } from 'lucide-react';
+import { Play, Square, MapPin, Clock, Gauge, Loader, Pause } from 'lucide-react';
 import { MapContainer, TileLayer, Polyline, Marker } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
 import './ActiveRun.css';
 import { useAuth } from '../context/AuthContext';
 import { runsAPI } from '../api';
@@ -16,6 +17,10 @@ function ActiveRun() {
   const [gpsReady, setGpsReady] = useState(false);
   const [coords, setCoords] = useState(null);
   const [path, setPath] = useState([]);
+  const [isAutoPaused, setIsAutoPaused] = useState(false);
+  const [currentPace, setCurrentPace] = useState('--:--');
+  const distanceRef = useRef(0);
+  const lastMoveTimeRef = useRef(Date.now());
   const navigate = useNavigate();
 
   const { token, handleUnauthorized } = useAuth();
@@ -41,12 +46,19 @@ function ActiveRun() {
     );
   }, []);
 
-  // Timer
+  // Timer with Auto-Pause
   useEffect(() => {
     let interval;
     if (status === 'running') {
       interval = setInterval(() => {
-        setElapsed(prev => prev + 1);
+        // Auto-pause if no distance update for 5 minutes (300,000 ms)
+        if (Date.now() - lastMoveTimeRef.current < 300000) {
+          setElapsed(prev => prev + 1);
+          setIsAutoPaused(false);
+        } else {
+          setIsAutoPaused(true);
+          setCurrentPace('--:--');
+        }
       }, 1000);
     }
     return () => clearInterval(interval);
@@ -58,7 +70,10 @@ function ActiveRun() {
     if (status === 'running' && runId) {
       watchId = navigator.geolocation.watchPosition(
         (pos) => {
-          const { latitude: lat, longitude: lng } = pos.coords;
+          const { latitude: lat, longitude: lng, accuracy } = pos.coords;
+          // Filter out wildly inaccurate GPS readings (worse than 40 meters)
+          if (accuracy > 40) return;
+          
           setCoords({ lat, lng });
           setPath(prev => [...prev, [lat, lng]]);
 
@@ -67,7 +82,29 @@ function ActiveRun() {
             .then(res => res.json())
             .then(data => {
               if (data?.success) {
-                setDistance(data.data.distance);
+                const newDistance = data.data.distance;
+                const distDelta = newDistance - distanceRef.current;
+                
+                if (distDelta > 0) {
+                  const timeDelta = (Date.now() - lastMoveTimeRef.current) / 1000;
+                  if (timeDelta > 0) {
+                    const paceMin = (timeDelta / 60) / distDelta;
+                    let mins = Math.floor(paceMin);
+                    let secs = Math.round((paceMin - mins) * 60);
+                    if (secs === 60) { mins++; secs = 0; }
+                    
+                    // Cap the pace display if it's absurdly slow (e.g. > 99 min/km)
+                    if (mins > 99) {
+                        setCurrentPace('99+');
+                    } else {
+                        setCurrentPace(`${mins}:${secs.toString().padStart(2, '0')}`);
+                    }
+                  }
+                  
+                  distanceRef.current = newDistance;
+                  lastMoveTimeRef.current = Date.now();
+                }
+                setDistance(newDistance);
               }
             })
             .catch(() => {});
@@ -89,14 +126,8 @@ function ActiveRun() {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  const getPace = () => {
-    if (distance <= 0 || elapsed <= 0) return '--:--';
-    const paceMin = (elapsed / 60) / distance;
-    const mins = Math.floor(paceMin);
-    let secs = Math.round((paceMin - mins) * 60);
-    if (secs === 60) { return `${mins + 1}:00`; }
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+  // Note: getPace is no longer needed since we use currentPace
+  // But we can keep it for average pace if needed later.
 
   const handleStart = async () => {
     if (!coords) {
@@ -116,6 +147,9 @@ function ActiveRun() {
         setStatus('running');
         setElapsed(0);
         setDistance(0);
+        setCurrentPace('--:--');
+        distanceRef.current = 0;
+        lastMoveTimeRef.current = Date.now();
       } else {
         setError(data.message || 'Failed to start run');
       }
@@ -124,13 +158,23 @@ function ActiveRun() {
     }
   };
 
+  const handlePause = () => {
+    setStatus('paused');
+  };
+
+  const handleResume = () => {
+    setStatus('running');
+    setIsAutoPaused(false);
+    lastMoveTimeRef.current = Date.now();
+  };
+
   const handleStop = async () => {
     if (!runId) return;
 
     setStatus('ending');
 
     try {
-      const res = await runsAPI.end(token, runId);
+      const res = await runsAPI.end(token, runId, elapsed);
 
       const data = await res.json();
 
@@ -195,10 +239,14 @@ function ActiveRun() {
         {/* Secondary stats */}
         <div className="run-secondary-stats">
           <div className="run-stat-item">
-            <Clock size={18} className="stat-icon" />
+            <Clock size={18} className={`stat-icon ${isAutoPaused ? 'paused' : ''}`} />
             <div className="stat-data">
-              <span className="stat-value">{formatTime(elapsed)}</span>
-              <span className="stat-label">Duration</span>
+              <span className={`stat-value ${isAutoPaused ? 'paused-text' : ''}`}>
+                {formatTime(elapsed)}
+              </span>
+              <span className="stat-label">
+                {isAutoPaused ? 'Auto-Paused' : 'Duration'}
+              </span>
             </div>
           </div>
 
@@ -207,7 +255,7 @@ function ActiveRun() {
           <div className="run-stat-item">
             <Gauge size={18} className="stat-icon" />
             <div className="stat-data">
-              <span className="stat-value">{getPace()}</span>
+              <span className="stat-value">{currentPace}</span>
               <span className="stat-label">Pace (min/km)</span>
             </div>
           </div>
@@ -244,19 +292,49 @@ function ActiveRun() {
           </motion.button>
         )}
 
-        {status === 'running' && (
-          <motion.button
-            className="run-stop-btn"
-            onClick={handleStop}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3 }}
-          >
-            <Square size={24} fill="currentColor" />
-            <span>STOP</span>
-          </motion.button>
+        {(status === 'running' || status === 'paused') && (
+          <div style={{ display: 'flex', gap: '16px' }}>
+            {status === 'paused' || isAutoPaused ? (
+              <motion.button
+                className="run-pause-btn"
+                onClick={handleResume}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Play size={24} fill="currentColor" />
+                <span>RESUME</span>
+              </motion.button>
+            ) : (
+              <motion.button
+                className="run-pause-btn"
+                onClick={handlePause}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Pause size={24} fill="currentColor" />
+                <span>PAUSE</span>
+              </motion.button>
+            )}
+
+            <motion.button
+              className="run-stop-btn"
+              onClick={handleStop}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Square size={24} fill="currentColor" />
+              <span>STOP</span>
+            </motion.button>
+          </div>
         )}
 
         {status === 'ending' && (
