@@ -61,20 +61,20 @@ export const runsAPI = {
     }),
 
   updateLocation: (token, runId, { lat, lng }) =>
-    apiFetch(`/api/runs/${runId}/location`, {
+    apiFetch(`/api/v2/runs/${runId}/location`, {
       method: 'PATCH',
       headers: jsonAuthHeaders(token),
       body: JSON.stringify({ lat, lng }),
     }),
 
   end: (token, runId) =>
-    apiFetch(`/api/runs/${runId}/end`, {
+    apiFetch(`/api/v2/runs/${runId}/end`, {
       method: 'PATCH',
       headers: jsonAuthHeaders(token),
     }),
 
   delete: (token, runId) =>
-    apiFetch(`/api/runs/${runId}`, {
+    apiFetch(`/api/v2/runs/${runId}`, {
       method: 'DELETE',
       headers: authHeaders(token),
     }),
