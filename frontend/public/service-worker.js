@@ -15,7 +15,7 @@ self.addEventListener('install', event => {
 
 self.addEventListener('fetch', event => {
   // Pass through API requests, do not cache them.
-  if (event.request.url.includes('/api/')) {
+  if (event.request.url.includes('/api/v2/')) {
     return;
   }
   

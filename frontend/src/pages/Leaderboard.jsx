@@ -7,6 +7,7 @@ import {
 import Navbar from "../components/Navbar";
 import "./Leaderboard.css";
 import { useAuth } from "../context/AuthContext";
+import { statsAPI } from "../api";
 
 const CATEGORIES = [
   { key: "xp", label: "XP", icon: <Zap size={16} /> },
@@ -42,9 +43,7 @@ function Leaderboard() {
   useEffect(() => {
     const token = localStorage.getItem("token");
 
-    fetch(`/api/stats/leaderboard/global`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    statsAPI.getGlobalLeaderboard(token)
       .then((res) => {
         if (res.status === 401) {
           handleUnauthorized();
@@ -65,9 +64,7 @@ function Leaderboard() {
       .finally(() => setLoading(false));
 
     // Fetch streak for navbar flame
-    fetch(`/api/stats/gamification`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    statsAPI.getGamification(token)
       .then(res => res.json())
       .then(data => {
         if (data?.success) setStreak(data.data.currentStreak || 0);

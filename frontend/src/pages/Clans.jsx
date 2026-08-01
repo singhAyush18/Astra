@@ -3,6 +3,7 @@ import { Shield, Plus, Users } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
 import './Clans.css';
+import { clanAPI } from '../api';
 
 function Clans() {
   const [clans, setClans] = useState([]);
@@ -19,9 +20,7 @@ function Clans() {
 
   const fetchClans = async () => {
     try {
-      const res = await fetch(`/api/clans`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await clanAPI.getAll(token);
       const data = await res.json();
       if (data.success) {
         setClans(data.data);
@@ -37,14 +36,7 @@ function Clans() {
     e.preventDefault();
     setError('');
     try {
-      const res = await fetch(`/api/clans`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ name: newClanName, description: newClanDesc })
-      });
+      const res = await clanAPI.create(token, { name: newClanName, description: newClanDesc });
       const data = await res.json();
       if (data.success) {
         setShowCreateModal(false);
@@ -59,10 +51,7 @@ function Clans() {
 
   const handleJoinClan = async (clanId) => {
     try {
-      const res = await fetch(`/api/clans/${clanId}/join`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await clanAPI.join(token, clanId);
       const data = await res.json();
       if (data.success) {
         fetchClans();

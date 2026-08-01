@@ -3,6 +3,7 @@ import { Trophy, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './LeaderboardWidget.css';
+import { statsAPI } from '../api';
 
 function LeaderboardWidget() {
   const [leaderboard, setLeaderboard] = useState([]);
@@ -13,9 +14,7 @@ function LeaderboardWidget() {
   useEffect(() => {
     if (!token) return;
     
-    fetch(`/api/stats/leaderboard/global`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
+    statsAPI.getGlobalLeaderboard(token)
       .then(res => res.json())
       .then(data => {
         if (data?.success) {

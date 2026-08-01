@@ -4,6 +4,7 @@ import { Camera, User as UserIcon, Loader, Trash2, ArrowLeft } from "lucide-reac
 import Navbar from "../components/Navbar";
 import "./Settings.css";
 import { useAuth } from "../context/AuthContext";
+import { authAPI } from "../api";
 
 function Settings() {
   const navigate = useNavigate();
@@ -48,16 +49,9 @@ function Settings() {
     setLoading(true);
 
     try {
-      const res = await fetch(`/api/auth/profile`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          username,
-          profilePicture
-        })
+      const res = await authAPI.updateProfile(token, {
+        username,
+        profilePicture
       });
 
       if (res.status === 401) {

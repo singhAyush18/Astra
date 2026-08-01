@@ -5,6 +5,7 @@ import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
 import LiveGridMap from '../components/Map/LiveGridMap';
 import './TerritoryMap.css';
+import { territoryAPI } from '../api';
 
 function TerritoryMap() {
   const [territories, setTerritories] = useState([]);
@@ -22,20 +23,18 @@ function TerritoryMap() {
     setLoading(true);
     
     // Fetch all claimed territories
-    const fetchGlobal = fetch(`/api/territories`, {
-      headers: { Authorization: `Bearer ${token}` }
-    }).then(res => {
-      if (res.status === 401) throw new Error('unauthorized');
-      return res.json();
-    });
+    const fetchGlobal = territoryAPI.getAll(token)
+      .then(res => {
+        if (res.status === 401) throw new Error('unauthorized');
+        return res.json();
+      });
 
     // Fetch user's territories
-    const fetchMine = fetch(`/api/territories/mine`, {
-      headers: { Authorization: `Bearer ${token}` }
-    }).then(res => {
-      if (res.status === 401) throw new Error('unauthorized');
-      return res.json();
-    });
+    const fetchMine = territoryAPI.getMine(token)
+      .then(res => {
+        if (res.status === 401) throw new Error('unauthorized');
+        return res.json();
+      });
 
     Promise.all([fetchGlobal, fetchMine])
       .then(([globalData, mineData]) => {

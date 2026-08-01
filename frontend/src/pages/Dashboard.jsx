@@ -10,6 +10,7 @@ import RecentRuns from "../components/RecentRuns";
 import LeaderboardWidget from "../components/LeaderboardWidget";
 import "./Dashboard.css";
 import { useAuth } from "../context/AuthContext";
+import { statsAPI, runsAPI } from "../api";
 
 function Dashboard() {
   const [stats, setStats] = useState(null);
@@ -20,9 +21,7 @@ function Dashboard() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    fetch(`/api/stats/runs`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
+    statsAPI.getRunStats(token)
       .then(res => {
         if (res.status === 401) {
           handleUnauthorized();
@@ -36,9 +35,7 @@ function Dashboard() {
       .catch(console.error);
 
     // Fetch All Runs for charts
-    fetch(`/api/runs`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
+    runsAPI.getAll(token)
       .then(res => res.json())
       .then(data => {
         if (data?.success) setRuns(data.data.runs);
@@ -46,9 +43,7 @@ function Dashboard() {
       .catch(console.error);
 
     // Fetch Gamification Stats
-    fetch(`/api/stats/gamification`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
+    statsAPI.getGamification(token)
       .then(res => {
         if (res.status === 401) {
           handleUnauthorized();

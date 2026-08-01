@@ -8,6 +8,7 @@ import {
 import Navbar from "../components/Navbar";
 import "./RunHistory.css";
 import { useAuth } from "../context/AuthContext";
+import { runsAPI, statsAPI } from "../api";
 
 const formatDate = (dateStr) => {
   const d = new Date(dateStr);
@@ -56,9 +57,7 @@ function RunHistory() {
     if (!token) return;
 
     setLoading(true);
-    fetch(`/api/runs`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    runsAPI.getAll(token)
       .then((res) => {
         if (res.status === 401) {
           handleUnauthorized();
@@ -86,9 +85,7 @@ function RunHistory() {
 
     // Fetch streak for navbar flame
     if (token) {
-      fetch(`/api/stats/gamification`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      statsAPI.getGamification(token)
         .then(res => res.json())
         .then(data => {
           if (data?.success) setStreak(data.data.currentStreak || 0);
@@ -101,10 +98,7 @@ function RunHistory() {
     setDeleting(true);
 
     try {
-      const res = await fetch(`/api/runs/${runId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await runsAPI.delete(token, runId);
 
       if (res.status === 401) {
         handleUnauthorized();

@@ -5,6 +5,7 @@ import { Play, Square, MapPin, Clock, Gauge, Loader } from 'lucide-react';
 import { MapContainer, TileLayer, Polyline, Marker } from 'react-leaflet';
 import './ActiveRun.css';
 import { useAuth } from '../context/AuthContext';
+import { runsAPI } from '../api';
 
 function ActiveRun() {
   const [status, setStatus] = useState('ready'); // ready | running | ending
@@ -62,14 +63,7 @@ function ActiveRun() {
           setPath(prev => [...prev, [lat, lng]]);
 
           // Send location update to backend
-          fetch(`/api/runs/${runId}/location`, {
-            method: 'PATCH',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ lat, lng }),
-          })
+          runsAPI.updateLocation(token, runId, { lat, lng })
             .then(res => res.json())
             .then(data => {
               if (data?.success) {
@@ -113,14 +107,7 @@ function ActiveRun() {
     setError('');
 
     try {
-      const res = await fetch(`/api/runs/start`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ lat: coords.lat, lng: coords.lng }),
-      });
+      const res = await runsAPI.start(token, { lat: coords.lat, lng: coords.lng });
 
       const data = await res.json();
 
@@ -143,13 +130,7 @@ function ActiveRun() {
     setStatus('ending');
 
     try {
-      const res = await fetch(`/api/runs/${runId}/end`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const res = await runsAPI.end(token, runId);
 
       const data = await res.json();
 
