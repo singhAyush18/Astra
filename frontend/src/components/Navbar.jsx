@@ -15,6 +15,7 @@ const Navbar = ({ streak = 0 }) => {
   const closeMobile = () => setMobileOpen(false);
 
   return (
+    <>
     <motion.nav 
       className="navbar"
       initial={{ y: -80 }}
@@ -69,6 +70,8 @@ const Navbar = ({ streak = 0 }) => {
         </div>
       </div>
     </motion.nav>
+    <div style={{ height: 'var(--navbar-height)' }} className="navbar-spacer"></div>
+    </>
   );
 };
 
