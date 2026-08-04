@@ -134,7 +134,7 @@ export const clanAPI = {
     }),
 
   join: (token, clanId) =>
-    apiFetch(`/api/clans/${clanId}/join`, {
+    apiFetch(`/api/v2/clans/${clanId}/join`, {
       method: 'POST',
       headers: authHeaders(token),
     }),
