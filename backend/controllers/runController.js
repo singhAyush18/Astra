@@ -216,15 +216,32 @@ const endRun = async (req, res) => {
             streakInfo = await updateStreak(user._id);
 
             if (run.path.length > 0) {
+                // Count GPS points per grid to distribute XP proportionally
+                const gridPointCounts = {};
+                for (const point of run.path) {
+                    const gId = getGridIdFromCoordinates(point.lat, point.lng);
+                    gridPointCounts[gId] = (gridPointCounts[gId] || 0) + 1;
+                }
+
+                const totalPoints = run.path.length;
+                const uniqueGridIds = Object.keys(gridPointCounts);
+
+                // Distribute XP and distance proportionally to each grid
+                for (const gId of uniqueGridIds) {
+                    const proportion = gridPointCounts[gId] / totalPoints;
+                    const gridXP = Math.round(xpEarned * proportion);
+                    const gridDistance = run.distance * proportion;
+
+                    await addInfluenceToGrid(gId, user._id, gridXP, gridDistance);
+                }
+
+                // Use the last grid for the summary response
                 const lastPoint = run.path[run.path.length - 1];
                 gridId = getGridIdFromCoordinates(lastPoint.lat, lastPoint.lng);
-
-                gridUpdate = await addInfluenceToGrid(
-                    gridId,
-                    user._id,
-                    xpEarned,
-                    run.distance
-                );
+                gridUpdate = await require("../models/Gridinfluence").findOne({
+                    gridId: (await Grid.findOne({ gridId }))._id,
+                    userId: user._id,
+                });
 
                 // Fetch grid ruler info
                 const grid = await Grid.findOne({ gridId });

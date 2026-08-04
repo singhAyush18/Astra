@@ -51,6 +51,27 @@ function TerritoryMap() {
       .finally(() => setLoading(false));
   }, [token, handleUnauthorized]);
 
+  const handleRename = async (gridId, newName) => {
+    try {
+      const res = await territoryAPI.nameTerritory(token, gridId, newName);
+      const data = await res.json();
+      if (data.success) {
+        const updateList = (list) => 
+          list.map(t => t.gridId === gridId ? { ...t, name: data.data.name } : t);
+        
+        setTerritories(prev => updateList(prev));
+        setMyTerritories(prev => updateList(prev));
+        return true;
+      } else {
+        alert(data.message || 'Failed to rename territory');
+        return false;
+      }
+    } catch (err) {
+      alert('Network error while renaming');
+      return false;
+    }
+  };
+
   const displayList = activeTab === 'global' ? territories : myTerritories;
   
   const filteredList = displayList.filter(t => {
@@ -59,7 +80,8 @@ function TerritoryMap() {
     const rulerName = activeTab === 'mine' ? user?.username : t.rulerName;
     return (
       (t.gridId && t.gridId.toLowerCase().includes(q)) ||
-      (rulerName && rulerName.toLowerCase().includes(q))
+      (rulerName && rulerName.toLowerCase().includes(q)) ||
+      (t.name && t.name.toLowerCase().includes(q))
     );
   });
 
@@ -150,6 +172,7 @@ function TerritoryMap() {
             <LiveGridMap 
               territories={filteredList} 
               currentUserId={user?.id}
+              onRename={handleRename}
             />
           </div>
         )}

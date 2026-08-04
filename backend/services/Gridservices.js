@@ -1,8 +1,8 @@
 const Grid = require("../models/Grid");
 const GridInfluence = require("../models/Gridinfluence");
 
-const GRID_SIZE_METERS = 500;
-const CLAIM_THRESHOLD = 1500;
+const GRID_SIZE_METERS = 1000;
+const CLAIM_THRESHOLD = 700;
 
 /*
  * Convert GPS coordinates to a unique grid ID

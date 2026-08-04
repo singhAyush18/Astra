@@ -18,6 +18,13 @@ const gridSchema = new mongoose.Schema({
     default: "unclaimed"
     },
     
+    name: {
+        type: String,
+        default: null,
+        maxLength: 30,
+        trim: true
+    },
+    
     center: {
         lat: Number,
         lng: Number

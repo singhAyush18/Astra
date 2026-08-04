@@ -107,8 +107,15 @@ export const territoryAPI = {
     }),
 
   getMine: (token) =>
-    apiFetch('/api/v2/territories/mine', {
+    apiFetch('/api/v2/territories/my', {
       headers: authHeaders(token),
+    }),
+
+  nameTerritory: (token, territoryId, name) =>
+    apiFetch(`/api/v2/territories/${territoryId}/name`, {
+      method: 'PUT',
+      headers: jsonAuthHeaders(token),
+      body: JSON.stringify({ name }),
     }),
 };
 

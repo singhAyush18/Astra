@@ -1,9 +1,9 @@
 .live-grid-map-container {
   width: 100%;
   height: 600px;
-  border-radius: var(--radius-lg);
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: var(--shadow-dark);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 60px rgba(212, 175, 55, 0.05);
   border: 1px solid rgba(212, 175, 55, 0.2);
   position: relative;
   z-index: 1;
@@ -12,34 +12,163 @@
 .leaflet-container {
   width: 100%;
   height: 100%;
-  background-color: var(--bg-primary); /* Dark background for water/empty tiles */
+  background-color: #1a1a2e;
 }
 
-/* Customizing the Leaflet dark theme map if needed */
-.leaflet-tile {
-  filter: contrast(1.2) brightness(0.8) hue-rotate(200deg) invert(1);
-}
-
+/* ── Popup styling ── */
 .leaflet-popup-content-wrapper {
-  background: var(--bg-secondary) !important;
-  color: var(--text-primary) !important;
-  border: 1px solid var(--gold-primary);
-  border-radius: var(--radius-sm);
+  background: rgba(20, 20, 40, 0.95) !important;
+  color: #e8e0d0 !important;
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  border-radius: 12px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 20px rgba(212, 175, 55, 0.1);
 }
 
 .leaflet-popup-tip {
-  background: var(--bg-secondary) !important;
-  border: 1px solid var(--gold-primary);
+  background: rgba(20, 20, 40, 0.95) !important;
+}
+
+.territory-popup-content .popup-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.15);
+}
+
+.territory-popup-content .popup-emoji {
+  font-size: 1.4rem;
 }
 
 .territory-popup-content h4 {
-  color: var(--gold-primary);
-  margin-top: 0;
-  margin-bottom: var(--space-sm);
-  font-family: var(--font-heading);
+  color: #d4af37;
+  margin: 0;
+  font-family: 'Cinzel', serif;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
 }
 
-.territory-popup-content p {
+.territory-popup-content .popup-details p {
   margin: 4px 0;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  font-family: 'Inter', sans-serif;
+  color: #b0a890;
+}
+
+.territory-popup-content .popup-details strong {
+  color: #e8e0d0;
+}
+
+/* ── Crown/Sword markers ── */
+.grid-crown-icon,
+.grid-sword-icon {
+  background: none !important;
+  border: none !important;
+}
+
+.crown-marker {
+  font-size: 1.4rem;
+  filter: drop-shadow(0 0 6px rgba(212, 175, 55, 0.8));
+  animation: crownFloat 3s ease-in-out infinite;
+  text-align: center;
+}
+
+.sword-marker {
+  font-size: 1.1rem;
+  filter: drop-shadow(0 0 4px rgba(255, 77, 77, 0.6));
+  text-align: center;
+  opacity: 0.8;
+}
+
+@keyframes crownFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+/* ── Map Legend ── */
+.map-legend {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(20, 20, 40, 0.9);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #b0a890;
+  letter-spacing: 0.04em;
+}
+
+.legend-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.legend-swatch.mine {
+  background: rgba(212, 175, 55, 0.4);
+  border-color: #d4af37;
+  box-shadow: 0 0 8px rgba(212, 175, 55, 0.3);
+}
+
+.legend-swatch.enemy {
+  background: rgba(255, 77, 77, 0.3);
+  border-color: #ff4d4d;
+  box-shadow: 0 0 8px rgba(255, 77, 77, 0.2);
+}
+
+/* ── Rename Button ── */
+.rename-btn {
+  margin-top: 10px;
+  background: rgba(212, 175, 55, 0.15);
+  color: #d4af37;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.rename-btn:hover {
+  background: rgba(212, 175, 55, 0.3);
+}
+
+/* ── Responsive ── */
+@media (max-width: 480px) {
+  .live-grid-map-container {
+    height: 450px;
+    border-radius: 12px;
+  }
+
+  .map-legend {
+    bottom: 10px;
+    right: 10px;
+    padding: 8px 12px;
+  }
 }

@@ -20,6 +20,7 @@ function ActiveRun() {
   const [currentPace, setCurrentPace] = useState('--:--');
   const distanceRef = useRef(0);
   const lastMoveTimeRef = useRef(Date.now());
+  const lastCoordsRef = useRef(null);
   const navigate = useNavigate();
 
   const { token, handleUnauthorized } = useAuth();
@@ -63,6 +64,19 @@ function ActiveRun() {
     return () => clearInterval(interval);
   }, [status]);
 
+  // Haversine formula to calculate distance between two lat/lng points in km
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // Radius of the earth in km
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
+
   // GPS tracking while running
   useEffect(() => {
     let watchId;
@@ -77,37 +91,46 @@ function ActiveRun() {
           setCoords({ lat, lng });
           setPath(prev => [...prev, [lat, lng]]);
 
-          // Send location update to backend
-          runsAPI.updateLocation(token, runId, { lat, lng })
-            .then(res => res.json())
-            .then(data => {
-              if (data?.success) {
-                const newDistance = data.data.distance;
-                const distDelta = newDistance - distanceRef.current;
+          // Optimistic Local Distance Calculation
+          if (lastCoordsRef.current) {
+            const distDelta = calculateDistance(
+              lastCoordsRef.current.lat,
+              lastCoordsRef.current.lng,
+              lat,
+              lng
+            );
 
-                if (distDelta > 0) {
-                  const timeDelta = (Date.now() - lastMoveTimeRef.current) / 1000;
-                  if (timeDelta > 0) {
-                    const paceMin = (timeDelta / 60) / distDelta;
-                    let mins = Math.floor(paceMin);
-                    let secs = Math.round((paceMin - mins) * 60);
-                    if (secs === 60) { mins++; secs = 0; }
+            // 2-meter threshold for local updates (more responsive than backend's 5m)
+            if (distDelta > 0.002) {
+              const newDistance = distanceRef.current + distDelta;
+              
+              const timeDelta = (Date.now() - lastMoveTimeRef.current) / 1000;
+              if (timeDelta > 0) {
+                const paceMin = (timeDelta / 60) / distDelta;
+                let mins = Math.floor(paceMin);
+                let secs = Math.round((paceMin - mins) * 60);
+                if (secs === 60) { mins++; secs = 0; }
 
-                    // Cap the pace display if it's absurdly slow (e.g. > 99 min/km)
-                    if (mins > 99) {
-                      setCurrentPace('99+');
-                    } else {
-                      setCurrentPace(`${mins}:${secs.toString().padStart(2, '0')}`);
-                    }
-                  }
-
-                  distanceRef.current = newDistance;
-                  lastMoveTimeRef.current = Date.now();
+                // Cap the pace display if it's absurdly slow (e.g. > 99 min/km)
+                if (mins > 99) {
+                  setCurrentPace('99+');
+                } else {
+                  setCurrentPace(`${mins}:${secs.toString().padStart(2, '0')}`);
                 }
-                setDistance(newDistance);
               }
-            })
-            .catch(() => { });
+
+              distanceRef.current = newDistance;
+              lastMoveTimeRef.current = Date.now();
+              lastCoordsRef.current = { lat, lng };
+              setDistance(newDistance);
+            }
+          } else {
+            // First point of the run
+            lastCoordsRef.current = { lat, lng };
+          }
+
+          // Send location update to backend in the background (fire and forget)
+          runsAPI.updateLocation(token, runId, { lat, lng }).catch(() => {});
         },
         () => { },
         { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
@@ -125,9 +148,6 @@ function ActiveRun() {
     if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
-
-  // Note: getPace is no longer needed since we use currentPace
-  // But we can keep it for average pace if needed later.
 
   const handleStart = async () => {
     if (!coords) {
@@ -150,6 +170,7 @@ function ActiveRun() {
         setCurrentPace('--:--');
         distanceRef.current = 0;
         lastMoveTimeRef.current = Date.now();
+        lastCoordsRef.current = coords; // Initialize with current GPS
       } else {
         setError(data.message || 'Failed to start run');
       }
