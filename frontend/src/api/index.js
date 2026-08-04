@@ -7,19 +7,22 @@ const BASE_URL = import.meta.env.VITE_API_URL || '';
 // ── Core fetch wrapper ──
 const apiFetch = async (endpoint, options = {}) => {
   const url = `${BASE_URL}${endpoint}`;
-  const response = await fetch(url, options);
+  const finalOptions = {
+    ...options,
+    credentials: 'include', // Automatically send cookies
+  };
+  const response = await fetch(url, finalOptions);
   return response;
 };
 
 // ── Helper to build auth headers ──
+// Token is now sent via HttpOnly cookie, so we don't need Authorization header
 const authHeaders = (token, extra = {}) => ({
-  Authorization: `Bearer ${token}`,
   ...extra,
 });
 
 const jsonAuthHeaders = (token) => ({
   'Content-Type': 'application/json',
-  Authorization: `Bearer ${token}`,
 });
 
 // ===== Auth APIs =====

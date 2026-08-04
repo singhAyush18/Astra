@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import toast from "react-hot-toast";
 import "./Login.css";
 import { useAuth } from "../context/AuthContext";
 import { authAPI } from "../api";
@@ -7,14 +8,12 @@ import { authAPI } from "../api";
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
     setLoading(true);
 
     try {
@@ -23,15 +22,15 @@ function Login() {
       const data = await res.json();
 
       if (!data.success) {
-        setError(data.message);
+        toast.error(data.message);
         return;
       }
 
-      login(data.token, data.user);
+      login(data.user);
       navigate("/dashboard");
     } catch (err) {
       console.error("Login fetch error:", err);
-      setError("Something went wrong. Try again.");
+      toast.error("Something went wrong. Try again.");
     } finally {
       setLoading(false);
     }
@@ -44,12 +43,10 @@ function Login() {
         <h1 className="logo">ASTRA</h1>
 
         <p className="subtitle">
-          Run, Conquer, Rule
+          Enter the realm
         </p>
 
         <form className="auth-form" onSubmit={handleSubmit}>
-
-          {error && <p className="auth-error">{error}</p>}
 
           <input
             type="email"

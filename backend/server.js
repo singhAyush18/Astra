@@ -2,22 +2,27 @@ const express = require("express");
 const dotenv = require("dotenv");
 dotenv.config();
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
 const connectDB = require("./config/db");
 
 const runRoutes = require("./routes/runRoutes");
 const statsRoutes = require("./routes/statsRoutes");
 const authRoutes = require("./routes/authRoutes");
-const territoryRoutes = require ("./routes/territoryRoutes");
+const territoryRoutes = require("./routes/territoryRoutes");
 const clanRoutes = require("./routes/clanRoutes");
 
 const app = express();
 
 app.use(express.json());
-app.use(cors());
+app.use(cookieParser());
+app.use(cors({
+    origin: ['http://localhost:5173', 'http://localhost:5174'],
+    credentials: true
+}));
 
 // Base route (health check)
 app.get("/", (req, res) => {
-    res.send("Runner's Arc Backend Running"); 
+    res.send("Runner's Arc Backend Running");
 });
 
 app.use("/api/v2/auth", authRoutes);

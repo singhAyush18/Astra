@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, Settings, Info, LogOut, ChevronDown } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import './UserMenu.css';
 
 const UserMenu = () => {
@@ -36,9 +37,10 @@ const UserMenu = () => {
     return () => window.removeEventListener('profileUpdated', loadUser);
   }, []);
 
+  const { logout } = useAuth();
+
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    logout();
     setOpen(false);
     navigate('/');
   };

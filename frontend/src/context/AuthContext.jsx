@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 const AuthContext = createContext(null);
 
@@ -13,37 +14,33 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // Initialize from localStorage on mount
   useEffect(() => {
-    const storedToken = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
 
-    if (storedToken && storedUser) {
+    if (storedUser) {
       try {
-        setToken(storedToken);
         setUser(JSON.parse(storedUser));
       } catch {
-        localStorage.removeItem('token');
         localStorage.removeItem('user');
       }
     }
     setLoading(false);
   }, []);
 
-  const login = (newToken, newUser) => {
-    localStorage.setItem('token', newToken);
+  const login = (newUser) => {
     localStorage.setItem('user', JSON.stringify(newUser));
-    setToken(newToken);
     setUser(newUser);
+    toast.success(`Welcome back, ${newUser.username}!`);
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
+    if (user) {
+      toast('You have logged out', { icon: '👋', id: 'logout-toast' });
+    }
     localStorage.removeItem('user');
-    setToken(null);
     setUser(null);
   };
 
@@ -58,11 +55,10 @@ export const AuthProvider = ({ children }) => {
     logout();
   };
 
-  const isAuthenticated = !!token && !!user;
+  const isAuthenticated = !!user;
 
   const value = {
     user,
-    token,
     loading,
     isAuthenticated,
     login,

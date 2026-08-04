@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import toast from "react-hot-toast";
 import "./Login.css";
 import { useAuth } from "../context/AuthContext";
 import { authAPI } from "../api";
@@ -8,14 +9,19 @@ function Signup() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
+
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match!");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -24,15 +30,15 @@ function Signup() {
       const data = await res.json();
 
       if (!data.success) {
-        setError(data.message);
+        toast.error(data.message);
         return;
       }
 
-      login(data.token, data.user);
+      login(data.user);
       navigate("/dashboard");
     } catch (err) {
       console.error("Signup fetch error:", err);
-      setError("Something went wrong. Try again.");
+      toast.error("Something went wrong. Try again.");
     } finally {
       setLoading(false);
     }
@@ -49,8 +55,6 @@ function Signup() {
         </p>
 
         <form className="auth-form" onSubmit={handleSubmit}>
-
-          {error && <p className="auth-error">{error}</p>}
 
           <input
             type="text"
@@ -70,9 +74,17 @@ function Signup() {
 
           <input
             type="password"
-            placeholder="Create your sigil"
+            placeholder="Create your Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+
+          <input
+            type="password"
+            placeholder="Confirm your Password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
             required
           />
 
@@ -82,7 +94,7 @@ function Signup() {
         </form>
 
         <p className="auth-footer">
-          Already a Warrior? <Link to="/">Login</Link>
+          Already a Warrior? <Link to="/login">Login</Link>
         </p>
 
       </div>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Shield, Plus, Users } from 'lucide-react';
+import toast from 'react-hot-toast';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
 import './Clans.css';
@@ -41,11 +42,14 @@ function Clans() {
       if (data.success) {
         setShowCreateModal(false);
         fetchClans();
+        toast.success(`Clan '${newClanName}' created successfully!`);
       } else {
         setError(data.message);
+        toast.error(data.message);
       }
     } catch (err) {
       setError('Failed to create clan');
+      toast.error('Failed to create clan');
     }
   };
 
@@ -55,11 +59,12 @@ function Clans() {
       const data = await res.json();
       if (data.success) {
         fetchClans();
+        toast.success(data.message || 'Successfully joined clan!');
       } else {
-        alert(data.message);
+        toast.error(data.message);
       }
     } catch (err) {
-      alert('Failed to join clan');
+      toast.error('Failed to join clan');
     }
   };
 

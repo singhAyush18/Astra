@@ -5,6 +5,7 @@ import {
   Scroll, MapPin, Clock, Gauge, Trash2, ChevronDown,
   ChevronUp, Filter, Calendar, CheckCircle, XCircle, AlertCircle
 } from "lucide-react";
+import toast from "react-hot-toast";
 import Navbar from "../components/Navbar";
 import "./RunHistory.css";
 import { useAuth } from "../context/AuthContext";
@@ -111,11 +112,14 @@ function RunHistory() {
         setRuns((prev) => prev.filter((r) => r._id !== runId));
         setDeleteConfirm(null);
         setExpandedRun(null);
+        toast.success("Run deleted successfully");
       } else {
         setError(data.message || "Failed to delete");
+        toast.error("Failed to delete run");
       }
     } catch {
       setError("Error deleting run");
+      toast.error("Error deleting run");
     } finally {
       setDeleting(false);
     }

@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Landing from "./pages/Landing";
@@ -17,6 +18,14 @@ import Clans from "./pages/Clans";
 function App() {
   return (
     <AuthProvider>
+      <Toaster position="top-center" toastOptions={{
+        style: {
+          background: '#141428',
+          color: '#e8e0d0',
+          border: '1px solid rgba(212, 175, 55, 0.3)',
+          fontFamily: "'Inter', sans-serif"
+        }
+      }} />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Landing />} />
