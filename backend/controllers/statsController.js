@@ -12,6 +12,22 @@ const getGamificationstats = async (req, res) => {
             });
         }
 
+        // Check if streak has expired (no run yesterday or today)
+        if (user.lastRunDate && user.currentStreak > 0) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const lastRun = new Date(user.lastRunDate);
+            lastRun.setHours(0, 0, 0, 0);
+
+            const diffDays = Math.floor((today - lastRun) / (1000 * 60 * 60 * 24));
+
+            if (diffDays > 1) {
+                user.currentStreak = 0;
+                await user.save();
+            }
+        }
+
         res.status(200).json({
             success: true,
             message: "Gamification stats retrieved",
