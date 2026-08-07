@@ -52,13 +52,13 @@ function RunHistory() {
   const [streak, setStreak] = useState(0);
   const navigate = useNavigate();
 
-  const { token, handleUnauthorized } = useAuth();
+  const { user, handleUnauthorized } = useAuth();
 
   const fetchRuns = () => {
-    if (!token) return;
+    if (!user) return;
 
     setLoading(true);
-    runsAPI.getAll(token)
+    runsAPI.getAll(null)
       .then((res) => {
         if (res.status === 401) {
           handleUnauthorized();
@@ -85,8 +85,8 @@ function RunHistory() {
     fetchRuns();
 
     // Fetch streak for navbar flame
-    if (token) {
-      statsAPI.getGamification(token)
+    if (user) {
+      statsAPI.getGamification(null)
         .then(res => res.json())
         .then(data => {
           if (data?.success) setStreak(data.data.currentStreak || 0);
@@ -99,7 +99,7 @@ function RunHistory() {
     setDeleting(true);
 
     try {
-      const res = await runsAPI.delete(token, runId);
+      const res = await runsAPI.delete(null, runId);
 
       if (res.status === 401) {
         handleUnauthorized();

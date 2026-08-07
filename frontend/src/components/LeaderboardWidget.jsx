@@ -8,13 +8,13 @@ import { statsAPI } from '../api';
 function LeaderboardWidget() {
   const [leaderboard, setLeaderboard] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { token, user } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!token) return;
+    if (!user) return;
     
-    statsAPI.getGlobalLeaderboard(token)
+    statsAPI.getGlobalLeaderboard(null)
       .then(res => res.json())
       .then(data => {
         if (data?.success) {
@@ -24,7 +24,7 @@ function LeaderboardWidget() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [token]);
+  }, [user]);
 
   const getRankIcon = (rank) => {
     if (rank === 1) return <Trophy size={16} className="rank-icon gold" />;

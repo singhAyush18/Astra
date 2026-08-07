@@ -23,7 +23,7 @@ function ActiveRun() {
   const lastCoordsRef = useRef(null);
   const navigate = useNavigate();
 
-  const { token, handleUnauthorized } = useAuth();
+  const { handleUnauthorized } = useAuth();
 
   // Get initial GPS position
   useEffect(() => {
@@ -130,7 +130,7 @@ function ActiveRun() {
           }
 
           // Send location update to backend in the background (fire and forget)
-          runsAPI.updateLocation(token, runId, { lat, lng }).catch(() => {});
+          runsAPI.updateLocation(null, runId, { lat, lng }).catch(() => {});
         },
         () => { },
         { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
@@ -158,7 +158,7 @@ function ActiveRun() {
     setError('');
 
     try {
-      const res = await runsAPI.start(token, { lat: coords.lat, lng: coords.lng });
+      const res = await runsAPI.start(null, { lat: coords.lat, lng: coords.lng });
 
       const data = await res.json();
 
@@ -195,7 +195,7 @@ function ActiveRun() {
     setStatus('ending');
 
     try {
-      const res = await runsAPI.end(token, runId, elapsed);
+      const res = await runsAPI.end(null, runId, elapsed);
 
       const data = await res.json();
 

@@ -8,7 +8,7 @@ import { authAPI } from "../api";
 
 function Settings() {
   const navigate = useNavigate();
-  const { user, token, updateUser, handleUnauthorized } = useAuth();
+  const { user, updateUser, handleUnauthorized } = useAuth();
   const [username, setUsername] = useState("");
   const [profilePicture, setProfilePicture] = useState(null);
   
@@ -49,7 +49,7 @@ function Settings() {
     setLoading(true);
 
     try {
-      const res = await authAPI.updateProfile(token, {
+      const res = await authAPI.updateProfile(null, {
         username,
         profilePicture
       });

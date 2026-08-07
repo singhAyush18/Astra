@@ -15,22 +15,22 @@ function TerritoryMap() {
   const [activeTab, setActiveTab] = useState('global'); // 'global' | 'mine'
   const [searchQuery, setSearchQuery] = useState('');
   
-  const { token, user, handleUnauthorized } = useAuth();
+  const { user, handleUnauthorized } = useAuth();
 
   useEffect(() => {
-    if (!token) return;
+    if (!user) return;
     
     setLoading(true);
     
     // Fetch all claimed territories
-    const fetchGlobal = territoryAPI.getAll(token)
+    const fetchGlobal = territoryAPI.getAll(null)
       .then(res => {
         if (res.status === 401) throw new Error('unauthorized');
         return res.json();
       });
 
     // Fetch user's territories
-    const fetchMine = territoryAPI.getMine(token)
+    const fetchMine = territoryAPI.getMine(null)
       .then(res => {
         if (res.status === 401) throw new Error('unauthorized');
         return res.json();
@@ -49,11 +49,11 @@ function TerritoryMap() {
         }
       })
       .finally(() => setLoading(false));
-  }, [token, handleUnauthorized]);
+  }, [user, handleUnauthorized]);
 
   const handleRename = async (gridId, newName) => {
     try {
-      const res = await territoryAPI.nameTerritory(token, gridId, newName);
+      const res = await territoryAPI.nameTerritory(null, gridId, newName);
       const data = await res.json();
       if (data.success) {
         const updateList = (list) => 

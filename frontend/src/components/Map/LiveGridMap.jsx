@@ -62,22 +62,6 @@ const MapAutoCenter = ({ territories }) => {
   const map = useMap();
 
   useEffect(() => {
-    // Try to get user's current location first
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          map.setView([pos.coords.latitude, pos.coords.longitude], 14);
-        },
-        () => {
-          // Fallback: fit to territories if geolocation denied
-          fitToTerritories();
-        },
-        { enableHighAccuracy: false, timeout: 5000 }
-      );
-    } else {
-      fitToTerritories();
-    }
-
     function fitToTerritories() {
       if (territories && territories.length > 0) {
         const allLats = [];
@@ -96,8 +80,24 @@ const MapAutoCenter = ({ territories }) => {
             [Math.min(...allLats), Math.min(...allLngs)],
             [Math.max(...allLats), Math.max(...allLngs)]
           ], { padding: [40, 40] });
+          return true; // Successfully bounded to territories
         }
       }
+      return false; // No territories to bound to
+    }
+
+    // Try to fit to territories first
+    const bounded = fitToTerritories();
+
+    // Only fallback to user location if there are no territories to show
+    if (!bounded && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          map.setView([pos.coords.latitude, pos.coords.longitude], 14);
+        },
+        () => {}, // Ignore errors
+        { enableHighAccuracy: false, timeout: 5000 }
+      );
     }
   }, [territories, map]);
 
@@ -118,6 +118,7 @@ const LiveGridMap = ({ territories, currentUserId, centerCoords, onRename }) => 
         touchZoom={true}
         doubleClickZoom={true}
         tap={true}
+        style={{ height: '100%', width: '100%' }}
       >
         {/* CartoDB Dark Matter — free dark map tiles, no API key */}
         <TileLayer

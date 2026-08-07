@@ -13,7 +13,7 @@ function Clans() {
   const [newClanName, setNewClanName] = useState('');
   const [newClanDesc, setNewClanDesc] = useState('');
   const [error, setError] = useState('');
-  const { token, user } = useAuth();
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchClans();
@@ -21,7 +21,7 @@ function Clans() {
 
   const fetchClans = async () => {
     try {
-      const res = await clanAPI.getAll(token);
+      const res = await clanAPI.getAll(null);
       const data = await res.json();
       if (data.success) {
         setClans(data.data);
@@ -37,7 +37,7 @@ function Clans() {
     e.preventDefault();
     setError('');
     try {
-      const res = await clanAPI.create(token, { name: newClanName, description: newClanDesc });
+      const res = await clanAPI.create(null, { name: newClanName, description: newClanDesc });
       const data = await res.json();
       if (data.success) {
         setShowCreateModal(false);
@@ -55,7 +55,7 @@ function Clans() {
 
   const handleJoinClan = async (clanId) => {
     try {
-      const res = await clanAPI.join(token, clanId);
+      const res = await clanAPI.join(null, clanId);
       const data = await res.json();
       if (data.success) {
         fetchClans();
