@@ -99,15 +99,29 @@ function RunSummary() {
           >
             <h3>Spoils of War</h3>
             
-            <div className="reward-item xp-reward">
-              <div className="reward-icon gold-glow">
-                <Zap size={24} />
+            {xpEarned !== undefined && (
+              <div className="reward-item xp-reward">
+                <div className="reward-icon gold-glow">
+                  <Zap size={24} />
+                </div>
+                <div className="reward-details">
+                  <span className="reward-amount">+{xpEarned.toLocaleString()} XP</span>
+                  <span className="reward-label">Experience Earned</span>
+                </div>
               </div>
-              <div className="reward-details">
-                <span className="reward-amount">+{xpEarned?.toLocaleString()} XP</span>
-                <span className="reward-label">Experience Earned</span>
+            )}
+
+            {xpEarned === undefined && (
+              <div className="reward-item xp-reward" style={{ opacity: 0.6 }}>
+                <div className="reward-icon" style={{ boxShadow: 'none' }}>
+                  <Zap size={24} color="#666" />
+                </div>
+                <div className="reward-details">
+                  <span className="reward-amount" style={{ color: '#aaa' }}>Run Discarded</span>
+                  <span className="reward-label">Distance was too short to earn rewards</span>
+                </div>
               </div>
-            </div>
+            )}
 
             {isLevelUp && (
               <motion.div 
@@ -126,17 +140,21 @@ function RunSummary() {
               </motion.div>
             )}
 
-            {grid && (
-              <div className="reward-item territory-reward">
-                <div className="reward-icon purple-glow">
-                  <MapPin size={24} />
+            {run?.gridBreakdown && run.gridBreakdown.length > 0 && (
+              <div className="reward-item territory-reward" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '10px' }}>
+                  <div className="reward-icon purple-glow">
+                    <MapPin size={24} />
+                  </div>
+                  <span className="reward-amount" style={{ fontSize: '1rem' }}>Territories Conquered</span>
                 </div>
-                <div className="reward-details">
-                  <span className="reward-amount">Grid {grid.gridId}</span>
-                  <span className="reward-label">+{grid.influenceAdded} Influence added</span>
-                  {grid.rulerName && (
-                    <span className="grid-ruler">Current Ruler: {grid.rulerName}</span>
-                  )}
+                <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {run.gridBreakdown.map((g, idx) => (
+                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', backgroundColor: 'rgba(255,255,255,0.03)', padding: '8px 12px', borderRadius: '6px' }}>
+                      <span style={{ color: '#d4af37', fontFamily: 'monospace' }}>{g.gridId}</span>
+                      <span style={{ color: '#aaa', fontSize: '0.9rem' }}>+{g.influenceEarned} Influence</span>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

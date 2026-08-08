@@ -63,11 +63,11 @@ export const runsAPI = {
       body: JSON.stringify({ lat, lng }),
     }),
 
-  updateLocation: (token, runId, { lat, lng }) =>
+  updateLocation: (token, runId, { lat, lng, duration }) =>
     apiFetch(`/api/v2/runs/${runId}/location`, {
       method: 'PATCH',
       headers: jsonAuthHeaders(token),
-      body: JSON.stringify({ lat, lng }),
+      body: JSON.stringify({ lat, lng, duration }),
     }),
 
   end: (token, runId, duration) =>

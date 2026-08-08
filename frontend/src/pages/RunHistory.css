@@ -370,6 +370,61 @@
   color: var(--text-primary);
 }
 
+/* --- Grid Breakdown --- */
+.grid-breakdown-section {
+  padding: 0 var(--space-lg) var(--space-md);
+  border-top: 1px dashed rgba(212, 175, 55, 0.1);
+  margin-top: var(--space-sm);
+  padding-top: var(--space-md);
+}
+
+.grid-breakdown-title {
+  font-family: var(--font-heading);
+  font-size: 0.9rem;
+  color: var(--gold-primary);
+  margin-bottom: var(--space-sm);
+  letter-spacing: 0.05em;
+}
+
+.grid-breakdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.grid-breakdown-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(18, 18, 42, 0.4);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.grid-id {
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.grid-stats {
+  display: flex;
+  gap: var(--space-md);
+  font-family: var(--font-stats);
+  font-size: 0.85rem;
+}
+
+.grid-inf {
+  color: #27ae60;
+  font-weight: 700;
+}
+
+.grid-dist {
+  color: var(--text-muted);
+}
+
 /* --- Actions --- */
 .run-actions {
   padding: 0 var(--space-lg) var(--space-lg);

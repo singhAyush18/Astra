@@ -19,6 +19,7 @@ function ActiveRun() {
   const [isAutoPaused, setIsAutoPaused] = useState(false);
   const [currentPace, setCurrentPace] = useState('--:--');
   const distanceRef = useRef(0);
+  const elapsedRef = useRef(0);
   const lastMoveTimeRef = useRef(Date.now());
   const lastCoordsRef = useRef(null);
   const navigate = useNavigate();
@@ -53,7 +54,11 @@ function ActiveRun() {
       interval = setInterval(() => {
         // Auto-pause if no distance update for 5 minutes (300,000 ms)
         if (Date.now() - lastMoveTimeRef.current < 300000) {
-          setElapsed(prev => prev + 1);
+          setElapsed(prev => {
+            const next = prev + 1;
+            elapsedRef.current = next;
+            return next;
+          });
           setIsAutoPaused(false);
         } else {
           setIsAutoPaused(true);
@@ -130,7 +135,7 @@ function ActiveRun() {
           }
 
           // Send location update to backend in the background (fire and forget)
-          runsAPI.updateLocation(null, runId, { lat, lng }).catch(() => {});
+          runsAPI.updateLocation(null, runId, { lat, lng, duration: elapsedRef.current }).catch(() => {});
         },
         () => { },
         { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
@@ -163,14 +168,37 @@ function ActiveRun() {
       const data = await res.json();
 
       if (data.success) {
-        setRunId(data.data.run._id);
-        setStatus('running');
-        setElapsed(0);
-        setDistance(0);
-        setCurrentPace('--:--');
-        distanceRef.current = 0;
-        lastMoveTimeRef.current = Date.now();
-        lastCoordsRef.current = coords; // Initialize with current GPS
+        if (data.data.resumed) {
+          const resRun = data.data.run;
+          setRunId(resRun._id);
+          setElapsed(resRun.duration || 0);
+          elapsedRef.current = resRun.duration || 0;
+          setDistance(resRun.distance || 0);
+          distanceRef.current = resRun.distance || 0;
+          
+          if (resRun.path && resRun.path.length > 0) {
+            const lastPath = resRun.path[resRun.path.length - 1];
+            setCoords(lastPath);
+            lastCoordsRef.current = lastPath;
+            setPath(resRun.path.map(p => [p.lat, p.lng]));
+          } else {
+            lastCoordsRef.current = coords;
+          }
+          
+          setStatus('running');
+          setCurrentPace('--:--');
+          lastMoveTimeRef.current = Date.now();
+        } else {
+          setRunId(data.data.run._id);
+          setStatus('running');
+          setElapsed(0);
+          elapsedRef.current = 0;
+          setDistance(0);
+          setCurrentPace('--:--');
+          distanceRef.current = 0;
+          lastMoveTimeRef.current = Date.now();
+          lastCoordsRef.current = coords; // Initialize with current GPS
+        }
       } else {
         setError(data.message || 'Failed to start run');
       }
@@ -181,6 +209,9 @@ function ActiveRun() {
 
   const handlePause = () => {
     setStatus('paused');
+    if (runId && coords) {
+      runsAPI.updateLocation(null, runId, { lat: coords.lat, lng: coords.lng, duration: elapsedRef.current }).catch(() => {});
+    }
   };
 
   const handleResume = () => {

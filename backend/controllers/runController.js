@@ -25,6 +25,48 @@ const haversine = (lat1, lng1, lat2, lng2) => {
     return R * c;
 };
 
+const finalizeRun = async (run) => {
+    if (run.distance < 0.1) {
+        run.status = "discarded";
+        await run.save();
+        return;
+    }
+
+    run.status = "completed";
+    if (!run.endTime) run.endTime = new Date();
+    await run.save();
+
+    const user = await User.findById(run.userId);
+    if (user) {
+        const paceInMinutes = run.distance > 0 ? run.duration / 60 / run.distance : 0;
+        const xpEarned = calculateXP(run.distance, paceInMinutes);
+        user.xp += xpEarned;
+        user.level = Math.floor(user.xp / 500) + 1;
+        await user.save();
+        await updateStreak(user._id);
+
+        if (run.path.length > 0) {
+            const gridPointCounts = {};
+            for (const point of run.path) {
+                const gId = getGridIdFromCoordinates(point.lat, point.lng);
+                gridPointCounts[gId] = (gridPointCounts[gId] || 0) + 1;
+            }
+            const totalPoints = run.path.length;
+            const uniqueGridIds = Object.keys(gridPointCounts);
+            const gridBreakdown = [];
+            for (const gId of uniqueGridIds) {
+                const proportion = gridPointCounts[gId] / totalPoints;
+                const gridDistance = run.distance * proportion;
+                const gridInfluence = Math.round(gridDistance * 100);
+                await addInfluenceToGrid(gId, user._id, gridInfluence, gridDistance);
+                gridBreakdown.push({ gridId: gId, influenceEarned: gridInfluence, distance: gridDistance });
+            }
+            run.gridBreakdown = gridBreakdown;
+            await run.save();
+        }
+    }
+};
+
 const startRun = async (req, res) => {
     try {
         const userId = req.user.id;
@@ -45,17 +87,35 @@ const startRun = async (req, res) => {
             });
         }
 
-        const activeRun = await Run.findOne({
+        const activeRuns = await Run.find({
             userId,
             status: "active",
         });
 
-        if (activeRun) {
-            return res.status(400).json({
-                success: false,
-                message: "You already have an active run",
-                data: { runId: activeRun._id },
-            });
+        if (activeRuns.length > 0) {
+            const thirtyMinsAgo = new Date(Date.now() - 30 * 60 * 1000);
+            let freshRun = null;
+
+            for (const activeRun of activeRuns) {
+                const lastUpdated = activeRun.updatedAt || activeRun.startTime;
+                if (lastUpdated < thirtyMinsAgo) {
+                    // Stale run: auto-finish it
+                    await finalizeRun(activeRun);
+                } else {
+                    // Found a fresh one
+                    freshRun = activeRun;
+                }
+            }
+
+            if (freshRun) {
+                // Resume active run
+                return res.status(200).json({
+                    success: true,
+                    message: "Resumed active run",
+                    data: { run: freshRun, resumed: true },
+                });
+            }
+            // If all were stale, they are now finished. We continue to create a new run below.
         }
 
         const run = await Run.create({
@@ -226,15 +286,19 @@ const endRun = async (req, res) => {
                 const totalPoints = run.path.length;
                 const uniqueGridIds = Object.keys(gridPointCounts);
 
-                // Distribute XP and distance proportionally to each grid
+                // Distribute Influence and distance proportionally to each grid
+                const gridBreakdown = [];
                 for (const gId of uniqueGridIds) {
                     const proportion = gridPointCounts[gId] / totalPoints;
-                    const gridXP = Math.round(xpEarned * proportion);
                     const gridDistance = run.distance * proportion;
+                    const gridInfluence = Math.round(gridDistance * 100);
 
-                    await addInfluenceToGrid(gId, user._id, gridXP, gridDistance);
+                    await addInfluenceToGrid(gId, user._id, gridInfluence, gridDistance);
+                    gridBreakdown.push({ gridId: gId, influenceEarned: gridInfluence, distance: gridDistance });
                 }
-
+                
+                run.gridBreakdown = gridBreakdown;
+                await run.save();
                 // Use the last grid for the summary response
                 const lastPoint = run.path[run.path.length - 1];
                 gridId = getGridIdFromCoordinates(lastPoint.lat, lastPoint.lng);
@@ -288,7 +352,7 @@ const endRun = async (req, res) => {
 const updateLocation = async (req, res) => {
     try {
         const { id } = req.params;
-        const { lat, lng } = req.body;
+        const { lat, lng, duration } = req.body;
 
         // Validate ObjectId format
         if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -352,6 +416,10 @@ const updateLocation = async (req, res) => {
             }
         } else {
             run.path.push({ lat, lng });
+        }
+
+        if (duration !== undefined) {
+            run.duration = duration;
         }
 
         await run.save();

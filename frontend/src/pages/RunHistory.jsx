@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Scroll, MapPin, Clock, Gauge, Trash2, ChevronDown,
-  ChevronUp, Filter, Calendar, CheckCircle, XCircle, AlertCircle
+  ChevronUp, Filter, Calendar, CheckCircle, XCircle, AlertCircle, Play
 } from "lucide-react";
 import toast from "react-hot-toast";
 import Navbar from "../components/Navbar";
@@ -331,8 +331,21 @@ function RunHistory() {
                           </div>
                         </div>
 
-                        {/* Delete Action */}
-                        <div className="run-actions">
+                        {/* Actions */}
+                        <div className="run-actions" style={{ display: 'flex', gap: '10px' }}>
+                          {run.status === 'active' && (
+                            <button
+                              className="resume-btn"
+                              style={{ backgroundColor: '#28a745', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate('/run');
+                              }}
+                            >
+                              <Play size={14} />
+                              Resume Run
+                            </button>
+                          )}
                           {!isDeleting ? (
                             <button
                               className="delete-btn"

@@ -41,7 +41,13 @@ const runSchema = new mongoose.Schema({
           type:Number,
           required:true
       }
+  }],
+  gridBreakdown: [{
+    _id: false,
+    gridId: String,
+    influenceEarned: Number,
+    distance: Number
   }]
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model("Run", runSchema);

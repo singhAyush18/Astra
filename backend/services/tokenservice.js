@@ -20,7 +20,7 @@ function generateToken(user){
     privateKey,
     {
         algorithm : "RS256",
-        expiresIn : "1d"
+        expiresIn : "30d"
     }
 );
 }
