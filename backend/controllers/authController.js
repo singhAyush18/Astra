@@ -71,12 +71,10 @@ const register = async (req, res) => {
 
         res.cookie('token', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: process.env.NODE_ENV === "production",
             sameSite: 'lax',
-            path: '/',
-            maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+            maxAge: 24 * 60 * 60 * 1000
         });
-
         res.status(201).json({
             success: true,
             message: "User registered successfully",
@@ -139,10 +137,9 @@ const login = async (req, res) => {
 
         res.cookie('token', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: process.env.NODE_ENV === "production",
             sameSite: 'lax',
-            path: '/',
-            maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+            maxAge: 24 * 60 * 60 * 1000
         });
 
         res.status(200).json({
@@ -169,13 +166,15 @@ const login = async (req, res) => {
 };
 
 const logout = async (req, res) => {
+    // JWT is stateless — the client must discard the token.
+    // This endpoint exists so the frontend has a clean API call
+    // to confirm logout and perform any future server-side cleanup
+    // (e.g. token blacklisting, audit logging).
     res.clearCookie('token', {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/'
+        sameSite: 'lax'
     });
-
     res.status(200).json({
         success: true,
         message: "Logged out successfully",
