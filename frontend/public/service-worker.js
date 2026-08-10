@@ -1,31 +1,20 @@
-const CACHE_NAME = 'astra-stride-v1';
-const urlsToCache = [
-  '/',
-  '/index.html'
-];
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
+});
 
-self.addEventListener('install', event => {
+self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => {
-        return cache.addAll(urlsToCache);
-      })
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cache) => caches.delete(cache))
+      );
+    }).then(() => {
+      self.clients.claim();
+    })
   );
 });
 
-self.addEventListener('fetch', event => {
-  // Pass through API requests, do not cache them.
-  if (event.request.url.includes('/api/v2/')) {
-    return;
-  }
-  
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        if (response) {
-          return response;
-        }
-        return fetch(event.request);
-      })
-  );
+self.addEventListener('fetch', (event) => {
+  // Pass through all requests to network
+  return;
 });
