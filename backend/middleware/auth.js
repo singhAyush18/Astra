@@ -1,7 +1,11 @@
 const { verifyToken } = require("../services/tokenservice");
 
 const auth = (req, res, next) => {
-    const token = req.cookies?.token;
+    // Check cookie first, fallback to Authorization header (for cross-origin deployments)
+    const token = req.cookies?.token || 
+        (req.headers.authorization?.startsWith('Bearer ') 
+            ? req.headers.authorization.split(' ')[1] 
+            : null);
 
     try {
         if (!token) {
