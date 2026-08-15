@@ -51,18 +51,26 @@ function ActiveRun() {
   useEffect(() => {
     let interval;
     if (status === 'running') {
+      let lastTick = Date.now();
       interval = setInterval(() => {
+        const now = Date.now();
+        const deltaSeconds = Math.round((now - lastTick) / 1000);
+
         // Auto-pause if no distance update for 5 minutes (300,000 ms)
         if (Date.now() - lastMoveTimeRef.current < 300000) {
-          setElapsed(prev => {
-            const next = prev + 1;
-            elapsedRef.current = next;
-            return next;
-          });
+          if (deltaSeconds > 0) {
+            setElapsed(prev => {
+              const next = prev + deltaSeconds;
+              elapsedRef.current = next;
+              return next;
+            });
+            lastTick += deltaSeconds * 1000;
+          }
           setIsAutoPaused(false);
         } else {
           setIsAutoPaused(true);
           setCurrentPace('--:--');
+          lastTick = now;
         }
       }, 1000);
     }
