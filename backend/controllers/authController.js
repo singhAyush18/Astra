@@ -1,6 +1,7 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const { generateToken } = require("../services/tokenservice");
+const { sendVerificationEmail, generateVerificationToken } = require("../services/emailService");
 
 // Validation helpers
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -60,31 +61,21 @@ const register = async (req, res) => {
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
+        const verificationToken = generateVerificationToken();
 
         const user = await User.create({
             username,
             email: normalizedEmail,
             password: hashedPassword,
+            verificationToken,
+            verificationTokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000),
         });
 
-        const token = generateToken(user);
+        await sendVerificationEmail(normalizedEmail, verificationToken);
 
-        res.cookie('token', token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            sameSite: 'lax',
-            maxAge: 24 * 60 * 60 * 1000
-        });
         res.status(201).json({
             success: true,
-            message: "User registered successfully",
-            user: {
-                id: user._id,
-                username: user.username,
-                email: user.email,
-                level: user.level,
-                xp: user.xp,
-            },
+            message: "Registration successful. Please check your email to verify your account.",
         });
     } catch (error) {
         console.error("Registration error:", error);
@@ -122,6 +113,13 @@ const login = async (req, res) => {
             return res.status(400).json({
                 success: false,
                 message: "Invalid email or password",
+            });
+        }
+
+        if (!user.isVerified) {
+            return res.status(403).json({
+                success: false,
+                message: "Please verify your email before logging in. Check your inbox for the verification link.",
             });
         }
 
@@ -179,6 +177,96 @@ const logout = async (req, res) => {
         success: true,
         message: "Logged out successfully",
     });
+};
+
+const verifyEmail = async (req, res) => {
+    try {
+        const { token } = req.query;
+
+        if (!token) {
+            return res.status(400).json({
+                success: false,
+                message: "Verification token is required",
+            });
+        }
+
+        const user = await User.findOne({
+            verificationToken: token,
+            verificationTokenExpiry: { $gt: new Date() },
+        });
+
+        if (!user) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid or expired verification link",
+            });
+        }
+
+        user.isVerified = true;
+        user.verificationToken = null;
+        user.verificationTokenExpiry = null;
+        await user.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Email verified successfully. You can now log in.",
+        });
+    } catch (error) {
+        console.error("Verification error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Error verifying email",
+        });
+    }
+};
+
+const resendVerification = async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        if (!email || !emailRegex.test(email.trim())) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid email format",
+            });
+        }
+
+        const normalizedEmail = email.trim().toLowerCase();
+        const user = await User.findOne({ email: normalizedEmail });
+
+        if (!user) {
+            // Don't reveal whether the email exists
+            return res.status(200).json({
+                success: true,
+                message: "If that email is registered, a new verification link has been sent.",
+            });
+        }
+
+        if (user.isVerified) {
+            return res.status(400).json({
+                success: false,
+                message: "Email is already verified",
+            });
+        }
+
+        const verificationToken = generateVerificationToken();
+        user.verificationToken = verificationToken;
+        user.verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        await user.save();
+
+        await sendVerificationEmail(normalizedEmail, verificationToken);
+
+        res.status(200).json({
+            success: true,
+            message: "If that email is registered, a new verification link has been sent.",
+        });
+    } catch (error) {
+        console.error("Resend verification error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Error resending verification email",
+        });
+    }
 };
 
 const updateProfile = async (req, res) => {
@@ -241,4 +329,4 @@ const updateProfile = async (req, res) => {
     }
 };
 
-module.exports = { register, login, logout, updateProfile };
+module.exports = { register, login, logout, verifyEmail, resendVerification, updateProfile };

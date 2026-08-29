@@ -14,6 +14,7 @@ import RunSummary from "./pages/RunSummary";
 import TerritoryMap from "./pages/TerritoryMap";
 import Settings from "./pages/Settings";
 import Clans from "./pages/Clans";
+import VerifyEmail from "./pages/VerifyEmail";
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/about" element={<About />} />
           
           {/* Protected Routes */}

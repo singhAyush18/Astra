@@ -9,12 +9,15 @@ function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [resending, setResending] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setNeedsVerification(false);
 
     try {
       const res = await authAPI.login(email, password);
@@ -22,6 +25,9 @@ function Login() {
       const data = await res.json();
 
       if (!data.success) {
+        if (res.status === 403) {
+          setNeedsVerification(true);
+        }
         toast.error(data.message);
         return;
       }
@@ -33,6 +39,19 @@ function Login() {
       toast.error("Something went wrong. Try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    setResending(true);
+    try {
+      const res = await authAPI.resendVerification(email);
+      const data = await res.json();
+      toast.success(data.message || "Verification email sent! Check your inbox.");
+    } catch (err) {
+      toast.error("Failed to resend verification email.");
+    } finally {
+      setResending(false);
     }
   };
 
@@ -69,6 +88,31 @@ function Login() {
           </button>
         </form>
 
+        {needsVerification && (
+          <div style={{ marginTop: "16px", textAlign: "center" }}>
+            <p style={{ color: "#f87171", fontSize: "0.9rem", marginBottom: "10px", fontFamily: "'Inter', sans-serif" }}>
+              Your email is not verified yet.
+            </p>
+            <button
+              onClick={handleResendVerification}
+              disabled={resending}
+              style={{
+                padding: "10px 20px",
+                border: "1px solid #d4af37",
+                borderRadius: "8px",
+                background: "transparent",
+                color: "#d4af37",
+                cursor: "pointer",
+                fontSize: "0.85rem",
+                fontFamily: "'Inter', sans-serif",
+                transition: "0.3s",
+              }}
+            >
+              {resending ? "Sending..." : "Resend Verification Email"}
+            </button>
+          </div>
+        )}
+
         <p className="auth-footer">
           New Warrior? <Link to="/signup">Sign Up</Link>
         </p>
@@ -78,4 +122,4 @@ function Login() {
   );
 }
 
-export default Login;
+export default Login;

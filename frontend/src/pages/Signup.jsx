@@ -34,8 +34,8 @@ function Signup() {
         return;
       }
 
-      login(data.user);
-      navigate("/dashboard");
+      toast.success(data.message || "Check your email for a verification link!");
+      navigate("/login");
     } catch (err) {
       console.error("Signup fetch error:", err);
       toast.error("Something went wrong. Try again.");

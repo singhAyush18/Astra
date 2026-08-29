@@ -47,6 +47,16 @@ export const authAPI = {
       headers: jsonAuthHeaders(token),
       body: JSON.stringify({ username, profilePicture }),
     }),
+
+  verifyEmail: (token) =>
+    apiFetch(`/api/v2/auth/verify-email?token=${token}`),
+
+  resendVerification: (email) =>
+    apiFetch('/api/v2/auth/resend-verification', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    }),
 };
 
 // ===== Runs APIs =====
