@@ -1,5 +1,6 @@
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
+const dns = require('dns');
 
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
@@ -8,6 +9,10 @@ const transporter = nodemailer.createTransport({
     auth: {
         user: process.env.EMAIL_USER?.trim(),
         pass: process.env.EMAIL_PASS ? process.env.EMAIL_PASS.replace(/\s+/g, '') : '',
+    },
+    // Force IPv4 lookup to prevent ENETUNREACH IPv6 errors on cloud hosts like Render
+    lookup: (hostname, options, callback) => {
+        dns.lookup(hostname, { family: 4 }, callback);
     },
     connectionTimeout: 10000, // 10 seconds timeout
     greetingTimeout: 10000,
