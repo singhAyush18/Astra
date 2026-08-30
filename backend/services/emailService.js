@@ -1,25 +1,37 @@
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
-const dns = require('dns');
+const dns = require('dns').promises;
 
-const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true, // use SSL
-    auth: {
-        user: process.env.EMAIL_USER?.trim(),
-        pass: process.env.EMAIL_PASS ? process.env.EMAIL_PASS.replace(/\s+/g, '') : '',
-    },
-    // Force IPv4 lookup to prevent ENETUNREACH IPv6 errors on cloud hosts like Render
-    lookup: (hostname, options, callback) => {
-        dns.lookup(hostname, { family: 4 }, callback);
-    },
-    connectionTimeout: 10000, // 10 seconds timeout
-    greetingTimeout: 10000,
-    socketTimeout: 15000,
-});
+async function createTransporter() {
+    let host = 'smtp.gmail.com';
+    try {
+        const lookupResult = await dns.lookup('smtp.gmail.com', { family: 4 });
+        if (lookupResult && lookupResult.address) {
+            host = lookupResult.address;
+        }
+    } catch (err) {
+        console.warn('DNS lookup fallback to default hostname:', err.message);
+    }
+
+    return nodemailer.createTransport({
+        host: host,
+        port: 465,
+        secure: true, // SSL
+        tls: {
+            servername: 'smtp.gmail.com' // Validates TLS certificate against Gmail hostname
+        },
+        auth: {
+            user: process.env.EMAIL_USER?.trim(),
+            pass: process.env.EMAIL_PASS ? process.env.EMAIL_PASS.replace(/\s+/g, '') : '',
+        },
+        connectionTimeout: 15000,
+        greetingTimeout: 15000,
+        socketTimeout: 20000,
+    });
+}
 
 async function sendVerificationEmail(email, token) {
+    const transporter = await createTransporter();
     const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
 
     await transporter.sendMail({
