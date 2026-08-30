@@ -1,7 +1,10 @@
 const crypto = require('crypto');
 
 async function sendVerificationEmail(email, token) {
-    const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+    const rawUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const baseUrl = rawUrl.trim().replace(/[\r\n\t]+/g, '').replace(/\/+$/, '');
+    const cleanToken = token.trim().replace(/[\r\n\t]+/g, '');
+    const verificationUrl = `${baseUrl}/verify-email?token=${encodeURIComponent(cleanToken)}`;
     const apiKey = process.env.BREVO_API_KEY;
 
     if (!apiKey) {
