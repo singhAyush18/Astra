@@ -120,10 +120,11 @@ const LiveGridMap = ({ territories, currentUserId, centerCoords, onRename }) => 
         tap={true}
         style={{ height: '100%', width: '100%' }}
       >
-        {/* CartoDB Dark Matter — free dark map tiles, no API key */}
+        {/* Dark map tiles — free, sleek dark canvas with no watermark/API key */}
         <TileLayer
-          attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
+          url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+          maxZoom={19}
         />
 
         <MapAutoCenter territories={territories} />
