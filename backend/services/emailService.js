@@ -1,50 +1,57 @@
-const nodemailer = require('nodemailer');
 const crypto = require('crypto');
-const dns = require('dns').promises;
-
-async function createTransporter() {
-    let host = 'smtp.gmail.com';
-    try {
-        const lookupResult = await dns.lookup('smtp.gmail.com', { family: 4 });
-        if (lookupResult && lookupResult.address) {
-            host = lookupResult.address;
-        }
-    } catch (err) {
-        console.warn('DNS lookup fallback to default hostname:', err.message);
-    }
-
-    return nodemailer.createTransport({
-        host: host,
-        port: 465,
-        secure: true, // SSL
-        tls: {
-            servername: 'smtp.gmail.com' // Validates TLS certificate against Gmail hostname
-        },
-        auth: {
-            user: process.env.EMAIL_USER?.trim(),
-            pass: process.env.EMAIL_PASS ? process.env.EMAIL_PASS.replace(/\s+/g, '') : '',
-        },
-        connectionTimeout: 15000,
-        greetingTimeout: 15000,
-        socketTimeout: 20000,
-    });
-}
 
 async function sendVerificationEmail(email, token) {
-    const transporter = await createTransporter();
     const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+    const apiKey = process.env.BREVO_API_KEY;
 
-    await transporter.sendMail({
-        from: `"Runnn" <${process.env.EMAIL_USER}>`,
-        to: email,
-        subject: 'Verify your Runnn account',
-        html: `
-            <h2>Welcome to Runnn! 🏃</h2>
-            <p>Click the link below to verify your email:</p>
-            <a href="${verificationUrl}">Verify Email</a>
-            <p>This link expires in 24 hours.</p>
-        `
+    if (!apiKey) {
+        throw new Error('BREVO_API_KEY is not configured in environment variables.');
+    }
+
+    const senderEmail = process.env.EMAIL_USER?.trim() || 'singhayush3547@gmail.com';
+
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+            'accept': 'application/json',
+            'api-key': apiKey.trim(),
+            'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+            sender: {
+                name: 'Runnn',
+                email: senderEmail,
+            },
+            to: [
+                {
+                    email: email.trim(),
+                },
+            ],
+            subject: 'Verify your Runnn account',
+            htmlContent: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px;">
+                    <h2>Welcome to Runnn! 🏃</h2>
+                    <p>Click the link below to verify your email address and activate your account:</p>
+                    <p style="margin: 24px 0;">
+                        <a href="${verificationUrl}" style="background-color: #2563eb; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+                            Verify Email
+                        </a>
+                    </p>
+                    <p style="color: #666; font-size: 14px;">This link will expire in 24 hours.</p>
+                </div>
+            `,
+        }),
     });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Brevo API Error Response:', errorData);
+        throw new Error(`Brevo send error: ${response.status} - ${errorData.message || JSON.stringify(errorData)}`);
+    }
+
+    const data = await response.json();
+    console.log('Verification email sent successfully via Brevo:', data);
+    return data;
 }
 
 function generateVerificationToken() {
