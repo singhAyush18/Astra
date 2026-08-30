@@ -57,7 +57,7 @@ const swordIcon = L.divIcon({
   iconAnchor: [14, 14],
 });
 
-// Auto-center map on user location or territories
+// Auto-center map on initial load
 const MapAutoCenter = ({ territories }) => {
   const map = useMap();
 
@@ -104,6 +104,146 @@ const MapAutoCenter = ({ territories }) => {
   return null;
 };
 
+// Interactive Recenter button inside the map
+const RecenterControl = ({ territories, centerCoords }) => {
+  const map = useMap();
+
+  const handleRecenter = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    if (territories && territories.length > 0) {
+      const allLats = [];
+      const allLngs = [];
+
+      territories.forEach(t => {
+        const bounds = getGridBounds(t.gridId);
+        if (bounds) {
+          allLats.push(bounds[0][0], bounds[1][0]);
+          allLngs.push(bounds[0][1], bounds[1][1]);
+        }
+      });
+
+      if (allLats.length > 0) {
+        map.flyToBounds([
+          [Math.min(...allLats), Math.min(...allLngs)],
+          [Math.max(...allLats), Math.max(...allLngs)]
+        ], { padding: [50, 50], duration: 1.0 });
+        return;
+      }
+    }
+
+    if (centerCoords) {
+      map.flyTo(centerCoords, 13, { duration: 1.0 });
+    } else if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          map.flyTo([pos.coords.latitude, pos.coords.longitude], 14, { duration: 1.0 });
+        },
+        () => {
+          map.flyTo([28.6139, 77.2090], 13, { duration: 1.0 });
+        },
+        { enableHighAccuracy: false, timeout: 5000 }
+      );
+    }
+  };
+
+  return (
+    <div className="map-recenter-btn-container">
+      <button 
+        type="button"
+        className="map-recenter-btn"
+        onClick={handleRecenter}
+        title="Recenter Map Overview"
+      >
+        <span className="recenter-icon">🎯</span>
+        <span className="recenter-text">Recenter</span>
+      </button>
+    </div>
+  );
+};
+
+// Single Territory component with smooth click-to-zoom
+const TerritoryGrid = ({ t, currentUserId, onRename }) => {
+  const map = useMap();
+  const bounds = getGridBounds(t.gridId);
+  if (!bounds) return null;
+
+  const isMine = t.rulerId === currentUserId;
+  const center = getGridCenter(bounds);
+
+  const handleZoomToTerritory = () => {
+    if (center) {
+      map.flyTo(center, 16, { animate: true, duration: 1.0 });
+    }
+  };
+
+  const popupContent = (
+    <div className="territory-popup-content">
+      <div className="popup-header">
+        <span className="popup-emoji">{isMine ? '👑' : '⚔️'}</span>
+        <h4>{t.name || (isMine ? 'Your Territory' : 'Enemy Territory')}</h4>
+      </div>
+      <div className="popup-details">
+        <p><strong>Grid:</strong> {t.gridId}</p>
+        <p><strong>Ruler:</strong> {t.rulerName || 'Unknown'}</p>
+        <p><strong>Claimed:</strong> {new Date(t.claimedAt).toLocaleDateString('en-US', {
+          month: 'short', day: 'numeric', year: 'numeric'
+        })}</p>
+        
+        {isMine && onRename && (
+          <button 
+            className="rename-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              const newName = window.prompt("Name your territory (max 30 chars):", t.name || "");
+              if (newName !== null) {
+                onRename(t.gridId, newName);
+              }
+            }}
+          >
+            ✏️ Rename
+          </button>
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <React.Fragment>
+      {/* Grid rectangle with glow effect and click-to-zoom */}
+      <Rectangle
+        bounds={bounds}
+        eventHandlers={{
+          click: handleZoomToTerritory,
+        }}
+        pathOptions={{
+          color: isMine ? '#d4af37' : '#ff4d4d',
+          weight: isMine ? 2 : 1.5,
+          fillColor: isMine ? '#d4af37' : '#ff4d4d',
+          fillOpacity: isMine ? 0.25 : 0.15,
+          dashArray: isMine ? null : '6 4',
+        }}
+      >
+        <Popup>{popupContent}</Popup>
+      </Rectangle>
+
+      {/* Crown/Sword marker with click-to-zoom */}
+      {center && (
+        <Marker
+          position={center}
+          icon={isMine ? crownIcon : swordIcon}
+          eventHandlers={{
+            click: handleZoomToTerritory,
+          }}
+        >
+          <Popup>{popupContent}</Popup>
+        </Marker>
+      )}
+    </React.Fragment>
+  );
+};
+
 const LiveGridMap = ({ territories, currentUserId, centerCoords, onRename }) => {
   const defaultCenter = [28.6139, 77.2090]; // Default to Delhi
 
@@ -128,69 +268,16 @@ const LiveGridMap = ({ territories, currentUserId, centerCoords, onRename }) => 
         />
 
         <MapAutoCenter territories={territories} />
+        <RecenterControl territories={territories} centerCoords={centerCoords} />
 
-        {territories.map((t, idx) => {
-          const bounds = getGridBounds(t.gridId);
-          if (!bounds) return null;
-
-          const isMine = t.rulerId === currentUserId;
-          const center = getGridCenter(bounds);
-
-          return (
-            <React.Fragment key={`${t.gridId}-${idx}`}>
-              {/* Grid rectangle with glow effect */}
-              <Rectangle
-                bounds={bounds}
-                pathOptions={{
-                  color: isMine ? '#d4af37' : '#ff4d4d',
-                  weight: isMine ? 2 : 1.5,
-                  fillColor: isMine ? '#d4af37' : '#ff4d4d',
-                  fillOpacity: isMine ? 0.25 : 0.15,
-                  dashArray: isMine ? null : '6 4',
-                }}
-              >
-                <Popup>
-                  <div className="territory-popup-content">
-                    <div className="popup-header">
-                      <span className="popup-emoji">{isMine ? '👑' : '⚔️'}</span>
-                      <h4>{t.name || (isMine ? 'Your Territory' : 'Enemy Territory')}</h4>
-                    </div>
-                    <div className="popup-details">
-                      <p><strong>Grid:</strong> {t.gridId}</p>
-                      <p><strong>Ruler:</strong> {t.rulerName || 'Unknown'}</p>
-                      <p><strong>Claimed:</strong> {new Date(t.claimedAt).toLocaleDateString('en-US', {
-                        month: 'short', day: 'numeric', year: 'numeric'
-                      })}</p>
-                      
-                      {isMine && onRename && (
-                        <button 
-                          className="rename-btn"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const newName = window.prompt("Name your territory (max 30 chars):", t.name || "");
-                            if (newName !== null) {
-                              onRename(t.gridId, newName);
-                            }
-                          }}
-                        >
-                          ✏️ Rename
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </Popup>
-              </Rectangle>
-
-              {/* Crown/Sword marker at center of grid */}
-              {center && (
-                <Marker
-                  position={center}
-                  icon={isMine ? crownIcon : swordIcon}
-                />
-              )}
-            </React.Fragment>
-          );
-        })}
+        {territories.map((t, idx) => (
+          <TerritoryGrid
+            key={`${t.gridId}-${idx}`}
+            t={t}
+            currentUserId={currentUserId}
+            onRename={onRename}
+          />
+        ))}
       </MapContainer>
 
       {/* Legend */}

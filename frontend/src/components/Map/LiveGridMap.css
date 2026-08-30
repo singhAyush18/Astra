@@ -74,6 +74,7 @@
   filter: drop-shadow(0 0 6px rgba(212, 175, 55, 0.8));
   animation: crownFloat 3s ease-in-out infinite;
   text-align: center;
+  cursor: pointer;
 }
 
 .sword-marker {
@@ -81,6 +82,7 @@
   filter: drop-shadow(0 0 4px rgba(255, 77, 77, 0.6));
   text-align: center;
   opacity: 0.8;
+  cursor: pointer;
 }
 
 @keyframes crownFloat {
@@ -133,6 +135,52 @@
   background: rgba(255, 77, 77, 0.3);
   border-color: #ff4d4d;
   box-shadow: 0 0 8px rgba(255, 77, 77, 0.2);
+}
+
+/* ── Recenter Button ── */
+.map-recenter-btn-container {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 1000;
+}
+
+.map-recenter-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(20, 20, 40, 0.85);
+  backdrop-filter: blur(10px);
+  color: #d4af37;
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 0 12px rgba(212, 175, 55, 0.15);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.map-recenter-btn:hover {
+  background: rgba(212, 175, 55, 0.25);
+  border-color: #d4af37;
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5), 0 0 16px rgba(212, 175, 55, 0.3);
+}
+
+.map-recenter-btn:active {
+  transform: translateY(0);
+}
+
+.recenter-icon {
+  font-size: 1rem;
+}
+
+.recenter-text {
+  letter-spacing: 0.03em;
 }
 
 /* ── Rename Button ── */
