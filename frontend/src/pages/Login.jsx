@@ -47,6 +47,10 @@ function Login() {
     try {
       const res = await authAPI.resendVerification(email);
       const data = await res.json();
+      if (!data.success) {
+        toast.error(data.message || "Failed to resend verification email.");
+        return;
+      }
       toast.success(data.message || "Verification email sent! Check your inbox.");
     } catch (err) {
       toast.error("Failed to resend verification email.");
