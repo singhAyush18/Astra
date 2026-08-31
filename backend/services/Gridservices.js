@@ -2,7 +2,7 @@ const Grid = require("../models/Grid");
 const GridInfluence = require("../models/Gridinfluence");
 
 const GRID_SIZE_METERS = 1000;
-const CLAIM_THRESHOLD = 700;
+const CLAIM_THRESHOLD = 500;
 
 /*
  * Convert GPS coordinates to a unique grid ID
@@ -51,8 +51,11 @@ const addInfluenceToGrid = async (
     if (!influenceRecord) {
         influenceRecord = await GridInfluence.create({
             gridId: grid._id,
+            gridCode: gridId,
             userId
         });
+    } else {
+        influenceRecord.gridCode = gridId;
     }
 
     influenceRecord.influence += xp;
@@ -65,6 +68,37 @@ const addInfluenceToGrid = async (
     await updateGridRuler(gridId);
 
     return influenceRecord;
+};
+
+/*
+ * Recalculate ownership for all grids based on current CLAIM_THRESHOLD
+ */
+const syncAllGridRulers = async () => {
+    try {
+        const allGrids = await Grid.find({});
+        for (const grid of allGrids) {
+            await updateGridRuler(grid.gridId);
+        }
+    } catch (err) {
+        console.error("Error syncing grid rulers:", err);
+    }
+};
+
+/*
+ * Backfill existing GridInfluence records with their human-readable gridCode
+ */
+const syncGridCodes = async () => {
+    try {
+        const recordsWithoutCode = await GridInfluence.find({ gridCode: null }).populate("gridId");
+        for (const rec of recordsWithoutCode) {
+            if (rec.gridId && rec.gridId.gridId) {
+                rec.gridCode = rec.gridId.gridId;
+                await rec.save();
+            }
+        }
+    } catch (err) {
+        console.error("Error backfilling grid codes:", err);
+    }
 };
 
 /*
@@ -117,5 +151,8 @@ const updateGridRuler = async (gridId) => {
 module.exports = {
     getGridIdFromCoordinates,
     addInfluenceToGrid,
-    updateGridRuler
+    updateGridRuler,
+    syncGridCodes,
+    syncAllGridRulers,
+    CLAIM_THRESHOLD
 };

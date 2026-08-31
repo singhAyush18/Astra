@@ -49,11 +49,15 @@ if (process.env.NODE_ENV === "production") {
     });
 }
 
+const { syncGridCodes, syncAllGridRulers } = require("./services/Gridservices");
+
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
     try {
         await connectDB(); // Wait for DB connection
+        await syncGridCodes(); // Backfill readable grid codes
+        await syncAllGridRulers(); // Retroactively claim all grids >= threshold
 
         app.listen(PORT, () => {
             console.log(`Server running on ${PORT}`);

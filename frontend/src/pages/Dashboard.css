@@ -178,25 +178,13 @@
 
 .dashboard-widgets-grid {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr;
-  gap: var(--space-md);
+  grid-template-columns: 1.1fr 1.1fr;
+  gap: var(--space-lg);
   margin-top: var(--space-lg);
 }
 
-@media (max-width: 1024px) {
-  .dashboard-widgets-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-  .main-col {
-    grid-column: 1 / -1;
-  }
-}
-
-@media (max-width: 768px) {
+@media (max-width: 960px) {
   .dashboard-widgets-grid {
     grid-template-columns: 1fr;
-  }
-  .main-col {
-    grid-column: 1;
   }
 }

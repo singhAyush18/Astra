@@ -6,8 +6,7 @@ import Navbar from "../components/Navbar";
 import XPBar from "../components/XPBar";
 import StatCard from "../components/StatCard";
 import WeeklyChart from "../components/WeeklyChart";
-import RecentRuns from "../components/RecentRuns";
-import LeaderboardWidget from "../components/LeaderboardWidget";
+import ActiveConquestsWidget from "../components/ActiveConquestsWidget";
 import "./Dashboard.css";
 import { useAuth } from "../context/AuthContext";
 import { statsAPI, runsAPI } from "../api";
@@ -131,14 +130,11 @@ function Dashboard() {
         </section>
 
         <section className="dashboard-widgets-grid">
-          <div className="widget-col main-col">
+          <div className="widget-col">
             <WeeklyChart runs={runs} />
           </div>
-          <div className="widget-col side-col">
-            <RecentRuns runs={runs} />
-          </div>
-          <div className="widget-col side-col">
-            <LeaderboardWidget />
+          <div className="widget-col">
+            <ActiveConquestsWidget />
           </div>
         </section>
       </main>

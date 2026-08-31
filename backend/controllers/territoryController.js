@@ -166,9 +166,79 @@ const nameTerritory = async (req, res) => {
     }
 };
 
+const getMyActiveConquests = async (req, res) => {
+    try {
+        const GridInfluence = require("../models/Gridinfluence");
+        const userIdStr = (req.user.id || req.user._id || "").toString();
+
+        const influences = await GridInfluence.find({
+            userId: req.user.id
+        })
+        .populate({
+            path: "gridId",
+            populate: { path: "ruler", select: "username" }
+        })
+        .sort({ influence: -1 });
+
+        // Filter ONLY grids where the user is NOT the ruler and has points > 0
+        const unclaimedInfluences = influences.filter(inf => {
+            const gridDoc = inf.gridId;
+            if (!gridDoc) return false;
+
+            // Extract ruler id safely whether populated object or raw ObjectId
+            const rulerId = gridDoc.ruler?._id 
+                ? gridDoc.ruler._id.toString() 
+                : (gridDoc.ruler ? gridDoc.ruler.toString() : null);
+
+            const isUserRuler = rulerId && (rulerId === userIdStr);
+
+            // Exclude if user is already the ruler
+            return !isUserRuler && inf.influence > 0;
+        }).slice(0, 5); // Top 5 unclaimed
+
+        const { CLAIM_THRESHOLD } = require("../services/Gridservices");
+        const targetPoints = CLAIM_THRESHOLD || 500;
+
+        const formatted = unclaimedInfluences.map(inf => {
+            const gridDoc = inf.gridId;
+            const gridCode = inf.gridCode || gridDoc?.gridId || "Unknown Sector";
+            const pointsNeeded = Math.max(0, targetPoints - inf.influence);
+
+            return {
+                gridCode,
+                name: gridDoc?.name || null,
+                influence: inf.influence,
+                targetPoints,
+                pointsNeeded,
+                progressPercentage: Math.min(99, Math.round((inf.influence / targetPoints) * 100)),
+                totalDistance: Number((inf.totalDistance || 0).toFixed(2)),
+                totalRuns: inf.totalRuns || 1,
+                status: gridDoc?.status || "unclaimed",
+                currentRuler: (gridDoc?.ruler?.username) || "Unclaimed Wildland"
+            };
+        });
+
+        res.status(200).json({
+            success: true,
+            message: "Top unclaimed conquests retrieved",
+            data: {
+                count: formatted.length,
+                conquests: formatted
+            }
+        });
+    } catch (error) {
+        console.error("Error fetching active conquests:", error);
+        res.status(500).json({
+            success: false,
+            message: "Error fetching active conquests"
+        });
+    }
+};
+
 module.exports = {
     getAllGrids,
     getGridDetails,
     getMyTerritories,
+    getMyActiveConquests,
     nameTerritory,
-}
+};

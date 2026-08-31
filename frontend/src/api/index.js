@@ -124,6 +124,11 @@ export const territoryAPI = {
       headers: authHeaders(token),
     }),
 
+  getMyProgress: (token) =>
+    apiFetch('/api/v2/territories/my-progress', {
+      headers: authHeaders(token),
+    }),
+
   nameTerritory: (token, territoryId, name) =>
     apiFetch(`/api/v2/territories/${territoryId}/name`, {
       method: 'PUT',
