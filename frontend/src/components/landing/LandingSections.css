@@ -1,0 +1,1391 @@
+/* ===== ASTRA: Historical War Landing Page Styling ===== */
+
+/* --- War Ticker --- */
+.war-ticker-container {
+  width: 100%;
+  background: linear-gradient(90deg, rgba(10, 10, 26, 0.95), rgba(26, 10, 15, 0.9), rgba(10, 10, 26, 0.95));
+  border-top: 1px solid rgba(212, 175, 55, 0.2);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+  padding: 10px 0;
+  overflow: hidden;
+  position: relative;
+  z-index: 10;
+  backdrop-filter: blur(8px);
+}
+
+.war-ticker-badge {
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  background: rgba(192, 57, 43, 0.3);
+  border: 1px solid rgba(192, 57, 43, 0.6);
+  color: #ff7675;
+  font-family: var(--font-heading);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.war-ticker-pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ff7675;
+  box-shadow: 0 0 8px #ff7675;
+  animation: pulse-gold 1.5s infinite;
+}
+
+.war-ticker-track {
+  display: flex;
+  width: max-content;
+  animation: ticker-slide 35s linear infinite;
+  padding-left: 170px;
+}
+
+.war-ticker-track:hover {
+  animation-play-state: paused;
+}
+
+@keyframes ticker-slide {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.war-ticker-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-right: 40px;
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.ticker-clan-tag {
+  color: var(--gold-light);
+  font-weight: 600;
+  font-family: var(--font-heading);
+}
+
+.ticker-action {
+  color: #dfe6e9;
+}
+
+.ticker-location {
+  color: #fdcb6e;
+  font-weight: 600;
+}
+
+.ticker-dist {
+  background: rgba(212, 175, 55, 0.15);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  color: var(--gold-light);
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-family: var(--font-stats);
+  font-size: 0.75rem;
+}
+
+.ticker-time {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+/* --- Section Common Headers --- */
+.landing-section {
+  padding: 100px 24px;
+  max-width: var(--max-width);
+  margin: 0 auto;
+  position: relative;
+}
+
+.section-header-wrap {
+  text-align: center;
+  margin-bottom: 64px;
+  position: relative;
+}
+
+.section-subtitle-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-heading);
+  font-size: 0.8rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--gold-primary);
+  background: rgba(212, 175, 55, 0.08);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  padding: 6px 16px;
+  border-radius: 20px;
+  margin-bottom: 16px;
+}
+
+.section-main-title {
+  font-size: 2.8rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  margin-bottom: 16px;
+  text-transform: uppercase;
+}
+
+.section-lead-text {
+  max-width: 680px;
+  margin: 0 auto;
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  line-height: 1.8;
+}
+
+/* --- Tactical War Map / Territory Grid Section --- */
+.territory-showcase-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 0.9fr;
+  gap: 32px;
+  align-items: start;
+}
+
+.tactical-map-viewport {
+  background: radial-gradient(circle at 50% 50%, rgba(26, 26, 62, 0.5) 0%, rgba(10, 10, 26, 0.95) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  position: relative;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6), inset 0 0 40px rgba(212, 175, 55, 0.05);
+  overflow: hidden;
+}
+
+.map-hud-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.15);
+  padding-bottom: 16px;
+  margin-bottom: 20px;
+}
+
+.hud-title-block {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hud-radar-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #27ae60;
+  box-shadow: 0 0 10px #27ae60;
+  animation: pulse-green 2s infinite;
+}
+
+@keyframes pulse-green {
+  0%, 100% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.4); opacity: 1; box-shadow: 0 0 16px #27ae60; }
+}
+
+.hud-title {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 1px;
+}
+
+.hud-coords {
+  font-family: var(--font-stats);
+  font-size: 0.75rem;
+  color: var(--gold-primary);
+  background: rgba(212, 175, 55, 0.1);
+  padding: 4px 10px;
+  border-radius: 4px;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+/* Hex Sector Grid */
+.tactical-hex-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.hex-sector-card {
+  background: rgba(18, 18, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  overflow: hidden;
+}
+
+.hex-sector-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 100%;
+  background: transparent;
+  transition: background 0.3s;
+}
+
+.hex-sector-card.selected {
+  background: rgba(30, 25, 55, 0.95);
+  border-color: var(--gold-primary);
+  box-shadow: 0 0 25px rgba(212, 175, 55, 0.25), inset 0 0 15px rgba(212, 175, 55, 0.1);
+  transform: translateY(-2px);
+}
+
+.hex-sector-card.selected::before {
+  background: var(--gold-primary);
+}
+
+.hex-sector-card:hover:not(.selected) {
+  background: rgba(24, 24, 52, 0.8);
+  border-color: rgba(212, 175, 55, 0.4);
+  transform: translateY(-2px);
+}
+
+.sector-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.sector-code {
+  font-family: var(--font-stats);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.sector-status-pill {
+  font-family: var(--font-ui);
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-contested {
+  background: rgba(192, 57, 43, 0.25);
+  color: #ff7675;
+  border: 1px solid rgba(192, 57, 43, 0.5);
+}
+
+.status-fortified {
+  background: rgba(212, 175, 55, 0.2);
+  color: #f0d060;
+  border: 1px solid rgba(212, 175, 55, 0.4);
+}
+
+.status-claimed {
+  background: rgba(39, 174, 96, 0.2);
+  color: #2ecc71;
+  border: 1px solid rgba(39, 174, 96, 0.4);
+}
+
+.sector-name {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.sector-holder {
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.sector-control-bar {
+  width: 100%;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.sector-control-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.6s ease;
+}
+
+/* Stride Simulation Visualizer */
+.map-simulation-panel {
+  background: rgba(10, 10, 26, 0.8);
+  border: 1px solid rgba(212, 175, 55, 0.15);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+
+.sim-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.sim-title {
+  font-family: var(--font-heading);
+  font-size: 0.85rem;
+  color: var(--gold-light);
+  letter-spacing: 1px;
+}
+
+.sim-btn-group {
+  display: flex;
+  gap: 8px;
+}
+
+.sim-trigger-btn {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.2), rgba(184, 134, 11, 0.3));
+  border: 1px solid rgba(212, 175, 55, 0.5);
+  color: var(--gold-light);
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s;
+}
+
+.sim-trigger-btn:hover {
+  background: var(--gradient-gold-subtle);
+  color: #0a0a1a;
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.4);
+}
+
+.sim-route-track {
+  height: 36px;
+  background: rgba(18, 18, 42, 0.9);
+  border: 1px dashed rgba(212, 175, 55, 0.3);
+  border-radius: 4px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  overflow: hidden;
+}
+
+.sim-runner-dot {
+  position: absolute;
+  height: 14px;
+  width: 14px;
+  border-radius: 50%;
+  background: #f0d060;
+  box-shadow: 0 0 15px #f0d060, 0 0 30px rgba(212, 175, 55, 0.8);
+  top: 50%;
+  transform: translateY(-50%);
+  transition: left 0.3s ease;
+}
+
+.sim-runner-dot::after {
+  content: '';
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1000px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.8));
+}
+
+.sim-route-info {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  z-index: 1;
+  font-family: var(--font-stats);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+/* Territory Detail Inspector */
+.territory-inspector-panel {
+  background: linear-gradient(160deg, rgba(20, 20, 48, 0.9) 0%, rgba(12, 12, 28, 0.95) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  position: relative;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
+}
+
+.territory-inspector-panel::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: var(--radius-lg);
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.5), transparent 60%);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.inspector-sector-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--gold-light);
+  font-family: var(--font-stats);
+  font-size: 0.8rem;
+  margin-bottom: 12px;
+}
+
+.inspector-title {
+  font-family: var(--font-heading);
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.inspector-desc {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.inspector-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.inspector-stat-box {
+  background: rgba(10, 10, 26, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-md);
+  padding: 14px;
+}
+
+.stat-box-label {
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.stat-box-val {
+  font-family: var(--font-stats);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.stat-box-val.gold { color: var(--gold-light); }
+.stat-box-val.crimson { color: #ff7675; }
+.stat-box-val.emerald { color: #2ecc71; }
+
+.inspector-buff-card {
+  background: rgba(212, 175, 55, 0.08);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.buff-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--gold-light);
+  font-family: var(--font-heading);
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.buff-text {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.conquer-cta-btn {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  background: var(--gradient-gold-subtle);
+  color: #0a0a1a;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 14px 20px;
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(212, 175, 55, 0.3);
+  transition: all 0.3s;
+}
+
+.conquer-cta-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(212, 175, 55, 0.5);
+}
+
+/* --- Ancient Clans & Dynasties Section --- */
+.clans-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+}
+
+.clan-card {
+  position: relative;
+  background: rgba(16, 16, 36, 0.85);
+  border-radius: var(--radius-lg);
+  padding: 32px 24px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  backdrop-filter: blur(10px);
+  overflow: hidden;
+}
+
+.clan-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--clan-accent, var(--gold-primary));
+  opacity: 0.7;
+  transition: height 0.3s;
+}
+
+.clan-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  border-color: var(--clan-accent, var(--gold-primary));
+  box-shadow: 0 16px 40px var(--clan-glow, rgba(212, 175, 55, 0.25));
+}
+
+.clan-card:hover::before {
+  height: 6px;
+}
+
+.clan-sigil-wrap {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--clan-bg, rgba(212, 175, 55, 0.2)) 0%, transparent 70%);
+  border: 2px solid var(--clan-accent, var(--gold-primary));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  color: var(--clan-accent, var(--gold-primary));
+  box-shadow: 0 0 20px var(--clan-glow, rgba(212, 175, 55, 0.3));
+  transition: transform 0.4s ease;
+}
+
+.clan-card:hover .clan-sigil-wrap {
+  transform: rotate(10deg) scale(1.1);
+}
+
+.clan-name {
+  font-family: var(--font-heading);
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.clan-motto {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+  min-height: 42px;
+}
+
+.clan-stats-row {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 20px;
+}
+
+.clan-stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.clan-stat-v {
+  font-family: var(--font-stats);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.clan-stat-l {
+  font-family: var(--font-ui);
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.clan-perk-badge {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  color: var(--clan-accent, var(--gold-light));
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.clan-join-btn {
+  width: 100%;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: 1px solid var(--clan-accent, var(--gold-primary));
+  color: var(--text-primary);
+  font-family: var(--font-heading);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.clan-card:hover .clan-join-btn {
+  background: var(--clan-accent, var(--gold-primary));
+  color: #0a0a1a;
+}
+
+/* --- 4 Pillars of Conquest Section --- */
+.pillars-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+}
+
+.pillar-card {
+  background: linear-gradient(160deg, rgba(18, 18, 42, 0.8) 0%, rgba(12, 12, 28, 0.9) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.15);
+  border-radius: var(--radius-lg);
+  padding: 32px 24px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.3s, border-color 0.3s;
+}
+
+.pillar-card:hover {
+  transform: translateY(-6px);
+  border-color: rgba(212, 175, 55, 0.5);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+.pillar-num {
+  font-family: var(--font-stats);
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: rgba(212, 175, 55, 0.15);
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  line-height: 1;
+}
+
+.pillar-icon-box {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-md);
+  background: rgba(212, 175, 55, 0.1);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gold-light);
+  margin-bottom: 20px;
+}
+
+.pillar-title {
+  font-family: var(--font-heading);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.pillar-desc {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* --- Interactive Conquest Calculator --- */
+.calc-wrapper {
+  background: radial-gradient(circle at 50% 0%, rgba(30, 25, 60, 0.7) 0%, rgba(12, 12, 28, 0.95) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: var(--radius-xl);
+  padding: 48px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 48px;
+  align-items: center;
+}
+
+.calc-intro-title {
+  font-family: var(--font-heading);
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.calc-intro-p {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  line-height: 1.7;
+  margin-bottom: 28px;
+}
+
+.slider-container {
+  margin-bottom: 32px;
+}
+
+.slider-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 12px;
+}
+
+.slider-label {
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.slider-val-display {
+  font-family: var(--font-stats);
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--gold-light);
+}
+
+.imperial-range-input {
+  width: 100%;
+  height: 8px;
+  -webkit-appearance: none;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  outline: none;
+}
+
+.imperial-range-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--gradient-gold-subtle);
+  cursor: pointer;
+  box-shadow: 0 0 15px rgba(212, 175, 55, 0.8);
+  border: 2px solid #0a0a1a;
+  transition: transform 0.1s;
+}
+
+.imperial-range-input::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+.calc-results-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.calc-result-tile {
+  background: rgba(16, 16, 38, 0.8);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.calc-result-tile::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 60px;
+  height: 60px;
+  background: radial-gradient(circle at top right, rgba(212, 175, 55, 0.15), transparent 70%);
+}
+
+.result-icon {
+  color: var(--gold-primary);
+  margin-bottom: 12px;
+}
+
+.result-metric {
+  font-family: var(--font-stats);
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.result-title {
+  font-family: var(--font-heading);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  letter-spacing: 0.5px;
+}
+
+/* --- Imperial Warlord Rank Pathway --- */
+.ranks-track {
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+  margin-bottom: 48px;
+}
+
+.ranks-track::before {
+  content: '';
+  position: absolute;
+  top: 36px;
+  left: 5%;
+  right: 5%;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(212, 175, 55, 0.1), rgba(212, 175, 55, 0.6), rgba(212, 175, 55, 0.1));
+  z-index: 0;
+}
+
+.rank-step-node {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+}
+
+.rank-node-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: #111128;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+  transition: all 0.3s;
+}
+
+.rank-step-node.active .rank-node-icon {
+  border-color: var(--gold-light);
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.3) 0%, #111128 70%);
+  color: var(--gold-light);
+  box-shadow: 0 0 25px rgba(212, 175, 55, 0.5);
+  transform: scale(1.15);
+}
+
+.rank-node-name {
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: color 0.3s;
+}
+
+.rank-step-node.active .rank-node-name {
+  color: var(--gold-light);
+}
+
+.rank-detail-card {
+  background: linear-gradient(145deg, rgba(20, 20, 48, 0.9) 0%, rgba(12, 12, 28, 0.95) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: var(--radius-xl);
+  padding: 40px;
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 40px;
+  align-items: center;
+}
+
+.rank-badge-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 24px;
+  background: rgba(10, 10, 26, 0.6);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.rank-insignia-giant {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.2) 0%, transparent 70%);
+  border: 2px solid var(--gold-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gold-light);
+  margin-bottom: 16px;
+  box-shadow: 0 0 30px rgba(212, 175, 55, 0.3);
+}
+
+.rank-badge-title {
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--gold-light);
+  margin-bottom: 6px;
+}
+
+.rank-req {
+  font-family: var(--font-stats);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.rank-perks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.rank-perk-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.rank-perk-check {
+  color: var(--gold-primary);
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.rank-perk-text h4 {
+  font-size: 1.05rem;
+  margin-bottom: 4px;
+  color: var(--text-primary);
+}
+
+.rank-perk-text p {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+/* --- Hall of Conquerors Section --- */
+.conquerors-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+}
+
+.podium-card {
+  background: rgba(18, 18, 42, 0.8);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+}
+
+.podium-header {
+  font-family: var(--font-heading);
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--gold-light);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.leaderboard-mini-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.leader-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(10, 10, 26, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  transition: transform 0.2s;
+}
+
+.leader-item-row:hover {
+  transform: translateX(4px);
+  border-color: rgba(212, 175, 55, 0.3);
+}
+
+.leader-rank-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-stats);
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin-right: 12px;
+}
+
+.rank-1 { background: #f1c40f; color: #0a0a1a; }
+.rank-2 { background: #bdc3c7; color: #0a0a1a; }
+.rank-3 { background: #e67e22; color: #0a0a1a; }
+.rank-other { background: rgba(255, 255, 255, 0.1); color: var(--text-secondary); }
+
+.leader-info-left {
+  display: flex;
+  align-items: center;
+}
+
+.leader-name-tag {
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.leader-clan-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.leader-stats-right {
+  text-align: right;
+}
+
+.leader-dist-val {
+  font-family: var(--font-stats);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--gold-light);
+}
+
+.leader-territories-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* Battle Chronicles / Dispatch Cards */
+.chronicles-card-deck {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dispatch-card {
+  background: rgba(18, 18, 42, 0.7);
+  border-left: 3px solid var(--gold-primary);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  padding: 20px;
+  position: relative;
+}
+
+.dispatch-quote {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  line-height: 1.6;
+}
+
+.dispatch-author {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dispatch-author-name {
+  font-family: var(--font-heading);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--gold-light);
+}
+
+.dispatch-regiment {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* --- Call to Arms Section --- */
+.cta-war-banner {
+  background: radial-gradient(circle at 50% 50%, rgba(46, 20, 20, 0.8) 0%, rgba(10, 10, 26, 0.98) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  border-radius: var(--radius-xl);
+  padding: 80px 40px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 60px rgba(192, 57, 43, 0.2);
+}
+
+.cta-war-banner::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23d4af37' fill-opacity='0.03' fill-rule='evenodd'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/svg%3E");
+  pointer-events: none;
+}
+
+.cta-sigil-glow {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(212, 175, 55, 0.3) 0%, transparent 70%);
+  border: 2px solid var(--gold-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gold-light);
+  margin: 0 auto 24px;
+  box-shadow: 0 0 30px rgba(212, 175, 55, 0.4);
+  animation: pulse-gold 3s infinite;
+}
+
+.cta-title {
+  font-size: 2.8rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-bottom: 16px;
+}
+
+.cta-sub {
+  font-size: 1.15rem;
+  color: var(--text-secondary);
+  max-width: 600px;
+  margin: 0 auto 36px;
+  line-height: 1.7;
+}
+
+.cta-buttons-wrap {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+.cta-primary-btn {
+  background: var(--gradient-gold-subtle);
+  color: #0a0a1a;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 16px 36px;
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  box-shadow: 0 8px 30px rgba(212, 175, 55, 0.4);
+  transition: all 0.3s;
+}
+
+.cta-primary-btn:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 12px 40px rgba(212, 175, 55, 0.6);
+}
+
+.cta-secondary-btn {
+  background: rgba(18, 18, 42, 0.8);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  color: var(--text-primary);
+  border-radius: var(--radius-md);
+  padding: 16px 32px;
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s;
+}
+
+.cta-secondary-btn:hover {
+  border-color: var(--gold-light);
+  color: var(--gold-light);
+}
+
+/* --- Imperial Footer --- */
+.imperial-footer {
+  background: #070714;
+  border-top: 1px solid rgba(212, 175, 55, 0.2);
+  padding: 64px 24px 32px;
+  position: relative;
+}
+
+.footer-inner {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.5fr repeat(3, 1fr);
+  gap: 48px;
+  margin-bottom: 48px;
+}
+
+.footer-brand-title {
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.footer-brand-desc {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  max-width: 320px;
+}
+
+.footer-col-title {
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--gold-light);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.footer-links-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.footer-links-list a {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  transition: color 0.2s;
+}
+
+.footer-links-list a:hover {
+  color: var(--gold-primary);
+}
+
+.footer-bottom-bar {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* --- Responsive Breakpoints --- */
+@media (max-width: 1024px) {
+  .territory-showcase-grid,
+  .calc-wrapper,
+  .rank-detail-card,
+  .conquerors-layout {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  .clans-grid,
+  .pillars-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .ranks-track {
+    overflow-x: auto;
+    padding-bottom: 16px;
+    gap: 24px;
+  }
+  .footer-inner {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .clans-grid,
+  .pillars-grid,
+  .calc-results-grid {
+    grid-template-columns: 1fr;
+  }
+  .tactical-hex-grid {
+    grid-template-columns: 1fr;
+  }
+  .section-main-title,
+  .cta-title {
+    font-size: 2rem;
+  }
+  .cta-buttons-wrap {
+    flex-direction: column;
+  }
+  .footer-inner {
+    grid-template-columns: 1fr;
+  }
+  .footer-bottom-bar {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+  .war-ticker-badge {
+    position: relative;
+    left: 0;
+    transform: none;
+    display: inline-flex;
+    margin-bottom: 6px;
+    margin-left: 16px;
+  }
+  .war-ticker-track {
+    padding-left: 16px;
+  }
+}

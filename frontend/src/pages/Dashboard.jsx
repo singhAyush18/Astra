@@ -12,6 +12,8 @@ import "./Dashboard.css";
 import { useAuth } from "../context/AuthContext";
 import { statsAPI, runsAPI } from "../api";
 
+import { getRankByLevel } from "../utils/rankUtils";
+
 function Dashboard() {
   const [stats, setStats] = useState(null);
   const [gameStats, setGameStats] = useState(null);
@@ -60,15 +62,11 @@ function Dashboard() {
   if (!user) return <div className="loading">Loading...</div>;
 
   const calculateMaxXP = (level) => {
-    return level * 1000; // Example: Level 1 needs 1000 XP, Level 2 needs 2000 XP
+    return level * 1000;
   };
 
-  const getRankName = (level) => {
-    if (level < 5) return "Novice";
-    if (level < 10) return "Warrior";
-    if (level < 20) return "Knight";
-    return "Legend";
-  };
+  const userLevel = gameStats?.level || user.level || 1;
+  const currentRank = getRankByLevel(userLevel);
 
   return (
     <div className="dashboard-container">
@@ -106,10 +104,9 @@ function Dashboard() {
 
         <section className="dashboard-xp-section">
           <XPBar 
-            level={gameStats?.level || user.level || 1} 
+            level={userLevel} 
             currentXP={gameStats?.xp || user.xp || 0} 
-            maxXP={calculateMaxXP(gameStats?.level || user.level || 1)} 
-            rank={getRankName(gameStats?.level || user.level || 1)} 
+            maxXP={calculateMaxXP(userLevel)} 
           />
         </section>
 

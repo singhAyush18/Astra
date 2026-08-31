@@ -16,12 +16,7 @@ const CATEGORIES = [
   { key: "runs", label: "Total Runs", icon: <Swords size={16} /> },
 ];
 
-const getRankTitle = (level) => {
-  if (level >= 20) return "Legend";
-  if (level >= 10) return "Knight";
-  if (level >= 5) return "Warrior";
-  return "Novice";
-};
+import { getRankByLevel, getRankTitle } from "../utils/rankUtils";
 
 const formatDuration = (seconds) => {
   if (!seconds) return "0h 0m";
@@ -200,7 +195,10 @@ function Leaderboard() {
                     <span>{top3[1].username.charAt(0).toUpperCase()}</span>
                   </div>
                   <h3 className="podium-name">{top3[1].username}</h3>
-                  <span className="podium-title">{getRankTitle(top3[1].level)}</span>
+                  <span className="podium-title" style={{ color: getRankByLevel(top3[1].level).color, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <span>{getRankByLevel(top3[1].level).icon}</span>
+                    <span>{getRankTitle(top3[1].level)}</span>
+                  </span>
                   <div className="podium-stat">{getCategoryValue(top3[1])}</div>
                   <span className="podium-sublabel">{getCategorySublabel(top3[1])}</span>
                   {top3[1].userId === storedUser.id && <span className="you-badge">YOU</span>}
@@ -223,7 +221,10 @@ function Leaderboard() {
                     <span>{top3[0].username.charAt(0).toUpperCase()}</span>
                   </div>
                   <h3 className="podium-name">{top3[0].username}</h3>
-                  <span className="podium-title">{getRankTitle(top3[0].level)}</span>
+                  <span className="podium-title" style={{ color: getRankByLevel(top3[0].level).color, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <span>{getRankByLevel(top3[0].level).icon}</span>
+                    <span>{getRankTitle(top3[0].level)}</span>
+                  </span>
                   <div className="podium-stat">{getCategoryValue(top3[0])}</div>
                   <span className="podium-sublabel">{getCategorySublabel(top3[0])}</span>
                   {top3[0].userId === storedUser.id && <span className="you-badge">YOU</span>}
@@ -243,7 +244,10 @@ function Leaderboard() {
                     <span>{top3[2].username.charAt(0).toUpperCase()}</span>
                   </div>
                   <h3 className="podium-name">{top3[2].username}</h3>
-                  <span className="podium-title">{getRankTitle(top3[2].level)}</span>
+                  <span className="podium-title" style={{ color: getRankByLevel(top3[2].level).color, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <span>{getRankByLevel(top3[2].level).icon}</span>
+                    <span>{getRankTitle(top3[2].level)}</span>
+                  </span>
                   <div className="podium-stat">{getCategoryValue(top3[2])}</div>
                   <span className="podium-sublabel">{getCategorySublabel(top3[2])}</span>
                   {top3[2].userId === storedUser.id && <span className="you-badge">YOU</span>}
@@ -291,7 +295,10 @@ function Leaderboard() {
                     </div>
                     <div className="row-info">
                       <span className="row-name">{entry.username}</span>
-                      <span className="row-title">{getRankTitle(entry.level)}</span>
+                      <span className="row-title" style={{ color: getRankByLevel(entry.level).color, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <span>{getRankByLevel(entry.level).icon}</span>
+                        <span>{getRankTitle(entry.level)}</span>
+                      </span>
                     </div>
                   </div>
                   <span className="row-level">

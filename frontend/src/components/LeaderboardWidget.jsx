@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './LeaderboardWidget.css';
 import { statsAPI } from '../api';
+import { getRankByLevel } from '../utils/rankUtils';
 
 function LeaderboardWidget() {
   const [leaderboard, setLeaderboard] = useState([]);
@@ -65,7 +66,10 @@ function LeaderboardWidget() {
               </div>
               <div className="lb-info">
                 <span className="lb-name">{entry.username}</span>
-                <span className="lb-kingdom">Level {entry.level}</span>
+                <span className="lb-kingdom" style={{ color: getRankByLevel(entry.level).color, display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                  <span>{getRankByLevel(entry.level).icon}</span>
+                  <span>{getRankByLevel(entry.level).shortName} (Lvl {entry.level})</span>
+                </span>
               </div>
               <div className="lb-stats">
                 <span className="lb-territory">{entry.xp.toLocaleString()} XP</span>

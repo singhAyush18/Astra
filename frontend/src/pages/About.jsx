@@ -6,6 +6,8 @@ import {
 import Navbar from '../components/Navbar';
 import './About.css';
 
+import { RANKS_CONFIG } from '../utils/rankUtils';
+
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
   visible: (i = 0) => ({
@@ -23,7 +25,7 @@ const features = [
   {
     icon: <Zap size={28} />,
     title: 'Earn XP & Level Up',
-    desc: 'Every kilometer earns you experience points. Rise through the ranks from Novice to Legend.'
+    desc: 'Every kilometer earns you experience points. Rise through the ranks from Recruit to Sovereign Emperor.'
   },
   {
     icon: <Flame size={28} />,
@@ -42,16 +44,9 @@ const features = [
   },
   {
     icon: <Shield size={28} />,
-    title: 'Rank System',
-    desc: 'Progress from Novice → Warrior → Knight → Legend. Each rank unlocks a new title for your legacy.'
+    title: 'Warlord Rank System',
+    desc: 'Progress through 5 imperial tiers: Recruit → Centurion → Legatus → Warlord → Sovereign Emperor with unlocked relics.'
   }
-];
-
-const ranks = [
-  { name: 'Novice', range: 'Level 1–4', color: '#8a8a9a' },
-  { name: 'Warrior', range: 'Level 5–9', color: '#cd7f32' },
-  { name: 'Knight', range: 'Level 10–19', color: '#c0c0c0' },
-  { name: 'Legend', range: 'Level 20+', color: '#d4af37' }
 ];
 
 function About() {
@@ -146,7 +141,7 @@ function About() {
             <h2>The Rank Hierarchy</h2>
           </motion.div>
           <div className="about-ranks">
-            {ranks.map((rank, i) => (
+            {RANKS_CONFIG.map((rank, i) => (
               <motion.div 
                 key={rank.name}
                 className="rank-card"
@@ -158,13 +153,18 @@ function About() {
               >
                 <div className="rank-badge" style={{ 
                   borderColor: rank.color,
-                  boxShadow: `0 0 20px ${rank.color}33`
+                  boxShadow: `0 0 20px ${rank.color}33`,
+                  fontSize: '1.4rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
                 }}>
-                  <span style={{ color: rank.color }}>{rank.name.charAt(0)}</span>
+                  <span>{rank.icon}</span>
                 </div>
                 <div className="rank-info">
-                  <span className="rank-name" style={{ color: rank.color }}>{rank.name}</span>
-                  <span className="rank-range">{rank.range}</span>
+                  <span className="rank-name" style={{ color: rank.color, fontWeight: 700 }}>{rank.name}</span>
+                  <span className="rank-range">{rank.rangeLabel}</span>
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>{rank.relic}</span>
                 </div>
               </motion.div>
             ))}
