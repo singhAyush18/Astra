@@ -83,6 +83,74 @@
   z-index: 5;
 }
 
+.run-mini-map .leaflet-container {
+  background: #0d111d !important;
+}
+
+.run-mini-map .leaflet-tile {
+  filter: brightness(0.6) invert(1) contrast(2.5) hue-rotate(200deg) saturate(0.3) brightness(0.8);
+}
+
+/* ── Armored Warrior Runner Marker ── */
+.warrior-runner-custom-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+.warrior-marker-badge {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  background: radial-gradient(circle, rgba(20, 25, 45, 0.95) 40%, rgba(10, 15, 30, 0.9) 100%);
+  border: 2px solid #ffd700;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 14px rgba(212, 175, 55, 0.7), inset 0 0 8px rgba(255, 215, 0, 0.4);
+  z-index: 10;
+  animation: warriorBounce 1.2s ease-in-out infinite alternate;
+}
+
+.warrior-pulse-aura {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(212, 175, 55, 0.35);
+  border: 1px solid #ffd700;
+  animation: warriorAuraPulse 2s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes warriorAuraPulse {
+  0% {
+    width: 32px;
+    height: 32px;
+    opacity: 0.9;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    width: 72px;
+    height: 72px;
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.6);
+  }
+}
+
+@keyframes warriorBounce {
+  0% {
+    transform: translateY(0) rotate(-4deg);
+  }
+  100% {
+    transform: translateY(-4px) rotate(4deg);
+  }
+}
+
 /* ── Stats display ── */
 .run-stats-display {
   display: flex;

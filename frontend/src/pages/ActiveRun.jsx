@@ -2,10 +2,49 @@ import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Play, Square, MapPin, Clock, Gauge, Loader, Pause } from 'lucide-react';
-import { MapContainer, TileLayer, Polyline, Marker } from 'react-leaflet';
+import { MapContainer, TileLayer, Polyline, Marker, useMap } from 'react-leaflet';
+import L from 'leaflet';
 import './ActiveRun.css';
 import { useAuth } from '../context/AuthContext';
 import { runsAPI } from '../api';
+
+const warriorRunnerIcon = L.divIcon({
+  className: 'warrior-runner-custom-marker',
+  html: `
+    <div class="warrior-pulse-aura"></div>
+    <div class="warrior-marker-badge">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Helmet Plume / Crest -->
+        <path d="M11 2C13 1.2 15 1.5 16.5 2.5C15.8 3.2 14.8 3.5 13.5 3.5L11 2Z" fill="#ff4d4d"/>
+        <!-- Armored Helmet -->
+        <path d="M12.5 3C13.88 3 15 4.12 15 5.5C15 6.88 13.88 8 12.5 8C11.12 8 10 6.88 10 5.5C10 4.12 11.12 3 12.5 3Z" fill="#ffd700" stroke="#fff" stroke-width="0.5"/>
+        <path d="M11.5 4.8H14.5V6H11.5V4.8Z" fill="#111827"/>
+        <!-- Golden Armored Chestplate / Pauldron -->
+        <path d="M9.5 8.5C9.5 7.8 10.2 7.2 11 7.2H14C14.8 7.2 15.5 7.8 15.5 8.5L15 13.5L13.5 15L10.5 13.5L9.5 8.5Z" fill="#d4af37" stroke="#ffffff" stroke-width="0.6"/>
+        <!-- Right Arm & Gauntlet -->
+        <path d="M15 9L18 11.5L19 14.5L17.5 15" stroke="#ffd700" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- Left Arm Swinging Back -->
+        <path d="M10 9.5L7.5 12L6.5 15" stroke="#d4af37" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- Front Running Leg / Greaves -->
+        <path d="M13.5 14L16.5 17.5L19.5 18.5" stroke="#ffd700" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- Back Trailing Leg -->
+        <path d="M11 14L8.5 17.5L5.5 18" stroke="#d4af37" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+  `,
+  iconSize: [36, 36],
+  iconAnchor: [18, 18],
+});
+
+function MapRecenter({ coords }) {
+  const map = useMap();
+  useEffect(() => {
+    if (coords?.lat && coords?.lng) {
+      map.panTo([coords.lat, coords.lng], { animate: true });
+    }
+  }, [coords, map]);
+  return null;
+}
 
 function ActiveRun() {
   const [status, setStatus] = useState('ready'); // ready | running | ending
@@ -279,6 +318,8 @@ function ActiveRun() {
           >
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" className="leaflet-tile" />
             <Polyline positions={path} color="#d4af37" weight={4} />
+            <Marker position={[coords.lat, coords.lng]} icon={warriorRunnerIcon} />
+            <MapRecenter coords={coords} />
           </MapContainer>
         </div>
       )}
