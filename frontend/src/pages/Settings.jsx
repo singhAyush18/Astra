@@ -16,6 +16,14 @@ function Settings() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Change Password state
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [pwdLoading, setPwdLoading] = useState(false);
+  const [pwdError, setPwdError] = useState("");
+  const [pwdSuccess, setPwdSuccess] = useState("");
   
   const fileInputRef = useRef(null);
 
@@ -74,6 +82,54 @@ function Settings() {
     }
   };
 
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    setPwdError("");
+    setPwdSuccess("");
+
+    if (newPassword !== confirmPassword) {
+      setPwdError("New passwords do not match");
+      return;
+    }
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,128}$/;
+    if (!passwordRegex.test(newPassword)) {
+      setPwdError(
+        "Password must be 8-128 characters and include at least one uppercase letter, one lowercase letter, one number, and one special character (@$!%*?&)"
+      );
+      return;
+    }
+
+    setPwdLoading(true);
+
+    try {
+      const res = await authAPI.changePassword(null, {
+        currentPassword,
+        newPassword,
+      });
+
+      if (res.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+
+      const data = await res.json();
+
+      if (data.success) {
+        setPwdSuccess("Password changed successfully!");
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+      } else {
+        setPwdError(data.message || "Failed to change password");
+      }
+    } catch (err) {
+      setPwdError("Network error. Please try again.");
+    } finally {
+      setPwdLoading(false);
+    }
+  };
+
   const handleRemovePicture = () => {
     setProfilePicture(null);
   };
@@ -93,6 +149,7 @@ function Settings() {
           <h2>Account Settings</h2>
         </div>
 
+        {/* Profile Card */}
         <div className="settings-card">
           <h3 className="section-title">Edit Profile</h3>
           
@@ -173,6 +230,56 @@ function Settings() {
               {loading ? <Loader size={20} className="spin" /> : "Save Changes"}
             </button>
 
+          </form>
+        </div>
+
+        {/* Change Password Card */}
+        <div className="settings-card" style={{ marginTop: "24px" }}>
+          <h3 className="section-title">Change Password</h3>
+
+          <form className="settings-form" onSubmit={handleChangePassword}>
+            <div className="form-group">
+              <label>Current Password</label>
+              <input
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Enter current password"
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label>New Password</label>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter new password"
+                required
+              />
+              <p className="input-hint">
+                8+ characters with uppercase, lowercase, number, & special character (@$!%*?&).
+              </p>
+            </div>
+
+            <div className="form-group">
+              <label>Confirm New Password</label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm new password"
+                required
+              />
+            </div>
+
+            {pwdError && <div className="settings-alert error">{pwdError}</div>}
+            {pwdSuccess && <div className="settings-alert success">{pwdSuccess}</div>}
+
+            <button type="submit" className="save-btn" disabled={pwdLoading}>
+              {pwdLoading ? <Loader size={20} className="spin" /> : "Update Password"}
+            </button>
           </form>
         </div>
       </main>

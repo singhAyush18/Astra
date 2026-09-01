@@ -1,7 +1,7 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const { generateToken } = require("../services/tokenservice");
-const { sendVerificationEmail, generateVerificationToken } = require("../services/emailService");
+const { sendVerificationEmail, sendPasswordResetEmail, generateVerificationToken } = require("../services/emailService");
 
 // Validation helpers
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -329,4 +329,166 @@ const updateProfile = async (req, res) => {
     }
 };
 
-module.exports = { register, login, logout, verifyEmail, resendVerification, updateProfile };
+const forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        if (!email || !emailRegex.test(email.trim())) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid email format",
+            });
+        }
+
+        const trimmedEmail = email.trim();
+        const user = await User.findOne({ 
+            email: { $regex: new RegExp(`^${trimmedEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } 
+        });
+
+        if (!user) {
+            return res.status(200).json({
+                success: true,
+                message: "If an account with that email exists, a password reset link has been sent.",
+            });
+        }
+
+        const resetToken = generateVerificationToken();
+        user.resetPasswordToken = resetToken;
+        user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+        await user.save();
+
+        await sendPasswordResetEmail(user.email, resetToken);
+
+        res.status(200).json({
+            success: true,
+            message: "If an account with that email exists, a password reset link has been sent.",
+        });
+    } catch (error) {
+        console.error("Forgot password error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Error processing password reset request",
+        });
+    }
+};
+
+const resetPassword = async (req, res) => {
+    try {
+        const { token, newPassword } = req.body;
+
+        if (!token) {
+            return res.status(400).json({
+                success: false,
+                message: "Reset token is required",
+            });
+        }
+
+        if (!newPassword || !passwordRegex.test(newPassword)) {
+            return res.status(400).json({
+                success: false,
+                message: "Password must be 8-128 chars with at least one uppercase, one lowercase, one number, and one special character (@$!%*?&)",
+            });
+        }
+
+        const cleanToken = token.trim();
+        const user = await User.findOne({
+            resetPasswordToken: cleanToken,
+            resetPasswordExpires: { $gt: new Date() },
+        });
+
+        if (!user) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid or expired password reset link",
+            });
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        user.password = hashedPassword;
+        user.resetPasswordToken = null;
+        user.resetPasswordExpires = null;
+        await user.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Password reset successful! You can now log in with your new password.",
+        });
+    } catch (error) {
+        console.error("Reset password error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Error resetting password",
+        });
+    }
+};
+
+const changePassword = async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        const userId = req.user.id;
+
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "Both current password and new password are required",
+            });
+        }
+
+        if (!passwordRegex.test(newPassword)) {
+            return res.status(400).json({
+                success: false,
+                message: "Password must be 8-128 chars with at least one uppercase, one lowercase, one number, and one special character (@$!%*?&)",
+            });
+        }
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) {
+            return res.status(400).json({
+                success: false,
+                message: "Incorrect current password",
+            });
+        }
+
+        const isSame = await bcrypt.compare(newPassword, user.password);
+        if (isSame) {
+            return res.status(400).json({
+                success: false,
+                message: "New password must be different from current password",
+            });
+        }
+
+        user.password = await bcrypt.hash(newPassword, 10);
+        await user.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Password changed successfully",
+        });
+    } catch (error) {
+        console.error("Change password error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Error changing password",
+        });
+    }
+};
+
+module.exports = { 
+    register, 
+    login, 
+    logout, 
+    verifyEmail, 
+    resendVerification, 
+    updateProfile,
+    forgotPassword,
+    resetPassword,
+    changePassword
+};

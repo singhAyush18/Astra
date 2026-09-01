@@ -57,6 +57,24 @@ export const authAPI = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
     }),
+  forgotPassword: (email) =>
+    apiFetch('/api/v2/auth/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    }),
+  resetPassword: (token, newPassword) =>
+    apiFetch('/api/v2/auth/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, newPassword }),
+    }),
+  changePassword: (token, { currentPassword, newPassword }) =>
+    apiFetch('/api/v2/auth/change-password', {
+      method: 'PUT',
+      headers: jsonAuthHeaders(token),
+      body: JSON.stringify({ currentPassword, newPassword }),
+    }),
 };
 
 // ===== Runs APIs =====

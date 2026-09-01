@@ -87,6 +87,15 @@ function Login() {
             required
           />
 
+          <div style={{ textAlign: "right", marginTop: "-4px" }}>
+            <Link 
+              to="/forgot-password" 
+              style={{ color: "#d4af37", fontSize: "0.85rem", textDecoration: "none", fontFamily: "'Inter', sans-serif" }}
+            >
+              Forgot Password?
+            </Link>
+          </div>
+
           <button type="submit" disabled={loading}>
             {loading ? "Entering..." : "Enter the Realm"}
           </button>
