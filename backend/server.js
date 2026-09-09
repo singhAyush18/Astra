@@ -12,6 +12,7 @@ const statsRoutes = require("./routes/statsRoutes");
 const authRoutes = require("./routes/authRoutes");
 const territoryRoutes = require("./routes/territoryRoutes");
 const clanRoutes = require("./routes/clanRoutes");
+const agentRoutes = require("./routes/agentRoutes");
 
 const app = express();
 
@@ -32,6 +33,7 @@ app.use("/api/v2/runs", runRoutes);
 app.use("/api/v2/stats", statsRoutes);
 app.use("/api/v2/territories", territoryRoutes);
 app.use("/api/v2/clans", clanRoutes);
+app.use("/api/v2/agents", agentRoutes);
 
 // Serve frontend in production
 if (process.env.NODE_ENV === "production") {

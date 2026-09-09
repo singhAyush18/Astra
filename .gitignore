@@ -1,3 +1,7 @@
 node_modules/
 backend/.env
 backend/keys/
+ai-service/.env
+__pycache__/
+*.pyc
+.env

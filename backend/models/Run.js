@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 const runSchema = new mongoose.Schema({
-   userId: {
+  userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
     required: true
@@ -10,37 +10,37 @@ const runSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
-  endTime:{
-    type:Date
+  endTime: {
+    type: Date
   },
-  status:{
-    type:String,
-    enum:["active","completed","discarded"],
-    default:"active"
+  status: {
+    type: String,
+    enum: ["active", "completed", "discarded"],
+    default: "active"
   },
-  duration:{
-    type:Number,
-    default:0
+  duration: {
+    type: Number,
+    default: 0
   },
-  pace:{
-    type:String,
-    default:"0:00 min/km"
+  pace: {
+    type: String,
+    default: "0:00 min/km"
   },
   distance: {
     type: Number,
     default: 0
   },
   path: [{
-    _id:false,
-     lat:{
-          type:Number,
-          required:true
-      },
+    _id: false,
+    lat: {
+      type: Number,
+      required: true
+    },
 
-      lng:{
-          type:Number,
-          required:true
-      }
+    lng: {
+      type: Number,
+      required: true
+    }
   }],
   gridBreakdown: [{
     _id: false,

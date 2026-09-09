@@ -8,6 +8,7 @@ const {
     getGridIdFromCoordinates,
     addInfluenceToGrid,
 } = require("../services/Gridservices");
+const { generateCoachDebrief } = require("../services/agentService");
 
 const haversine = (lat1, lng1, lat2, lng2) => {
     const R = 6371; // km
@@ -315,6 +316,24 @@ const endRun = async (req, res) => {
                     gridRulerName = rulerUser ? rulerUser.username : null;
                 }
             }
+
+            // Generate AI Tactical Coach Debrief
+            try {
+                const coachDebrief = await generateCoachDebrief({
+                    username: user.username || "Athlete",
+                    distance_meters: Math.round(run.distance * 1000),
+                    duration_seconds: run.duration,
+                    pace: run.pace,
+                    current_streak: streakInfo?.currentStreak || 0,
+                });
+
+                if (coachDebrief) {
+                    run.coachDebrief = coachDebrief;
+                    await run.save();
+                }
+            } catch (coachErr) {
+                console.error("AI Coach Debrief generation encountered an error:", coachErr);
+            }
         }
 
         res.status(200).json({
@@ -326,6 +345,7 @@ const endRun = async (req, res) => {
                 longestStreak: streakInfo?.longestStreak || 0,
                 level: user?.level || 1,
                 run,
+                coachDebrief: run.coachDebrief,
                 grid: gridUpdate
                     ? {
                           gridId,
@@ -345,6 +365,54 @@ const endRun = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Error ending run",
+        });
+    }
+};
+
+const generateRunDebrief = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid run ID format",
+            });
+        }
+
+        const run = await Run.findOne({ _id: id, userId: req.user.id });
+        if (!run) {
+            return res.status(404).json({
+                success: false,
+                message: "Run not found",
+            });
+        }
+
+        const user = await User.findById(req.user.id);
+        const coachDebrief = await generateCoachDebrief({
+            username: user?.username || "Athlete",
+            distance_meters: Math.round(run.distance * 1000),
+            duration_seconds: run.duration,
+            pace: run.pace,
+            current_streak: user?.currentStreak || 0,
+        });
+
+        run.coachDebrief = coachDebrief;
+        await run.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Coach debrief generated",
+            data: {
+                coachDebrief,
+                run,
+            },
+        });
+    } catch (error) {
+        console.error("Error generating coach debrief:", error);
+        res.status(500).json({
+            success: false,
+            message: "Error generating coach debrief",
         });
     }
 };
@@ -483,6 +551,7 @@ module.exports = {
     getRuns,
     getRunById,
     endRun,
+    generateRunDebrief,
     updateLocation,
     deleteRun,
 };

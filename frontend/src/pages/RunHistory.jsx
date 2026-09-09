@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Scroll, MapPin, Clock, Gauge, Trash2, ChevronDown,
-  ChevronUp, Filter, Calendar, CheckCircle, XCircle, AlertCircle, Play
+  ChevronUp, Filter, Calendar, CheckCircle, XCircle, AlertCircle, Play,
+  Bot, Activity, HeartPulse, Compass, Sparkles, Loader
 } from "lucide-react";
 import toast from "react-hot-toast";
 import Navbar from "../components/Navbar";
@@ -49,10 +50,37 @@ function RunHistory() {
   const [expandedRun, setExpandedRun] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [generatingDebriefId, setGeneratingDebriefId] = useState(null);
   const [streak, setStreak] = useState(0);
   const navigate = useNavigate();
 
   const { user, handleUnauthorized } = useAuth();
+
+  const handleGenerateDebrief = async (runId) => {
+    setGeneratingDebriefId(runId);
+    try {
+      const res = await runsAPI.generateDebrief(null, runId);
+      if (res.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+      const data = await res.json();
+      if (data.success && data.data?.coachDebrief) {
+        toast.success("Tactical AI debrief generated!");
+        setRuns((prev) =>
+          prev.map((r) =>
+            r._id === runId ? { ...r, coachDebrief: data.data.coachDebrief } : r
+          )
+        );
+      } else {
+        toast.error(data.message || "Could not generate debrief");
+      }
+    } catch {
+      toast.error("Failed to connect with AI coach");
+    } finally {
+      setGeneratingDebriefId(null);
+    }
+  };
 
   const fetchRuns = () => {
     if (!user) return;
@@ -275,6 +303,11 @@ function RunHistory() {
                           <span>{run.pace}</span>
                         </div>
                       )}
+                      {run.coachDebrief?.performanceRating && (
+                        <div className={`quick-stat coach-grade-pill rank-${run.coachDebrief.performanceRating.toLowerCase()}`}>
+                          <span>Rank {run.coachDebrief.performanceRating}</span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="run-card-right">
@@ -331,8 +364,57 @@ function RunHistory() {
                           </div>
                         </div>
 
+                        {/* AI Coach Debrief Section if available */}
+                        {run.coachDebrief && (
+                          <div className="history-coach-section">
+                            <div className="history-coach-header">
+                              <div className="history-coach-badge">
+                                <Bot size={14} />
+                                <span>AI Tactical Debrief</span>
+                              </div>
+                              <span className="history-coach-headline">{run.coachDebrief.headline}</span>
+                            </div>
+                            <div className="history-coach-body">
+                              <div className="history-coach-row">
+                                <Activity size={14} className="cyan-text" />
+                                <p><strong>Pacing:</strong> {run.coachDebrief.pacingAnalysis}</p>
+                              </div>
+                              <div className="history-coach-row">
+                                <HeartPulse size={14} className="green-text" />
+                                <p><strong>Recovery:</strong> {run.coachDebrief.recoveryAdvice}</p>
+                              </div>
+                              <div className="history-coach-row">
+                                <Compass size={14} className="gold-text" />
+                                <p><strong>Next Target:</strong> {run.coachDebrief.nextWorkoutTarget}</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
                         {/* Actions */}
-                        <div className="run-actions" style={{ display: 'flex', gap: '10px' }}>
+                        <div className="run-actions" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                          {run.status === 'completed' && !run.coachDebrief && (
+                            <button
+                              className="ai-analyze-btn"
+                              disabled={generatingDebriefId === run._id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleGenerateDebrief(run._id);
+                              }}
+                            >
+                              {generatingDebriefId === run._id ? (
+                                <>
+                                  <Loader size={14} className="spin" />
+                                  <span>Analyzing Telemetry...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Sparkles size={14} />
+                                  <span>Get AI Debrief</span>
+                                </>
+                              )}
+                            </button>
+                          )}
                           {run.status === 'active' && (
                             <button
                               className="resume-btn"

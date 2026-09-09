@@ -110,6 +110,25 @@ export const runsAPI = {
       method: 'DELETE',
       headers: authHeaders(token),
     }),
+
+  generateDebrief: (token, runId) =>
+    apiFetch(`/api/v2/runs/${runId}/debrief`, {
+      method: 'POST',
+      headers: jsonAuthHeaders(token),
+    }),
+};
+
+// ===== Agents APIs =====
+export const agentsAPI = {
+  getStatus: () =>
+    apiFetch('/api/v2/agents/status'),
+
+  getCoachDebrief: (token, telemetry) =>
+    apiFetch('/api/v2/agents/coach-debrief', {
+      method: 'POST',
+      headers: jsonAuthHeaders(token),
+      body: JSON.stringify(telemetry),
+    }),
 };
 
 // ===== Stats APIs =====

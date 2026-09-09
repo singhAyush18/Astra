@@ -5,6 +5,7 @@ const {startRun,
        getRuns,
        getRunById,
        endRun,
+       generateRunDebrief,
        updateLocation,
        deleteRun,
        }=require('../controllers/runController');
@@ -15,5 +16,6 @@ router.get('/',auth,getRuns);
 router.get('/:id',auth,getRunById);
 router.patch('/:id/location',auth,updateLocation);
 router.patch('/:id/end',auth,endRun);
+router.post('/:id/debrief',auth,generateRunDebrief);
 router.delete('/:id',auth,deleteRun);
 module.exports=router;

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Trophy, Zap, MapPin, Target, ChevronRight, Crown, Flame } from 'lucide-react';
+import { Trophy, Zap, MapPin, Target, ChevronRight, Crown, Flame, Bot, Activity, HeartPulse, Compass } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import './RunSummary.css';
 import { useAuth } from '../context/AuthContext';
@@ -33,7 +33,8 @@ function RunSummary() {
 
   if (!summaryData) return null;
 
-  const { run, xpEarned, level, currentStreak, grid } = summaryData;
+  const { run, xpEarned, level, currentStreak } = summaryData;
+  const coachDebrief = summaryData.coachDebrief || run?.coachDebrief;
 
   const formatDuration = (seconds) => {
     if (!seconds) return "0m";
@@ -159,6 +160,62 @@ function RunSummary() {
               </div>
             )}
           </motion.div>
+
+          {/* AI Tactical Coach Debrief Card */}
+          {coachDebrief && (
+            <motion.div
+              className="summary-card coach-card"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.5 }}
+            >
+              <div className="coach-card-header">
+                <div className="coach-title-wrap">
+                  <div className="coach-agent-badge">
+                    <Bot size={18} />
+                    <span>Tactical AI Coach</span>
+                  </div>
+                  <h3 className="coach-headline">{coachDebrief.headline}</h3>
+                </div>
+                <div className={`rating-rank-badge rank-${(coachDebrief.performanceRating || 'A').toLowerCase()}`}>
+                  <span className="rank-text">{coachDebrief.performanceRating || 'A'}</span>
+                  <span className="rank-sub">GRADE</span>
+                </div>
+              </div>
+
+              <div className="coach-intel-list">
+                <div className="intel-item">
+                  <div className="intel-icon cyan-glow">
+                    <Activity size={18} />
+                  </div>
+                  <div className="intel-content">
+                    <span className="intel-label">Pacing & Effort</span>
+                    <p className="intel-text">{coachDebrief.pacingAnalysis}</p>
+                  </div>
+                </div>
+
+                <div className="intel-item">
+                  <div className="intel-icon green-glow">
+                    <HeartPulse size={18} />
+                  </div>
+                  <div className="intel-content">
+                    <span className="intel-label">Recovery Protocol</span>
+                    <p className="intel-text">{coachDebrief.recoveryAdvice}</p>
+                  </div>
+                </div>
+
+                <div className="intel-item">
+                  <div className="intel-icon gold-glow">
+                    <Compass size={18} />
+                  </div>
+                  <div className="intel-content">
+                    <span className="intel-label">Next Target</span>
+                    <p className="intel-text">{coachDebrief.nextWorkoutTarget}</p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
         </div>
 
         <motion.div 
