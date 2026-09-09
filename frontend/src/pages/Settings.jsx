@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Camera, User as UserIcon, Loader, Trash2, ArrowLeft } from "lucide-react";
+import { Camera, User as UserIcon, Loader, Trash2, ArrowLeft, Volume2, VolumeX, Sparkles, Swords, Trophy } from "lucide-react";
 import Navbar from "../components/Navbar";
 import "./Settings.css";
 import { useAuth } from "../context/AuthContext";
 import { authAPI } from "../api";
+import { soundEffects } from "../utils/soundEffects";
 
 function Settings() {
   const navigate = useNavigate();
@@ -281,6 +282,73 @@ function Settings() {
               {pwdLoading ? <Loader size={20} className="spin" /> : "Update Password"}
             </button>
           </form>
+        </div>
+
+        {/* Tactical Audio & SFX Preview Card */}
+        <div className="settings-card" style={{ marginTop: "24px" }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h3 className="section-title" style={{ margin: 0 }}>Battle SFX & Audio Engine</h3>
+            <button
+              type="button"
+              className="pic-btn"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                background: soundEffects.isMuted ? 'rgba(255, 75, 75, 0.15)' : 'rgba(0, 229, 255, 0.15)',
+                color: soundEffects.isMuted ? '#ff5252' : '#00e5ff',
+                borderColor: soundEffects.isMuted ? '#ff5252' : '#00e5ff'
+              }}
+              onClick={() => {
+                soundEffects.toggleMute();
+                navigate(0); // reload state
+              }}
+            >
+              {soundEffects.isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+              <span>{soundEffects.isMuted ? "Sound Muted" : "Sound Enabled"}</span>
+            </button>
+          </div>
+          <p className="input-hint" style={{ marginBottom: '20px' }}>
+            Test high-fidelity procedural Web Audio synthesis for territory conquests, overthrows, and battle triumphs.
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+            <button
+              type="button"
+              className="sfx-test-btn sfx-gold"
+              onClick={() => soundEffects.playTerritoryClaimed()}
+            >
+              <Sparkles size={18} />
+              <div>
+                <strong>Territory Claimed</strong>
+                <small>Golden Celestial Chime</small>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              className="sfx-test-btn sfx-crimson"
+              onClick={() => soundEffects.playTerritoryUsurped()}
+            >
+              <Swords size={18} />
+              <div>
+                <strong>Rival Usurped</strong>
+                <small>War Horn & Blade Clash</small>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              className="sfx-test-btn sfx-cyan"
+              onClick={() => soundEffects.playVictoryFanfare()}
+            >
+              <Trophy size={18} />
+              <div>
+                <strong>Victory Fanfare</strong>
+                <small>Kingdom Triumph</small>
+              </div>
+            </button>
+          </div>
         </div>
       </main>
 
