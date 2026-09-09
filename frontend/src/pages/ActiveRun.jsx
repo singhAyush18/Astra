@@ -1,12 +1,14 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Play, Square, MapPin, Clock, Gauge, Loader, Pause } from 'lucide-react';
+import { Play, Square, MapPin, Clock, Gauge, Loader, Pause, Volume2, VolumeX } from 'lucide-react';
 import { MapContainer, TileLayer, Polyline, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import './ActiveRun.css';
 import { useAuth } from '../context/AuthContext';
 import { runsAPI } from '../api';
+import { soundEffects } from '../utils/soundEffects';
+import ConquestAlert from '../components/ConquestAlert';
 
 const warriorRunnerIcon = L.divIcon({
   className: 'warrior-runner-custom-marker',
@@ -57,6 +59,9 @@ function ActiveRun() {
   const [path, setPath] = useState([]);
   const [isAutoPaused, setIsAutoPaused] = useState(false);
   const [currentPace, setCurrentPace] = useState('--:--');
+  const [isMuted, setIsMuted] = useState(soundEffects.isMuted);
+  const [conquestAlert, setConquestAlert] = useState({ isOpen: false, type: 'claim', gridId: '', influence: 50 });
+  const visitedGridsRef = useRef(new Set());
   const distanceRef = useRef(0);
   const elapsedRef = useRef(0);
   const lastMoveTimeRef = useRef(Date.now());
@@ -175,10 +180,27 @@ function ActiveRun() {
               lastMoveTimeRef.current = Date.now();
               lastCoordsRef.current = { lat, lng };
               setDistance(newDistance);
+
+              // Live sector boundary detection
+              const currentGrid = `R${Math.floor((lat * 111320) / 1000)}-C${Math.floor((lng * (111320 * Math.cos(lat * Math.PI / 180))) / 1000)}`;
+              if (!visitedGridsRef.current.has(currentGrid)) {
+                if (visitedGridsRef.current.size > 0) {
+                  // Crossed into a new sector!
+                  setConquestAlert({
+                    isOpen: true,
+                    type: 'claim',
+                    gridId: currentGrid,
+                    influence: 50
+                  });
+                }
+                visitedGridsRef.current.add(currentGrid);
+              }
             }
           } else {
             // First point of the run
             lastCoordsRef.current = { lat, lng };
+            const initialGrid = `R${Math.floor((lat * 111320) / 1000)}-C${Math.floor((lng * (111320 * Math.cos(lat * Math.PI / 180))) / 1000)}`;
+            visitedGridsRef.current.add(initialGrid);
           }
 
           // Send location update to backend in the background (fire and forget)
@@ -291,11 +313,38 @@ function ActiveRun() {
 
   return (
     <div className="active-run-container">
-      {/* GPS Status */}
-      <div className="run-gps-status">
-        <MapPin size={14} />
-        <span>{gpsReady ? 'GPS Active' : 'Acquiring GPS...'}</span>
-        <div className={`gps-dot ${gpsReady ? 'active' : ''}`} />
+      {/* Top HUD Bar */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: '12px' }}>
+        <div className="run-gps-status" style={{ margin: 0 }}>
+          <MapPin size={14} />
+          <span>{gpsReady ? 'GPS Active' : 'Acquiring GPS...'}</span>
+          <div className={`gps-dot ${gpsReady ? 'active' : ''}`} />
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            const next = soundEffects.toggleMute();
+            setIsMuted(next);
+          }}
+          style={{
+            background: 'rgba(255, 255, 255, 0.06)',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            color: isMuted ? '#ff5252' : '#00e5ff',
+            borderRadius: '20px',
+            padding: '4px 10px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            cursor: 'pointer',
+            fontSize: '0.75rem',
+            fontFamily: 'monospace'
+          }}
+          aria-label="Toggle SFX"
+        >
+          {isMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+          <span>{isMuted ? 'SFX OFF' : 'SFX ON'}</span>
+        </button>
       </div>
 
       {/* Back button (only when not running) */}
@@ -454,6 +503,16 @@ function ActiveRun() {
           <div className="pulse-ring ring-3" />
         </div>
       )}
+
+      {/* Live Conquest Alert */}
+      <ConquestAlert
+        isOpen={conquestAlert.isOpen}
+        type={conquestAlert.type}
+        gridId={conquestAlert.gridId}
+        rivalName={conquestAlert.rivalName}
+        influence={conquestAlert.influence}
+        onClose={() => setConquestAlert(prev => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 }

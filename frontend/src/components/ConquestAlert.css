@@ -1,0 +1,274 @@
+/* ── Conquest Alert Overlay ── */
+.conquest-alert-overlay {
+  position: fixed;
+  top: 24px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 99999;
+  pointer-events: none;
+}
+
+/* ── Shockwave Rings ── */
+.shockwave-ring {
+  position: absolute;
+  width: 250px;
+  height: 250px;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.shockwave-gold {
+  border: 4px solid rgba(255, 215, 0, 0.7);
+  box-shadow: 0 0 50px rgba(255, 215, 0, 0.5), inset 0 0 30px rgba(255, 215, 0, 0.3);
+}
+
+.shockwave-crimson {
+  border: 4px solid rgba(255, 82, 82, 0.8);
+  box-shadow: 0 0 60px rgba(255, 30, 30, 0.6), inset 0 0 30px rgba(255, 82, 82, 0.4);
+}
+
+/* ── Banner Card ── */
+.conquest-banner-card {
+  pointer-events: auto;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  max-width: 580px;
+  width: 90vw;
+  padding: 20px 24px;
+  border-radius: 16px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+  overflow: hidden;
+}
+
+/* Gold Claim Theme */
+.banner-claim {
+  background: linear-gradient(135deg, rgba(16, 20, 44, 0.95) 0%, rgba(30, 24, 16, 0.95) 100%);
+  border: 1.5px solid rgba(255, 215, 0, 0.4);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8), 0 0 30px rgba(255, 215, 0, 0.25);
+}
+
+.banner-claim::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #ffd700, #ffae00, #00e5ff);
+}
+
+/* Crimson Usurp Theme */
+.banner-usurp {
+  background: linear-gradient(135deg, rgba(28, 12, 18, 0.95) 0%, rgba(40, 16, 16, 0.95) 100%);
+  border: 1.5px solid rgba(255, 82, 82, 0.5);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8), 0 0 35px rgba(255, 50, 50, 0.35);
+}
+
+.banner-usurp::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #ff1744, #ff5252, #ffd700);
+}
+
+/* Close Button */
+.alert-close-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #aaa;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.alert-close-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ── Crest & Halo ── */
+.crest-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+}
+
+.crest-halo {
+  position: absolute;
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  border: 2px dashed;
+  opacity: 0.6;
+}
+
+.halo-gold {
+  border-color: #ffd700;
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+}
+
+.halo-crimson {
+  border-color: #ff5252;
+  box-shadow: 0 0 15px rgba(255, 82, 82, 0.5);
+}
+
+.crest-icon-box {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.icon-gold {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.25), rgba(255, 140, 0, 0.25));
+  border: 1.5px solid #ffd700;
+  color: #ffd700;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+}
+
+.icon-crimson {
+  background: linear-gradient(135deg, rgba(255, 82, 82, 0.3), rgba(160, 0, 30, 0.3));
+  border: 1.5px solid #ff5252;
+  color: #ff5252;
+  box-shadow: 0 0 20px rgba(255, 82, 82, 0.5);
+}
+
+/* ── Alert Content Text ── */
+.alert-text-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.alert-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.event-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-heading, 'Cinzel', serif);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.badge-claim {
+  background: rgba(255, 215, 0, 0.15);
+  border: 1px solid rgba(255, 215, 0, 0.4);
+  color: #ffd700;
+}
+
+.badge-usurp {
+  background: rgba(255, 82, 82, 0.2);
+  border: 1px solid rgba(255, 82, 82, 0.5);
+  color: #ff5252;
+}
+
+.grid-id-pill {
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: #aaa;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.alert-title {
+  font-family: var(--font-heading, 'Cinzel', serif);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 2px 0 0 0;
+  line-height: 1.3;
+}
+
+.highlight-text {
+  color: #ffd700;
+}
+
+.alert-subtitle {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.alert-subtitle strong {
+  color: #ff5252;
+}
+
+/* ── Reward Tag ── */
+.reward-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-family: var(--font-stats, monospace);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #ffd700;
+  background: rgba(255, 215, 0, 0.1);
+  border: 1px solid rgba(255, 215, 0, 0.25);
+  padding: 3px 10px;
+  border-radius: 6px;
+  width: fit-content;
+}
+
+.zap-icon {
+  color: #ffd700;
+}
+
+@media (max-width: 600px) {
+  .conquest-banner-card {
+    padding: 16px;
+    gap: 14px;
+  }
+  .crest-wrapper {
+    width: 48px;
+    height: 48px;
+  }
+  .crest-halo {
+    width: 52px;
+    height: 52px;
+  }
+  .crest-icon-box {
+    width: 40px;
+    height: 40px;
+  }
+  .alert-title {
+    font-size: 1rem;
+  }
+}

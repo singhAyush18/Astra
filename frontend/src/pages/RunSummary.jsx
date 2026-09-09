@@ -1,10 +1,12 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Trophy, Zap, MapPin, Target, ChevronRight, Crown, Flame, Bot, Activity, HeartPulse, Compass } from 'lucide-react';
+import { Trophy, Zap, MapPin, Target, ChevronRight, Crown, Flame, Bot, Activity, HeartPulse, Compass, Swords, Sparkles } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import './RunSummary.css';
 import { useAuth } from '../context/AuthContext';
+import { soundEffects } from '../utils/soundEffects';
+import ConquestAlert from '../components/ConquestAlert';
 
 function RunSummary() {
   const location = useLocation();
@@ -12,11 +14,29 @@ function RunSummary() {
   const { user, updateUser } = useAuth();
   
   const summaryData = location.state;
+  const [conquestAlert, setConquestAlert] = useState({ isOpen: false, type: 'claim', gridId: '', rivalName: '', influence: 100 });
 
   useEffect(() => {
     if (!summaryData) {
       navigate('/dashboard');
       return;
+    }
+    
+    // Play initial spoils fanfare
+    soundEffects.playVictoryFanfare();
+
+    // Trigger territory conquest alert if a territory was claimed or usurped
+    if (summaryData.grid?.claimed && summaryData.grid?.gridId) {
+      const isUsurped = summaryData.grid.rulerId && summaryData.grid.rulerId !== user?._id?.toString();
+      setTimeout(() => {
+        setConquestAlert({
+          isOpen: true,
+          type: isUsurped ? 'usurp' : 'claim',
+          gridId: summaryData.grid.gridId,
+          rivalName: summaryData.grid.rulerName || 'Rival Ruler',
+          influence: summaryData.grid.influenceAdded || 100
+        });
+      }, 1000);
     }
     
     // Optimistically update user context with new level/xp if available
@@ -151,10 +171,35 @@ function RunSummary() {
                 </div>
                 <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {run.gridBreakdown.map((g, idx) => (
-                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', backgroundColor: 'rgba(255,255,255,0.03)', padding: '8px 12px', borderRadius: '6px' }}>
-                      <span style={{ color: '#d4af37', fontFamily: 'monospace' }}>{g.gridId}</span>
-                      <span style={{ color: '#aaa', fontSize: '0.9rem' }}>+{g.influenceEarned} Influence</span>
-                    </div>
+                    <motion.div
+                      key={idx}
+                      whileHover={{ scale: 1.02, backgroundColor: 'rgba(212, 175, 55, 0.08)' }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => {
+                        setConquestAlert({
+                          isOpen: true,
+                          type: 'claim',
+                          gridId: g.gridId,
+                          influence: g.influenceEarned
+                        });
+                      }}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        backgroundColor: 'rgba(255,255,255,0.03)',
+                        padding: '10px 14px',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(212, 175, 55, 0.15)',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Sparkles size={14} color="#ffd700" />
+                        <span style={{ color: '#d4af37', fontFamily: 'monospace', fontWeight: 600 }}>{g.gridId}</span>
+                      </div>
+                      <span style={{ color: '#00e5ff', fontSize: '0.9rem', fontWeight: 600 }}>+{g.influenceEarned} Influence</span>
+                    </motion.div>
                   ))}
                 </div>
               </div>
@@ -233,6 +278,16 @@ function RunSummary() {
           </button>
         </motion.div>
       </main>
+
+      {/* Territory Conquest Celebration Alert */}
+      <ConquestAlert
+        isOpen={conquestAlert.isOpen}
+        type={conquestAlert.type}
+        gridId={conquestAlert.gridId}
+        rivalName={conquestAlert.rivalName}
+        influence={conquestAlert.influence}
+        onClose={() => setConquestAlert(prev => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 }
