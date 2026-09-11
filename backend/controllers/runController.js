@@ -1,14 +1,8 @@
 const mongoose = require("mongoose");
 const Run = require("../models/Run");
 const User = require("../models/User");
-const Grid = require("../models/Grid");
-
-const { calculateXP, updateStreak } = require("./gamificationController");
-const {
-    getGridIdFromCoordinates,
-    addInfluenceToGrid,
-} = require("../services/Gridservices");
 const { generateCoachDebrief } = require("../services/agentService");
+const { completeRun } = require("../services/runService");
 
 const haversine = (lat1, lng1, lat2, lng2) => {
     const R = 6371; // km
@@ -27,45 +21,7 @@ const haversine = (lat1, lng1, lat2, lng2) => {
 };
 
 const finalizeRun = async (run) => {
-    if (run.distance < 0.1) {
-        run.status = "discarded";
-        await run.save();
-        return;
-    }
-
-    run.status = "completed";
-    if (!run.endTime) run.endTime = new Date();
-    await run.save();
-
-    const user = await User.findById(run.userId);
-    if (user) {
-        const paceInMinutes = run.distance > 0 ? run.duration / 60 / run.distance : 0;
-        const xpEarned = calculateXP(run.distance, paceInMinutes);
-        user.xp += xpEarned;
-        user.level = Math.floor(user.xp / 500) + 1;
-        await user.save();
-        await updateStreak(user._id);
-
-        if (run.path.length > 0) {
-            const gridPointCounts = {};
-            for (const point of run.path) {
-                const gId = getGridIdFromCoordinates(point.lat, point.lng);
-                gridPointCounts[gId] = (gridPointCounts[gId] || 0) + 1;
-            }
-            const totalPoints = run.path.length;
-            const uniqueGridIds = Object.keys(gridPointCounts);
-            const gridBreakdown = [];
-            for (const gId of uniqueGridIds) {
-                const proportion = gridPointCounts[gId] / totalPoints;
-                const gridDistance = run.distance * proportion;
-                const gridInfluence = Math.round(gridDistance * 100);
-                await addInfluenceToGrid(gId, user._id, gridInfluence, gridDistance);
-                gridBreakdown.push({ gridId: gId, influenceEarned: gridInfluence, distance: gridDistance });
-            }
-            run.gridBreakdown = gridBreakdown;
-            await run.save();
-        }
-    }
+    return await completeRun(run);
 };
 
 const startRun = async (req, res) => {
@@ -235,129 +191,46 @@ const endRun = async (req, res) => {
             });
         }
 
-        run.endTime = new Date();
-        run.duration = frontendDuration !== undefined ? frontendDuration : Math.floor((run.endTime - run.startTime) / 1000);
+        const user = await User.findById(req.user.id);
+        const result = await completeRun(run, { duration: frontendDuration, user });
 
-        const paceInMinutes =
-            run.distance > 0 ? run.duration / 60 / run.distance : 0;
-        const mins = Math.floor(paceInMinutes);
-        const secs = Math.round((paceInMinutes - mins) * 60);
-        run.pace = `${mins}:${secs.toString().padStart(2, "0")} min/km`;
-
-        // Short run — discard it so user can start a new one
-        if (run.distance < 0.1) {
-            run.status = "discarded";
-            await run.save();
-
+        if (result.status === "discarded") {
             return res.status(200).json({
                 success: true,
                 message: "Run too short — discarded",
-                data: { run },
+                data: { run: result.run },
             });
         }
 
-        run.status = "completed";
-        await run.save();
+        // Generate AI Tactical Coach Debrief
+        try {
+            const coachDebrief = await generateCoachDebrief({
+                username: user?.username || "Athlete",
+                distance_meters: Math.round(result.run.distance * 1000),
+                duration_seconds: result.run.duration,
+                pace: result.run.pace,
+                current_streak: result.streakInfo?.currentStreak || 0,
+            });
 
-        let xpEarned = 0;
-        let streakInfo = null;
-        let gridUpdate = null;
-        let gridId = null;
-        let gridRulerId = null;
-        let gridRulerName = null;
-
-        const user = await User.findById(run.userId);
-
-        if (user) {
-            xpEarned = calculateXP(run.distance, paceInMinutes);
-            user.xp += xpEarned;
-            user.level = Math.floor(user.xp / 500) + 1;
-            await user.save();
-
-            streakInfo = await updateStreak(user._id);
-
-            if (run.path.length > 0) {
-                // Count GPS points per grid to distribute XP proportionally
-                const gridPointCounts = {};
-                for (const point of run.path) {
-                    const gId = getGridIdFromCoordinates(point.lat, point.lng);
-                    gridPointCounts[gId] = (gridPointCounts[gId] || 0) + 1;
-                }
-
-                const totalPoints = run.path.length;
-                const uniqueGridIds = Object.keys(gridPointCounts);
-
-                // Distribute Influence and distance proportionally to each grid
-                const gridBreakdown = [];
-                for (const gId of uniqueGridIds) {
-                    const proportion = gridPointCounts[gId] / totalPoints;
-                    const gridDistance = run.distance * proportion;
-                    const gridInfluence = Math.round(gridDistance * 100);
-
-                    await addInfluenceToGrid(gId, user._id, gridInfluence, gridDistance);
-                    gridBreakdown.push({ gridId: gId, influenceEarned: gridInfluence, distance: gridDistance });
-                }
-                
-                run.gridBreakdown = gridBreakdown;
-                await run.save();
-                // Use the last grid for the summary response
-                const lastPoint = run.path[run.path.length - 1];
-                gridId = getGridIdFromCoordinates(lastPoint.lat, lastPoint.lng);
-                gridUpdate = await require("../models/Gridinfluence").findOne({
-                    gridId: (await Grid.findOne({ gridId }))._id,
-                    userId: user._id,
-                });
-
-                // Fetch grid ruler info
-                const grid = await Grid.findOne({ gridId });
-                if (grid?.ruler) {
-                    gridRulerId = grid.ruler;
-                    const rulerUser = await User.findById(grid.ruler);
-                    gridRulerName = rulerUser ? rulerUser.username : null;
-                }
+            if (coachDebrief) {
+                result.run.coachDebrief = coachDebrief;
+                await result.run.save();
             }
-
-            // Generate AI Tactical Coach Debrief
-            try {
-                const coachDebrief = await generateCoachDebrief({
-                    username: user.username || "Athlete",
-                    distance_meters: Math.round(run.distance * 1000),
-                    duration_seconds: run.duration,
-                    pace: run.pace,
-                    current_streak: streakInfo?.currentStreak || 0,
-                });
-
-                if (coachDebrief) {
-                    run.coachDebrief = coachDebrief;
-                    await run.save();
-                }
-            } catch (coachErr) {
-                console.error("AI Coach Debrief generation encountered an error:", coachErr);
-            }
+        } catch (coachErr) {
+            console.error("AI Coach Debrief generation encountered an error:", coachErr);
         }
 
         res.status(200).json({
             success: true,
             message: "Run ended",
             data: {
-                xpEarned,
-                currentStreak: streakInfo?.currentStreak || 0,
-                longestStreak: streakInfo?.longestStreak || 0,
-                level: user?.level || 1,
-                run,
-                coachDebrief: run.coachDebrief,
-                grid: gridUpdate
-                    ? {
-                          gridId,
-                          influenceAdded: xpEarned,
-                          totalInfluence: gridUpdate.influence,
-                          totalDistance: gridUpdate.totalDistance,
-                          totalRuns: gridUpdate.totalRuns,
-                          claimed: !!gridRulerId,
-                          rulerId: gridRulerId,
-                          rulerName: gridRulerName,
-                      }
-                    : null,
+                xpEarned: result.xpEarned,
+                currentStreak: result.streakInfo?.currentStreak || 0,
+                longestStreak: result.streakInfo?.longestStreak || 0,
+                level: result.level,
+                run: result.run,
+                coachDebrief: result.run.coachDebrief,
+                grid: result.gridSummary,
             },
         });
     } catch (error) {
