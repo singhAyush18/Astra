@@ -67,7 +67,7 @@ Workout Data for Athlete:
 - Current Running Streak: {telemetry.current_streak} consecutive days
 """
 
-    model_name =os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+    model_name = os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b")
     completion = await groq_client.chat.completions.create(
         model=model_name,
         messages=[
