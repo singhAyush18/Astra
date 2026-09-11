@@ -202,24 +202,7 @@ const endRun = async (req, res) => {
             });
         }
 
-        // Generate AI Tactical Coach Debrief
-        try {
-            const coachDebrief = await generateCoachDebrief({
-                username: user?.username || "Athlete",
-                distance_meters: Math.round(result.run.distance * 1000),
-                duration_seconds: result.run.duration,
-                pace: result.run.pace,
-                current_streak: result.streakInfo?.currentStreak || 0,
-            });
-
-            if (coachDebrief) {
-                result.run.coachDebrief = coachDebrief;
-                await result.run.save();
-            }
-        } catch (coachErr) {
-            console.error("AI Coach Debrief generation encountered an error:", coachErr);
-        }
-
+        // Respond immediately to the client so UI navigation is instantaneous (< 50ms)
         res.status(200).json({
             success: true,
             message: "Run ended",
@@ -229,9 +212,25 @@ const endRun = async (req, res) => {
                 longestStreak: result.streakInfo?.longestStreak || 0,
                 level: result.level,
                 run: result.run,
-                coachDebrief: result.run.coachDebrief,
+                coachDebrief: result.run.coachDebrief || null,
                 grid: result.gridSummary,
             },
+        });
+
+        // Trigger AI Tactical Coach Debrief in the background
+        generateCoachDebrief({
+            username: user?.username || "Athlete",
+            distance_meters: Math.round(result.run.distance * 1000),
+            duration_seconds: result.run.duration,
+            pace: result.run.pace,
+            current_streak: result.streakInfo?.currentStreak || 0,
+        }).then(async (coachDebrief) => {
+            if (coachDebrief) {
+                result.run.coachDebrief = coachDebrief;
+                await result.run.save();
+            }
+        }).catch((coachErr) => {
+            console.error("AI Coach Debrief background generation encountered an error:", coachErr);
         });
     } catch (error) {
         console.error("Error ending run:", error);
@@ -261,6 +260,18 @@ const generateRunDebrief = async (req, res) => {
             });
         }
 
+        // Return cached debrief immediately if already generated in background
+        if (run.coachDebrief && run.coachDebrief.headline) {
+            return res.status(200).json({
+                success: true,
+                message: "Coach debrief retrieved",
+                data: {
+                    coachDebrief: run.coachDebrief,
+                    run,
+                },
+            });
+        }
+
         const user = await User.findById(req.user.id);
         const coachDebrief = await generateCoachDebrief({
             username: user?.username || "Athlete",
@@ -270,8 +281,10 @@ const generateRunDebrief = async (req, res) => {
             current_streak: user?.currentStreak || 0,
         });
 
-        run.coachDebrief = coachDebrief;
-        await run.save();
+        if (coachDebrief) {
+            run.coachDebrief = coachDebrief;
+            await run.save();
+        }
 
         res.status(200).json({
             success: true,

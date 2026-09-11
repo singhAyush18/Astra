@@ -7,14 +7,32 @@ import './RunSummary.css';
 import { useAuth } from '../context/AuthContext';
 import { soundEffects } from '../utils/soundEffects';
 import ConquestAlert from '../components/ConquestAlert';
+import { runsAPI } from '../api';
 
 function RunSummary() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, updateUser } = useAuth();
   
-  const summaryData = location.state;
+  const [summaryData, setSummaryData] = useState(() => {
+    if (location.state) {
+      try {
+        sessionStorage.setItem('last_run_summary', JSON.stringify(location.state));
+      } catch {}
+      return location.state;
+    }
+    const saved = sessionStorage.getItem('last_run_summary');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {}
+    }
+    return null;
+  });
+
   const [conquestAlert, setConquestAlert] = useState({ isOpen: false, type: 'claim', gridId: '', rivalName: '', influence: 100 });
+  const [coachDebrief, setCoachDebrief] = useState(summaryData?.coachDebrief || summaryData?.run?.coachDebrief || null);
+  const [loadingDebrief, setLoadingDebrief] = useState(!summaryData?.coachDebrief && !summaryData?.run?.coachDebrief && !!summaryData?.run?._id);
 
   useEffect(() => {
     if (!summaryData) {
@@ -24,6 +42,25 @@ function RunSummary() {
     
     // Play initial spoils fanfare
     soundEffects.playVictoryFanfare();
+
+    // If coach debrief is not yet populated, load it asynchronously
+    const runId = summaryData.run?._id;
+    if (!coachDebrief && runId) {
+      setLoadingDebrief(true);
+      runsAPI.generateDebrief(null, runId)
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.data?.coachDebrief) {
+            setCoachDebrief(data.data.coachDebrief);
+          }
+        })
+        .catch(err => {
+          console.warn('[RunSummary] Error fetching coach debrief:', err);
+        })
+        .finally(() => {
+          setLoadingDebrief(false);
+        });
+    }
 
     // Trigger territory conquest alert if a territory was newly claimed or usurped
     if (summaryData.grid?.gridId) {
@@ -59,7 +96,6 @@ function RunSummary() {
   if (!summaryData) return null;
 
   const { run, xpEarned, level, currentStreak } = summaryData;
-  const coachDebrief = summaryData.coachDebrief || run?.coachDebrief;
 
   const formatDuration = (seconds) => {
     if (!seconds) return "0m";
@@ -103,100 +139,134 @@ function RunSummary() {
                 <span className="stat-val">{(run?.distance || 0).toFixed(2)}</span>
                 <span className="stat-unit">km</span>
               </div>
+
               <div className="stat-box">
                 <Target size={20} className="stat-icon" />
-                <span className="stat-val">{run?.pace || '--:--'}</span>
-                <span className="stat-unit">min/km</span>
-              </div>
-              <div className="stat-box">
-                <Flame size={20} className="stat-icon" />
                 <span className="stat-val">{formatDuration(run?.duration)}</span>
-                <span className="stat-unit">Time</span>
+                <span className="stat-unit">time</span>
+              </div>
+
+              <div className="stat-box">
+                <Zap size={20} className="stat-icon" />
+                <span className="stat-val">{run?.pace || "0:00"}</span>
+                <span className="stat-unit">pace</span>
               </div>
             </div>
           </motion.div>
 
-          {/* Rewards Card */}
+          {/* Spoils & Level Progression */}
           <motion.div 
-            className="summary-card rewards-card"
+            className="summary-card spoils-card"
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
           >
-            <h3>Spoils of War</h3>
-            
-            {xpEarned !== undefined && (
-              <div className="reward-item xp-reward">
-                <div className="reward-icon gold-glow">
+            <h3>Kingdom Spoils</h3>
+            <div className="spoils-grid">
+              <div className="spoil-item">
+                <div className="spoil-icon xp-glow">
                   <Zap size={24} />
                 </div>
-                <div className="reward-details">
-                  <span className="reward-amount">+{xpEarned.toLocaleString()} XP</span>
-                  <span className="reward-label">Experience Earned</span>
+                <div className="spoil-text">
+                  <span className="spoil-amount">+{xpEarned || 0}</span>
+                  <span className="spoil-label">XP Acquired</span>
                 </div>
               </div>
-            )}
 
-            {xpEarned === undefined && (
-              <div className="reward-item xp-reward" style={{ opacity: 0.6 }}>
-                <div className="reward-icon" style={{ boxShadow: 'none' }}>
-                  <Zap size={24} color="#666" />
+              <div className="spoil-item">
+                <div className="spoil-icon streak-glow">
+                  <Flame size={24} />
                 </div>
-                <div className="reward-details">
-                  <span className="reward-amount" style={{ color: '#aaa' }}>Run Discarded</span>
-                  <span className="reward-label">Distance was too short to earn rewards</span>
+                <div className="spoil-text">
+                  <span className="spoil-amount">{currentStreak || 1} Days</span>
+                  <span className="spoil-label">Current Streak</span>
                 </div>
               </div>
-            )}
+            </div>
 
-            {isLevelUp && (
-              <motion.div 
-                className="reward-item level-reward"
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 1, type: "spring" }}
-              >
-                <div className="reward-icon blue-glow">
-                  <Crown size={24} />
-                </div>
-                <div className="reward-details">
-                  <span className="reward-amount">Level {level} Reached!</span>
-                  <span className="reward-label">You have grown stronger</span>
-                </div>
-              </motion.div>
-            )}
+            <div className="level-progress-section">
+              <div className="level-bar-label">
+                <span>Domain Mastery</span>
+                <span>Level {level || 1}</span>
+              </div>
+              <div className="level-track">
+                <motion.div 
+                  className="level-fill"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${((user?.xp || 0) % 500) / 5}%` }}
+                  transition={{ duration: 1, delay: 0.5 }}
+                />
+              </div>
+              {isLevelUp && (
+                <p className="level-up-notify">👑 Level Up Achieved!</p>
+              )}
+            </div>
+          </motion.div>
 
-            {run?.gridBreakdown && run.gridBreakdown.length > 0 && (
-              <div className="reward-item territory-reward" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '10px' }}>
-                  <div className="reward-icon purple-glow">
-                    <MapPin size={24} />
+          {/* Territory Influence Breakdown */}
+          <motion.div 
+            className="summary-card grid-card"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+          >
+            <h3>Territory Conquest Breakdown</h3>
+            {summaryData.grid ? (
+              <div className="grid-summary-display">
+                <div className="grid-status-badge">
+                  {summaryData.grid.isUsurped ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ff4d4d', fontWeight: 700 }}>
+                      <Swords size={20} />
+                      <span>Rival Sector Usurped!</span>
+                    </div>
+                  ) : summaryData.grid.claimed ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ffd700', fontWeight: 700 }}>
+                      <Crown size={20} />
+                      <span>Sector Claimed!</span>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#00e5ff', fontWeight: 700 }}>
+                      <MapPin size={20} />
+                      <span>Territory Patrolled</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid-stats-row">
+                  <div className="grid-stat">
+                    <span className="stat-label">Sector Code</span>
+                    <span className="stat-value">{summaryData.grid.gridId}</span>
                   </div>
-                  <span className="reward-amount" style={{ fontSize: '1rem' }}>Territories Conquered</span>
+                  <div className="grid-stat">
+                    <span className="stat-label">Dominion Standing</span>
+                    <span className="stat-value" style={{ color: '#00e5ff' }}>+{summaryData.grid.influenceAdded} Influence</span>
+                  </div>
+                  <div className="grid-stat">
+                    <span className="stat-label">Sector Status</span>
+                    <span className="stat-value">{summaryData.grid.rulerName ? `Ruled by ${summaryData.grid.rulerName}` : 'Unclaimed'}</span>
+                  </div>
                 </div>
-                <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {run.gridBreakdown.map((g, idx) => (
-                    <motion.div
-                      key={idx}
-                      whileHover={{ scale: 1.02, backgroundColor: 'rgba(212, 175, 55, 0.08)' }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => {
-                        setConquestAlert({
-                          isOpen: true,
-                          type: 'claim',
-                          gridId: g.gridId,
-                          influence: g.influenceEarned
-                        });
-                      }}
+              </div>
+            ) : (
+              <p className="no-grid-text">No significant territory traversed during this expedition.</p>
+            )}
+
+            {/* Multiple Grids Traversed List */}
+            {run?.gridBreakdown && run.gridBreakdown.length > 0 && (
+              <div className="grid-breakdown-list" style={{ marginTop: '16px', borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '14px' }}>
+                <h4 style={{ fontSize: '0.9rem', color: '#b0a890', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Sectors Fortified</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '10px' }}>
+                  {run.gridBreakdown.map((g) => (
+                    <motion.div 
+                      key={g.gridId}
                       style={{
+                        background: 'rgba(20, 20, 40, 0.6)',
+                        border: '1px solid rgba(212, 175, 55, 0.2)',
+                        borderRadius: '8px',
+                        padding: '10px 12px',
                         display: 'flex',
                         justifyContent: 'space-between',
-                        alignItems: 'center',
-                        backgroundColor: 'rgba(255,255,255,0.03)',
-                        padding: '10px 14px',
-                        borderRadius: '8px',
-                        border: '1px solid rgba(212, 175, 55, 0.15)',
-                        cursor: 'pointer'
+                        alignItems: 'center'
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -211,13 +281,37 @@ function RunSummary() {
             )}
           </motion.div>
 
-          {/* AI Tactical Coach Debrief Card */}
+          {/* AI Tactical Coach Debrief Card - Live Loader or Full Debrief */}
+          {loadingDebrief && (
+            <motion.div
+              className="summary-card coach-card coach-loading-card"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <div className="coach-loader-content">
+                <div className="coach-radar-anim">
+                  <Bot size={28} className="coach-bot-icon" />
+                  <div className="radar-pulse-ring" />
+                </div>
+                <div className="coach-loader-info">
+                  <div className="coach-agent-badge">
+                    <Bot size={14} />
+                    <span>Tactical AI Coach</span>
+                  </div>
+                  <h4>Synthesizing Run Telemetry...</h4>
+                  <p>Evaluating cadence, pacing velocity, and biomechanical strain</p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
           {coachDebrief && (
             <motion.div
               className="summary-card coach-card"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.5 }}
+              transition={{ duration: 0.6 }}
             >
               <div className="coach-card-header">
                 <div className="coach-title-wrap">
@@ -284,7 +378,6 @@ function RunSummary() {
         </motion.div>
       </main>
 
-      {/* Territory Conquest Celebration Alert */}
       <ConquestAlert
         isOpen={conquestAlert.isOpen}
         type={conquestAlert.type}

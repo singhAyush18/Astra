@@ -214,6 +214,78 @@
   background: linear-gradient(90deg, #00e5ff, #ffd700, #b388ff);
 }
 
+/* ── Live AI Coach Loading Card ── */
+.coach-loading-card {
+  padding: 24px 28px;
+}
+
+.coach-loader-content {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.coach-radar-anim {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  background: rgba(0, 229, 255, 0.1);
+  border: 1px solid rgba(0, 229, 255, 0.4);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.coach-bot-icon {
+  color: #00e5ff;
+  animation: botPulse 2s ease-in-out infinite;
+}
+
+.radar-pulse-ring {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  right: -6px;
+  bottom: -6px;
+  border-radius: 50%;
+  border: 2px solid #00e5ff;
+  opacity: 0.8;
+  animation: radarWave 2s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+}
+
+@keyframes radarWave {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+@keyframes botPulse {
+  0%, 100% { transform: scale(1); opacity: 0.9; }
+  50% { transform: scale(1.1); opacity: 1; filter: drop-shadow(0 0 8px #00e5ff); }
+}
+
+.coach-loader-info h4 {
+  margin: 6px 0 4px;
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  color: #e8e0d0;
+  letter-spacing: 0.02em;
+}
+
+.coach-loader-info p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-family: var(--font-ui);
+}
+
 .coach-card-header {
   display: flex;
   justify-content: space-between;
