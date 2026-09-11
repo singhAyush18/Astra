@@ -1,5 +1,6 @@
 const Grid = require("../models/Grid");
 const GridInfluence = require("../models/Gridinfluence");
+const User = require("../models/User");
 
 const getAllGrids = async (req, res) => {
     try {
@@ -7,14 +8,40 @@ const getAllGrids = async (req, res) => {
             status: "claimed"
         }).populate("ruler", "username");
 
-        const formattedGrids = grids.map(grid => ({
-            gridId: grid.gridId,
-            name: grid.name || null,
-            status: grid.status,
-            rulerId: grid.ruler?._id || null,
-            rulerName: grid.ruler?.username || null,
-            claimedAt: grid.claimedAt
-        }));
+        const gridIds = grids.map(grid => grid._id);
+        const currentUserId = req.user?.id ? req.user.id.toString() : null;
+
+        // Fetch all influence records for these grids in a single query
+        const influenceRecords = await GridInfluence.find({
+            gridId: { $in: gridIds }
+        });
+
+        // Map gridId_userId -> influence
+        const influenceMap = {};
+        for (const rec of influenceRecords) {
+            if (rec.gridId && rec.userId) {
+                const key = `${rec.gridId.toString()}_${rec.userId.toString()}`;
+                influenceMap[key] = rec.influence || 0;
+            }
+        }
+
+        const formattedGrids = grids.map(grid => {
+            const gIdStr = grid._id.toString();
+            const rulerIdStr = grid.ruler?._id ? grid.ruler._id.toString() : null;
+            const rulerInfluence = rulerIdStr ? (influenceMap[`${gIdStr}_${rulerIdStr}`] || 0) : 0;
+            const userInfluence = currentUserId ? (influenceMap[`${gIdStr}_${currentUserId}`] || 0) : 0;
+
+            return {
+                gridId: grid.gridId,
+                name: grid.name || null,
+                status: grid.status,
+                rulerId: grid.ruler?._id || null,
+                rulerName: grid.ruler?.username || null,
+                rulerInfluence,
+                userInfluence,
+                claimedAt: grid.claimedAt
+            };
+        });
 
         res.status(200).json({
             success: true,
@@ -80,22 +107,41 @@ const getGridDetails = async (req, res) => {
             message: "Error fetching territory",
         });
     }
-}
+};
 
 const getMyTerritories = async (req, res) => {
     try {
+        const currentUserId = req.user.id;
         const grids = await Grid.find({
-            ruler: req.user.id
+            ruler: currentUserId
         }).populate("ruler", "username");
 
-        const formattedGrids = grids.map(grid => ({
-            gridId: grid.gridId,
-            name: grid.name || null,
-            status: grid.status,
-            rulerId: grid.ruler?._id || null,
-            rulerName: grid.ruler?.username || null,
-            claimedAt: grid.claimedAt
-        }));
+        const gridIds = grids.map(grid => grid._id);
+        const influenceRecords = await GridInfluence.find({
+            gridId: { $in: gridIds },
+            userId: currentUserId
+        });
+
+        const influenceMap = {};
+        for (const rec of influenceRecords) {
+            if (rec.gridId) {
+                influenceMap[rec.gridId.toString()] = rec.influence || 0;
+            }
+        }
+
+        const formattedGrids = grids.map(grid => {
+            const myInfluence = influenceMap[grid._id.toString()] || 0;
+            return {
+                gridId: grid.gridId,
+                name: grid.name || null,
+                status: grid.status,
+                rulerId: grid.ruler?._id || null,
+                rulerName: grid.ruler?.username || null,
+                rulerInfluence: myInfluence,
+                userInfluence: myInfluence,
+                claimedAt: grid.claimedAt
+            };
+        });
 
         res.status(200).json({
             success: true,

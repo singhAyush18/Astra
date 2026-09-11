@@ -171,7 +171,7 @@ function TerritoryMap() {
           <div className="territory-map-wrapper">
             <LiveGridMap 
               territories={filteredList} 
-              currentUserId={user?.id}
+              currentUserId={user?.id || user?._id}
               onRename={handleRename}
             />
           </div>

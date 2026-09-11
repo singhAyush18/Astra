@@ -25,18 +25,23 @@ function RunSummary() {
     // Play initial spoils fanfare
     soundEffects.playVictoryFanfare();
 
-    // Trigger territory conquest alert if a territory was claimed or usurped
-    if (summaryData.grid?.claimed && summaryData.grid?.gridId) {
-      const isUsurped = summaryData.grid.rulerId && summaryData.grid.rulerId !== user?._id?.toString();
-      setTimeout(() => {
-        setConquestAlert({
-          isOpen: true,
-          type: isUsurped ? 'usurp' : 'claim',
-          gridId: summaryData.grid.gridId,
-          rivalName: summaryData.grid.rulerName || 'Rival Ruler',
-          influence: summaryData.grid.influenceAdded || 100
-        });
-      }, 1000);
+    // Trigger territory conquest alert if a territory was newly claimed or usurped
+    if (summaryData.grid?.gridId) {
+      const { conquestType, isUsurped, rivalName, gridId, influenceAdded } = summaryData.grid;
+      const isUsurp = conquestType === 'usurp' || !!isUsurped;
+
+      // Only show conquest banner if territory was claimed or usurped from a rival
+      if (conquestType === 'claim' || isUsurp) {
+        setTimeout(() => {
+          setConquestAlert({
+            isOpen: true,
+            type: isUsurp ? 'usurp' : 'claim',
+            gridId: gridId,
+            rivalName: rivalName || 'Rival Ruler',
+            influence: influenceAdded || 100
+          });
+        }, 1000);
+      }
     }
     
     // Optimistically update user context with new level/xp if available

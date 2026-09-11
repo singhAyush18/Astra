@@ -178,6 +178,12 @@ const TerritoryGrid = ({ t, currentUserId, onRename }) => {
     }
   };
 
+  const rulerInfluence = t.rulerInfluence || t.influence || 0;
+  const userInfluence = t.userInfluence || 0;
+  const targetInfluence = Math.max(rulerInfluence, 500);
+  const dethroneProgress = Math.min(100, Math.round((userInfluence / targetInfluence) * 100));
+  const xpNeeded = Math.max(0, targetInfluence - userInfluence);
+
   const popupContent = (
     <div className="territory-popup-content">
       <div className="popup-header">
@@ -190,6 +196,40 @@ const TerritoryGrid = ({ t, currentUserId, onRename }) => {
         <p><strong>Claimed:</strong> {new Date(t.claimedAt).toLocaleDateString('en-US', {
           month: 'short', day: 'numeric', year: 'numeric'
         })}</p>
+
+        {isMine ? (
+          <div className="popup-influence-mine">
+            <p className="influence-line">
+              <strong>Influence:</strong> <span className="gold-xp">⚡ {rulerInfluence.toLocaleString()} XP</span>
+            </p>
+          </div>
+        ) : (
+          <div className="popup-influence-rival">
+            <p className="influence-line">
+              <strong>Ruler's Influence:</strong> <span className="ruler-xp">{rulerInfluence.toLocaleString()} XP</span>
+            </p>
+            <p className="influence-line">
+              <strong>Your Influence:</strong> <span className="cyan-xp">{userInfluence.toLocaleString()} XP</span>
+            </p>
+            <div className="dethrone-progress-container">
+              <div className="dethrone-progress-header">
+                <span>Dethrone Progress</span>
+                <span className="dethrone-percent">{dethroneProgress}%</span>
+              </div>
+              <div className="dethrone-bar-track">
+                <div 
+                  className="dethrone-bar-fill" 
+                  style={{ width: `${dethroneProgress}%` }}
+                />
+              </div>
+              {xpNeeded > 0 ? (
+                <span className="dethrone-hint">{xpNeeded.toLocaleString()} XP needed to usurp</span>
+              ) : (
+                <span className="dethrone-hint ready">Dominion within reach!</span>
+              )}
+            </div>
+          </div>
+        )}
         
         {isMine && onRename && (
           <button 

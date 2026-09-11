@@ -33,13 +33,18 @@ const processRunGrids = async (run, user) => {
     const totalPoints = run.path.length;
     const uniqueGridIds = Object.keys(gridPointCounts);
     const gridBreakdown = [];
+    const conquestMap = {};
 
     for (const gId of uniqueGridIds) {
         const proportion = gridPointCounts[gId] / totalPoints;
         const gridDistance = run.distance * proportion;
         const gridInfluence = Math.round(gridDistance * 100);
 
-        await addInfluenceToGrid(gId, user._id, gridInfluence, gridDistance);
+        const { conquestResult } = await addInfluenceToGrid(gId, user._id, gridInfluence, gridDistance);
+        if (conquestResult) {
+            conquestMap[gId] = conquestResult;
+        }
+
         gridBreakdown.push({
             gridId: gId,
             influenceEarned: gridInfluence,
@@ -56,6 +61,11 @@ const processRunGrids = async (run, user) => {
 
     let gridInfluenceDoc = null;
     let gridRulerName = null;
+    let rivalRulerName = null;
+
+    const lastConquest = conquestMap[lastGridId];
+    const conquestType = lastConquest?.conquestType || "none";
+    const isUsurped = conquestType === "usurp";
 
     if (gridDoc) {
         gridInfluenceDoc = await GridInfluence.findOne({
@@ -67,18 +77,27 @@ const processRunGrids = async (run, user) => {
             const rulerUser = await User.findById(gridDoc.ruler);
             gridRulerName = rulerUser ? rulerUser.username : null;
         }
+
+        // If a rival was dethroned in this run, fetch that previous rival's name
+        if (isUsurped && lastConquest?.previousRuler) {
+            const prevUser = await User.findById(lastConquest.previousRuler);
+            rivalRulerName = prevUser ? prevUser.username : "Rival Ruler";
+        }
     }
 
     const lastGridSummary = gridInfluenceDoc
         ? {
               gridId: lastGridId,
+              conquestType, // 'claim' | 'usurp' | 'reinforced' | 'none'
               influenceAdded: 0, // Assigned in completeRun with xpEarned
               totalInfluence: gridInfluenceDoc.influence,
               totalDistance: gridInfluenceDoc.totalDistance,
               totalRuns: gridInfluenceDoc.totalRuns,
-              claimed: !!gridDoc?.ruler,
+              claimed: conquestType === "claim" || conquestType === "usurp" || conquestType === "reinforced",
+              isUsurped,
               rulerId: gridDoc?.ruler || null,
-              rulerName: gridRulerName,
+              rulerName: gridRulerName, // Current ruler (e.g. user)
+              rivalName: rivalRulerName, // Dethroned rival (if usurp), never current user
           }
         : null;
 

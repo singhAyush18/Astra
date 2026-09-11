@@ -8,11 +8,8 @@ const CLAIM_THRESHOLD = 500;
  * Convert GPS coordinates to a unique grid ID
  */
 function getGridIdFromCoordinates(lat, lng) {
-
     const metersPerDegreeLat = 111320;
-
-    const metersPerDegreeLng =
-        111320 * Math.cos(lat * Math.PI / 180);
+    const metersPerDegreeLng = 111320 * Math.cos(lat * Math.PI / 180);
 
     const row = Math.floor(
         (lat * metersPerDegreeLat) / GRID_SIZE_METERS
@@ -34,7 +31,6 @@ const addInfluenceToGrid = async (
     xp,
     distance
 ) => {
-
     let grid = await Grid.findOne({ gridId });
 
     if (!grid) {
@@ -64,10 +60,10 @@ const addInfluenceToGrid = async (
 
     await influenceRecord.save();
 
-    // Check if ownership should change
-    await updateGridRuler(gridId);
+    // Check if ownership should change and track conquest status
+    const conquestResult = await updateGridRuler(gridId);
 
-    return influenceRecord;
+    return { influenceRecord, conquestResult };
 };
 
 /*
@@ -102,15 +98,14 @@ const syncGridCodes = async () => {
 };
 
 /*
- * Claims unowned grids automatically.
- * Enemy-owned grids will require a future war system.
+ * Claims unowned grids automatically or dethrones rival if surpassed.
+ * Returns conquest details { grid, conquestType, previousRuler }
  */
 const updateGridRuler = async (gridId) => {
-
     const grid = await Grid.findOne({ gridId });
 
     if (!grid) {
-        return null;
+        return { grid: null, conquestType: "none", previousRuler: null };
     }
 
     const influences = await GridInfluence
@@ -118,14 +113,14 @@ const updateGridRuler = async (gridId) => {
         .sort({ influence: -1 });
 
     if (influences.length === 0) {
-        return grid;
+        return { grid, conquestType: "none", previousRuler: null };
     }
 
     const leader = influences[0];
 
     // Not enough influence to claim
     if (leader.influence < CLAIM_THRESHOLD) {
-        return grid;
+        return { grid, conquestType: "none", previousRuler: null };
     }
 
     const currentRuler = grid.ruler
@@ -133,8 +128,13 @@ const updateGridRuler = async (gridId) => {
         : null;
 
     const newLeader = leader.userId.toString();
+    let conquestType = "none";
+    let previousRuler = null;
 
     if (currentRuler !== newLeader) {
+        previousRuler = grid.ruler;
+        conquestType = currentRuler ? "usurp" : "claim";
+
         grid.ruler = leader.userId;
         grid.status = "claimed";
 
@@ -143,9 +143,11 @@ const updateGridRuler = async (gridId) => {
         }
 
         await grid.save();
+    } else {
+        conquestType = "reinforced";
     }
 
-    return grid;
+    return { grid, conquestType, previousRuler };
 };
 
 module.exports = {
