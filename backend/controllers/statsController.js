@@ -1,3 +1,5 @@
+const Run = require("../models/Run");
+const User = require("../models/User");
 const { syncUserStreak } = require("./gamificationController");
 
 const getGamificationstats = async (req, res) => {
