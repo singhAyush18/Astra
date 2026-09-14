@@ -98,12 +98,14 @@ export const runsAPI = {
       body: JSON.stringify({ lat, lng, duration }),
     }),
 
-  end: (token, runId, duration) =>
-    apiFetch(`/api/v2/runs/${runId}/end`, {
+  end: (token, runId, options = {}) => {
+    const payload = typeof options === 'number' ? { duration: options } : options;
+    return apiFetch(`/api/v2/runs/${runId}/end`, {
       method: 'PATCH',
       headers: jsonAuthHeaders(token),
-      body: JSON.stringify({ duration }),
-    }),
+      body: JSON.stringify(payload),
+    });
+  },
 
   delete: (token, runId) =>
     apiFetch(`/api/v2/runs/${runId}`, {

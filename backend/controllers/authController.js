@@ -117,6 +117,14 @@ const login = async (req, res) => {
             });
         }
 
+        if (user.isBanned) {
+            return res.status(403).json({
+                success: false,
+                isBanned: true,
+                message: user.banReason || "Your account has been permanently banned for Anti-Cheat violations.",
+            });
+        }
+
         if (!user.isVerified) {
             return res.status(403).json({
                 success: false,

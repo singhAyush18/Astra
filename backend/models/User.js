@@ -58,6 +58,18 @@ const userSchema = new mongoose.Schema({
     resetPasswordExpires: {
         type: Date,
         default: null
+    },
+    isBanned: {
+        type: Boolean,
+        default: false
+    },
+    banReason: {
+        type: String,
+        default: null
+    },
+    cheatViolations: {
+        type: Number,
+        default: 0
     }
 })
 module.exports = mongoose.model("User", userSchema);

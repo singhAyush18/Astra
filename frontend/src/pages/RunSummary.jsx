@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { 
   Trophy, Zap, MapPin, Target, ChevronRight, Crown, Flame, 
   Bot, Activity, HeartPulse, Compass, Swords, Sparkles, 
-  FlameKindling, Shield, Share2, Check
+  FlameKindling, Shield, Share2, Check, AlertTriangle
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import './RunSummary.css';
@@ -163,6 +163,46 @@ function RunSummary() {
           <h1 className="gold-text">Run Conquered</h1>
           <p className="subtitle">The realm registers your stride and yields its spoils, Vanguard.</p>
         </motion.div>
+
+        {/* Anti-Cheat Alert Banner if Flagged */}
+        {(summaryData?.antiCheat?.isFlagged || run?.antiCheat?.isFlagged) && (
+          <motion.div
+            className="summary-card anti-cheat-card"
+            initial={{ opacity: 0, y: -10, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.4 }}
+          >
+            <div className="anti-cheat-header">
+              <div className="anti-cheat-icon-wrap">
+                <AlertTriangle size={24} />
+              </div>
+              <div className="anti-cheat-text-col">
+                <h3 className="anti-cheat-title">Anti-Cheat Alert: Unrealistic Telemetry Detected</h3>
+                <p className="anti-cheat-desc">
+                  {(summaryData?.antiCheat?.reasons || run?.antiCheat?.reasons || []).join(' ') || 'Impossible movement velocity or teleportation detected.'}
+                </p>
+              </div>
+            </div>
+            <div className="anti-cheat-badge-row">
+              <span className="anti-cheat-pill red-pill">Territory Conquests Withheld</span>
+              <span className="anti-cheat-pill orange-pill">Leaderboard Protection Active</span>
+              {(summaryData?.antiCheat?.isUserBanned || (summaryData?.antiCheat?.userViolations && summaryData?.antiCheat?.userViolations >= 2)) ? (
+                <span className="anti-cheat-pill ban-pill">
+                  ⛔ Strike 2/2: Permanent Realm Ban
+                </span>
+              ) : (
+                <span className="anti-cheat-pill warning-pill">
+                  ⚠️ Strike 1/2: Final Warning
+                </span>
+              )}
+              {(summaryData?.antiCheat?.maxCalculatedSpeedKmh || run?.antiCheat?.maxCalculatedSpeedKmh) && (
+                <span className="anti-cheat-pill cyan-pill">
+                  Peak Velocity: {(summaryData?.antiCheat?.maxCalculatedSpeedKmh || run?.antiCheat?.maxCalculatedSpeedKmh).toFixed(1)} km/h
+                </span>
+              )}
+            </div>
+          </motion.div>
+        )}
 
         <div className="summary-grid">
           {/* Main Telemetry Card */}

@@ -1,8 +1,11 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Play, Square, MapPin, Clock, Gauge, Loader, Pause, Volume2, VolumeX } from 'lucide-react';
-import { MapContainer, TileLayer, Polyline, Marker, useMap } from 'react-leaflet';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Play, Square, MapPin, Clock, Gauge, Loader, Pause, Volume2, VolumeX, 
+  Gamepad2, Navigation, Compass, FastForward, RotateCcw, Crosshair, AlertTriangle
+} from 'lucide-react';
+import { MapContainer, TileLayer, Polyline, Marker, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import './ActiveRun.css';
 import { useAuth } from '../context/AuthContext';
@@ -38,6 +41,16 @@ const warriorRunnerIcon = L.divIcon({
   iconAnchor: [18, 18],
 });
 
+const waypointIcon = L.divIcon({
+  className: 'waypoint-custom-marker',
+  html: `
+    <div class="waypoint-pulse-aura"></div>
+    <div style="background: #00e5ff; border: 2px solid #fff; width: 14px; height: 14px; border-radius: 50%; box-shadow: 0 0 12px #00e5ff;"></div>
+  `,
+  iconSize: [14, 14],
+  iconAnchor: [7, 7],
+});
+
 function MapRecenter({ coords }) {
   const map = useMap();
   useEffect(() => {
@@ -48,8 +61,19 @@ function MapRecenter({ coords }) {
   return null;
 }
 
+function MapClickHandler({ onMapClick, isSimActive }) {
+  useMapEvents({
+    click(e) {
+      if (isSimActive && onMapClick) {
+        onMapClick({ lat: e.latlng.lat, lng: e.latlng.lng });
+      }
+    },
+  });
+  return null;
+}
+
 function ActiveRun() {
-  const [status, setStatus] = useState('ready'); // ready | running | ending
+  const [status, setStatus] = useState('ready'); // ready | running | paused | ending
   const [runId, setRunId] = useState(null);
   const [elapsed, setElapsed] = useState(0);
   const [distance, setDistance] = useState(0);
@@ -61,6 +85,15 @@ function ActiveRun() {
   const [currentPace, setCurrentPace] = useState('--:--');
   const [isMuted, setIsMuted] = useState(soundEffects.isMuted);
   const [conquestAlert, setConquestAlert] = useState({ isOpen: false, type: 'claim', gridId: '', influence: 50 });
+
+  // ── GPS Simulator State ──
+  const [simActive, setSimActive] = useState(false);
+  const [simSpeedKmh, setSimSpeedKmh] = useState(10); // 5, 10, 18, 80 (anti-cheat test)
+  const [simAutoMove, setSimAutoMove] = useState(false);
+  const [simHeading, setSimHeading] = useState(0); // degrees (0 = N, 90 = E, 180 = S, 270 = W)
+  const [simWaypoint, setSimWaypoint] = useState(null);
+  const isSimulatedRef = useRef(false);
+
   const visitedGridsRef = useRef(new Set());
   const distanceRef = useRef(0);
   const elapsedRef = useRef(0);
@@ -73,7 +106,11 @@ function ActiveRun() {
   // Get initial GPS position
   useEffect(() => {
     if (!navigator.geolocation) {
-      setError('Geolocation is not supported by your browser');
+      // Fallback default coordinates (e.g. Central Delhi / Imperial City)
+      const fallback = { lat: 28.6139, lng: 77.2090 };
+      setCoords(fallback);
+      setPath([[fallback.lat, fallback.lng]]);
+      setGpsReady(true);
       return;
     }
 
@@ -85,7 +122,11 @@ function ActiveRun() {
         setGpsReady(true);
       },
       (err) => {
-        setError('Location access denied. Please enable GPS to start a run.');
+        console.warn('Geolocation prompt rejected, defaulting to mock point:', err);
+        const fallback = { lat: 28.6139, lng: 77.2090 };
+        setCoords(fallback);
+        setPath([[fallback.lat, fallback.lng]]);
+        setGpsReady(true);
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
@@ -134,77 +175,79 @@ function ActiveRun() {
     return R * c;
   };
 
-  // GPS tracking while running
+  // Move runner to a new coordinate and update telemetry
+  const advanceRunnerLocation = useCallback((newLat, newLng) => {
+    setCoords({ lat: newLat, lng: newLng });
+    setPath(prev => [...prev, [newLat, newLng]]);
+
+    if (lastCoordsRef.current) {
+      const distDelta = calculateDistance(
+        lastCoordsRef.current.lat,
+        lastCoordsRef.current.lng,
+        newLat,
+        newLng
+      );
+
+      if (distDelta > 0.001) {
+        const newDistance = distanceRef.current + distDelta;
+        const timeDelta = (Date.now() - lastMoveTimeRef.current) / 1000;
+        
+        if (timeDelta > 0) {
+          const paceMin = (timeDelta / 60) / distDelta;
+          let mins = Math.floor(paceMin);
+          let secs = Math.round((paceMin - mins) * 60);
+          if (secs === 60) { mins++; secs = 0; }
+
+          if (mins > 99) {
+            setCurrentPace('99+');
+          } else {
+            setCurrentPace(`${mins}:${secs.toString().padStart(2, '0')}`);
+          }
+        }
+
+        distanceRef.current = newDistance;
+        lastMoveTimeRef.current = Date.now();
+        lastCoordsRef.current = { lat: newLat, lng: newLng };
+        setDistance(newDistance);
+
+        // Live sector boundary detection
+        const currentGrid = `R${Math.floor((newLat * 111320) / 1000)}-C${Math.floor((newLng * (111320 * Math.cos(newLat * Math.PI / 180))) / 1000)}`;
+        if (!visitedGridsRef.current.has(currentGrid)) {
+          if (visitedGridsRef.current.size > 0) {
+            setConquestAlert({
+              isOpen: true,
+              type: 'claim',
+              gridId: currentGrid,
+              influence: 50
+            });
+          }
+          visitedGridsRef.current.add(currentGrid);
+        }
+      }
+    } else {
+      lastCoordsRef.current = { lat: newLat, lng: newLng };
+      const initialGrid = `R${Math.floor((newLat * 111320) / 1000)}-C${Math.floor((newLng * (111320 * Math.cos(newLat * Math.PI / 180))) / 1000)}`;
+      visitedGridsRef.current.add(initialGrid);
+    }
+
+    if (runId) {
+      runsAPI.updateLocation(null, runId, { 
+        lat: newLat, 
+        lng: newLng, 
+        duration: elapsedRef.current 
+      }).catch(() => {});
+    }
+  }, [runId]);
+
+  // Real GPS tracking while running (only active when not using simulator auto-pilot)
   useEffect(() => {
     let watchId;
-    if (status === 'running' && runId) {
+    if (status === 'running' && runId && !simActive) {
       watchId = navigator.geolocation.watchPosition(
         (pos) => {
           const { latitude: lat, longitude: lng, accuracy } = pos.coords;
-
-          // Filter out wildly inaccurate GPS readings (worse than 40 meters)
           if (accuracy > 40) return;
-
-          setCoords({ lat, lng });
-          setPath(prev => [...prev, [lat, lng]]);
-
-          // Optimistic Local Distance Calculation
-          if (lastCoordsRef.current) {
-            const distDelta = calculateDistance(
-              lastCoordsRef.current.lat,
-              lastCoordsRef.current.lng,
-              lat,
-              lng
-            );
-
-            // 2-meter threshold for local updates (more responsive than backend's 5m)
-            if (distDelta > 0.002) {
-              const newDistance = distanceRef.current + distDelta;
-              
-              const timeDelta = (Date.now() - lastMoveTimeRef.current) / 1000;
-              if (timeDelta > 0) {
-                const paceMin = (timeDelta / 60) / distDelta;
-                let mins = Math.floor(paceMin);
-                let secs = Math.round((paceMin - mins) * 60);
-                if (secs === 60) { mins++; secs = 0; }
-
-                // Cap the pace display if it's absurdly slow (e.g. > 99 min/km)
-                if (mins > 99) {
-                  setCurrentPace('99+');
-                } else {
-                  setCurrentPace(`${mins}:${secs.toString().padStart(2, '0')}`);
-                }
-              }
-
-              distanceRef.current = newDistance;
-              lastMoveTimeRef.current = Date.now();
-              lastCoordsRef.current = { lat, lng };
-              setDistance(newDistance);
-
-              // Live sector boundary detection
-              const currentGrid = `R${Math.floor((lat * 111320) / 1000)}-C${Math.floor((lng * (111320 * Math.cos(lat * Math.PI / 180))) / 1000)}`;
-              if (!visitedGridsRef.current.has(currentGrid)) {
-                if (visitedGridsRef.current.size > 0) {
-                  // Crossed into a new sector!
-                  setConquestAlert({
-                    isOpen: true,
-                    type: 'claim',
-                    gridId: currentGrid,
-                    influence: 50
-                  });
-                }
-                visitedGridsRef.current.add(currentGrid);
-              }
-            }
-          } else {
-            // First point of the run
-            lastCoordsRef.current = { lat, lng };
-            const initialGrid = `R${Math.floor((lat * 111320) / 1000)}-C${Math.floor((lng * (111320 * Math.cos(lat * Math.PI / 180))) / 1000)}`;
-            visitedGridsRef.current.add(initialGrid);
-          }
-
-          // Send location update to backend in the background (fire and forget)
-          runsAPI.updateLocation(null, runId, { lat, lng, duration: elapsedRef.current }).catch(() => {});
+          advanceRunnerLocation(lat, lng);
         },
         () => { },
         { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
@@ -213,7 +256,89 @@ function ActiveRun() {
     return () => {
       if (watchId !== undefined) navigator.geolocation.clearWatch(watchId);
     };
-  }, [status, runId]);
+  }, [status, runId, simActive, advanceRunnerLocation]);
+
+  // ── GPS Simulator Auto-Movement & Waypoint Navigation Engine ──
+  useEffect(() => {
+    let simInterval;
+    if (status === 'running' && simActive && (simAutoMove || simWaypoint)) {
+      isSimulatedRef.current = true;
+      simInterval = setInterval(() => {
+        if (!coords) return;
+
+        // Calculate step distance in km per tick (1 second)
+        const stepDistKm = simSpeedKmh / 3600;
+        const earthRadiusKm = 6371;
+
+        if (simWaypoint) {
+          // Move towards waypoint
+          const dLat = (simWaypoint.lat - coords.lat) * (Math.PI / 180);
+          const dLng = (simWaypoint.lng - coords.lng) * (Math.PI / 180);
+          const currentDist = calculateDistance(coords.lat, coords.lng, simWaypoint.lat, simWaypoint.lng);
+
+          if (currentDist <= stepDistKm * 1.5) {
+            // Reached destination
+            advanceRunnerLocation(simWaypoint.lat, simWaypoint.lng);
+            setSimWaypoint(null);
+            return;
+          }
+
+          const angle = Math.atan2(dLng, dLat);
+          const nextLat = coords.lat + (stepDistKm / earthRadiusKm) * (180 / Math.PI) * Math.cos(angle);
+          const nextLng = coords.lng + (stepDistKm / (earthRadiusKm * Math.cos(coords.lat * Math.PI / 180))) * (180 / Math.PI) * Math.sin(angle);
+          advanceRunnerLocation(nextLat, nextLng);
+        } else if (simAutoMove) {
+          // Cruise along heading
+          const rad = (simHeading * Math.PI) / 180;
+          const nextLat = coords.lat + (stepDistKm / earthRadiusKm) * (180 / Math.PI) * Math.cos(rad);
+          const nextLng = coords.lng + (stepDistKm / (earthRadiusKm * Math.cos(coords.lat * Math.PI / 180))) * (180 / Math.PI) * Math.sin(rad);
+          advanceRunnerLocation(nextLat, nextLng);
+        }
+      }, 1000);
+    }
+    return () => clearInterval(simInterval);
+  }, [status, simActive, simAutoMove, simWaypoint, simSpeedKmh, simHeading, coords, advanceRunnerLocation]);
+
+  // Manual D-pad step handler
+  const handleManualStep = useCallback((headingDeg) => {
+    if (!coords) return;
+    isSimulatedRef.current = true;
+    setSimHeading(headingDeg);
+    
+    // Step distance: ~15 meters in specified direction (or larger at test speeds)
+    const stepMeters = simSpeedKmh > 40 ? 50 : 15;
+    const stepDistKm = stepMeters / 1000;
+    const earthRadiusKm = 6371;
+    const rad = (headingDeg * Math.PI) / 180;
+    
+    const nextLat = coords.lat + (stepDistKm / earthRadiusKm) * (180 / Math.PI) * Math.cos(rad);
+    const nextLng = coords.lng + (stepDistKm / (earthRadiusKm * Math.cos(coords.lat * Math.PI / 180))) * (180 / Math.PI) * Math.sin(rad);
+    
+    advanceRunnerLocation(nextLat, nextLng);
+  }, [coords, simSpeedKmh, advanceRunnerLocation]);
+
+  // Keyboard navigation (WASD / Arrows) when simulator is open
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!simActive || status !== 'running') return;
+      if (['ArrowUp', 'KeyW'].includes(e.code)) {
+        e.preventDefault();
+        handleManualStep(0); // North
+      } else if (['ArrowRight', 'KeyD'].includes(e.code)) {
+        e.preventDefault();
+        handleManualStep(90); // East
+      } else if (['ArrowDown', 'KeyS'].includes(e.code)) {
+        e.preventDefault();
+        handleManualStep(180); // South
+      } else if (['ArrowLeft', 'KeyA'].includes(e.code)) {
+        e.preventDefault();
+        handleManualStep(270); // West
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [simActive, status, handleManualStep]);
 
   const formatTime = (secs) => {
     const h = Math.floor(secs / 3600);
@@ -233,7 +358,6 @@ function ActiveRun() {
 
     try {
       const res = await runsAPI.start(null, { lat: coords.lat, lng: coords.lng });
-
       const data = await res.json();
 
       if (data.success) {
@@ -266,7 +390,7 @@ function ActiveRun() {
           setCurrentPace('--:--');
           distanceRef.current = 0;
           lastMoveTimeRef.current = Date.now();
-          lastCoordsRef.current = coords; // Initialize with current GPS
+          lastCoordsRef.current = coords;
         }
       } else {
         setError(data.message || 'Failed to start run');
@@ -278,6 +402,7 @@ function ActiveRun() {
 
   const handlePause = () => {
     setStatus('paused');
+    setSimAutoMove(false);
     if (runId && coords) {
       runsAPI.updateLocation(null, runId, { lat: coords.lat, lng: coords.lng, duration: elapsedRef.current }).catch(() => {});
     }
@@ -293,9 +418,13 @@ function ActiveRun() {
     if (!runId) return;
 
     setStatus('ending');
+    setSimAutoMove(false);
 
     try {
-      const res = await runsAPI.end(null, runId, elapsed);
+      const res = await runsAPI.end(null, runId, {
+        duration: elapsed,
+        isSimulated: isSimulatedRef.current,
+      });
 
       const data = await res.json();
 
@@ -314,37 +443,51 @@ function ActiveRun() {
   return (
     <div className="active-run-container">
       {/* Top HUD Bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: '12px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: '12px', gap: '8px' }}>
         <div className="run-gps-status" style={{ margin: 0 }}>
           <MapPin size={14} />
-          <span>{gpsReady ? 'GPS Active' : 'Acquiring GPS...'}</span>
-          <div className={`gps-dot ${gpsReady ? 'active' : ''}`} />
+          <span>{simActive ? 'Mock GPS' : gpsReady ? 'GPS Active' : 'Acquiring GPS...'}</span>
+          <div className={`gps-dot ${gpsReady || simActive ? 'active' : ''}`} style={simActive ? { background: '#00e5ff', boxShadow: '0 0 8px #00e5ff' } : {}} />
         </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            const next = soundEffects.toggleMute();
-            setIsMuted(next);
-          }}
-          style={{
-            background: 'rgba(255, 255, 255, 0.06)',
-            border: '1px solid rgba(255, 255, 255, 0.15)',
-            color: isMuted ? '#ff5252' : '#00e5ff',
-            borderRadius: '20px',
-            padding: '4px 10px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            cursor: 'pointer',
-            fontSize: '0.75rem',
-            fontFamily: 'monospace'
-          }}
-          aria-label="Toggle SFX"
-        >
-          {isMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
-          <span>{isMuted ? 'SFX OFF' : 'SFX ON'}</span>
-        </button>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {/* Developer GPS Simulator Toggle */}
+          <button
+            type="button"
+            className={`dev-sim-toggle-btn ${simActive ? 'active' : ''}`}
+            onClick={() => setSimActive(!simActive)}
+            aria-label="Toggle GPS Simulator"
+          >
+            <Gamepad2 size={15} />
+            <span>{simActive ? 'Sim ON' : 'Mock GPS'}</span>
+          </button>
+
+          {/* SFX Toggle */}
+          <button
+            type="button"
+            onClick={() => {
+              const next = soundEffects.toggleMute();
+              setIsMuted(next);
+            }}
+            style={{
+              background: 'rgba(255, 255, 255, 0.06)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              color: isMuted ? '#ff5252' : '#00e5ff',
+              borderRadius: '20px',
+              padding: '4px 10px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              fontSize: '0.75rem',
+              fontFamily: 'monospace'
+            }}
+            aria-label="Toggle SFX"
+          >
+            {isMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+            <span>{isMuted ? 'SFX OFF' : 'SFX ON'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Back button (only when not running) */}
@@ -362,16 +505,162 @@ function ActiveRun() {
             zoom={16}
             scrollWheelZoom={false}
             zoomControl={false}
-            dragging={false}
-            style={{ width: '100%', height: '200px', borderRadius: '12px' }}
+            dragging={simActive}
+            style={{ width: '100%', height: '220px', borderRadius: '12px' }}
           >
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" className="leaflet-tile" />
             <Polyline positions={path} color="#d4af37" weight={4} />
             <Marker position={[coords.lat, coords.lng]} icon={warriorRunnerIcon} />
+            {simWaypoint && (
+              <Marker position={[simWaypoint.lat, simWaypoint.lng]} icon={waypointIcon} />
+            )}
             <MapRecenter coords={coords} />
+            <MapClickHandler isSimActive={simActive} onMapClick={(pt) => setSimWaypoint(pt)} />
           </MapContainer>
+          {simActive && (
+            <div className="map-sim-hint">
+              <Crosshair size={12} />
+              <span>Click map to auto-run to waypoint</span>
+            </div>
+          )}
         </div>
       )}
+
+      {/* ── Developer GPS Simulator Panel ── */}
+      <AnimatePresence>
+        {simActive && (
+          <motion.div 
+            className="sim-dock-container"
+            initial={{ opacity: 0, height: 0, y: -10 }}
+            animate={{ opacity: 1, height: 'auto', y: 0 }}
+            exit={{ opacity: 0, height: 0, y: -10 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="sim-dock-header">
+              <div className="sim-dock-title">
+                <Gamepad2 size={16} className="text-cyan" />
+                <span>GPS Telemetry Simulator</span>
+              </div>
+              {simSpeedKmh > 45 && (
+                <div className="sim-cheat-alert">
+                  <AlertTriangle size={12} />
+                  <span>Anti-Cheat Test Trigger</span>
+                </div>
+              )}
+            </div>
+
+            {/* Speed Presets */}
+            <div className="sim-speed-row">
+              <span className="sim-label">Velocity:</span>
+              <div className="sim-speed-pills">
+                <button
+                  type="button"
+                  className={`sim-speed-pill ${simSpeedKmh === 5 ? 'active' : ''}`}
+                  onClick={() => setSimSpeedKmh(5)}
+                >
+                  🚶 5 km/h
+                </button>
+                <button
+                  type="button"
+                  className={`sim-speed-pill ${simSpeedKmh === 10 ? 'active' : ''}`}
+                  onClick={() => setSimSpeedKmh(10)}
+                >
+                  🏃 10 km/h
+                </button>
+                <button
+                  type="button"
+                  className={`sim-speed-pill ${simSpeedKmh === 18 ? 'active' : ''}`}
+                  onClick={() => setSimSpeedKmh(18)}
+                >
+                  ⚡ 18 km/h
+                </button>
+                <button
+                  type="button"
+                  className={`sim-speed-pill cheat-pill ${simSpeedKmh === 80 ? 'active' : ''}`}
+                  onClick={() => setSimSpeedKmh(80)}
+                  title="Test anti-cheat spoofing rejection"
+                >
+                  🚀 80 km/h
+                </button>
+              </div>
+            </div>
+
+            {/* Controls Row: D-Pad & Auto-Run */}
+            <div className="sim-controls-row">
+              {/* D-Pad */}
+              <div className="sim-dpad-wrapper">
+                <div className="sim-dpad-row">
+                  <button 
+                    type="button" 
+                    className="sim-dpad-btn" 
+                    onClick={() => handleManualStep(0)} 
+                    title="Move North (W / Up)"
+                  >
+                    ▲
+                  </button>
+                </div>
+                <div className="sim-dpad-row">
+                  <button 
+                    type="button" 
+                    className="sim-dpad-btn" 
+                    onClick={() => handleManualStep(270)} 
+                    title="Move West (A / Left)"
+                  >
+                    ◄
+                  </button>
+                  <div className="sim-dpad-center">
+                    <Compass size={14} />
+                  </div>
+                  <button 
+                    type="button" 
+                    className="sim-dpad-btn" 
+                    onClick={() => handleManualStep(90)} 
+                    title="Move East (D / Right)"
+                  >
+                    ►
+                  </button>
+                </div>
+                <div className="sim-dpad-row">
+                  <button 
+                    type="button" 
+                    className="sim-dpad-btn" 
+                    onClick={() => handleManualStep(180)} 
+                    title="Move South (S / Down)"
+                  >
+                    ▼
+                  </button>
+                </div>
+              </div>
+
+              {/* Auto Cruise & Waypoint Actions */}
+              <div className="sim-actions-col">
+                <button
+                  type="button"
+                  className={`sim-cruise-btn ${simAutoMove ? 'active' : ''}`}
+                  onClick={() => setSimAutoMove(!simAutoMove)}
+                  disabled={status !== 'running'}
+                >
+                  <FastForward size={16} />
+                  <span>{simAutoMove ? 'Cruising...' : 'Auto-Cruise'}</span>
+                </button>
+
+                {simWaypoint && (
+                  <button
+                    type="button"
+                    className="sim-clear-wp-btn"
+                    onClick={() => setSimWaypoint(null)}
+                  >
+                    <Crosshair size={14} />
+                    <span>Clear Waypoint</span>
+                  </button>
+                )}
+                
+                <span className="sim-key-hint">Keyboard: WASD / Arrow Keys</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Main stats */}
       <div className="run-stats-display">
@@ -518,3 +807,4 @@ function ActiveRun() {
 }
 
 export default ActiveRun;
+

@@ -396,6 +396,257 @@
   }
 }
 
+/* ── Developer GPS Simulator UI ── */
+.dev-sim-toggle-btn {
+  background: rgba(0, 229, 255, 0.08);
+  border: 1px solid rgba(0, 229, 255, 0.25);
+  color: #00e5ff;
+  border-radius: 20px;
+  padding: 4px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-family: monospace;
+  transition: all 0.25s ease;
+}
+
+.dev-sim-toggle-btn:hover,
+.dev-sim-toggle-btn.active {
+  background: rgba(0, 229, 255, 0.2);
+  border-color: #00e5ff;
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.35);
+}
+
+.map-sim-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(10, 15, 30, 0.9);
+  padding: 6px 12px;
+  font-size: 0.72rem;
+  color: #00e5ff;
+  font-family: var(--font-ui, 'Inter', sans-serif);
+  border-top: 1px solid rgba(0, 229, 255, 0.2);
+}
+
+.sim-dock-container {
+  width: 90%;
+  max-width: 400px;
+  margin-top: 14px;
+  margin-bottom: -10px;
+  background: rgba(12, 18, 38, 0.95);
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 16px rgba(0, 229, 255, 0.15);
+  border-radius: 14px;
+  padding: 14px 16px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sim-dock-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sim-dock-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-heading, 'Cinzel', serif);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #00e5ff;
+  letter-spacing: 0.05em;
+}
+
+.sim-cheat-alert {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 77, 77, 0.15);
+  border: 1px solid rgba(255, 77, 77, 0.4);
+  color: #ff5252;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.68rem;
+  font-family: var(--font-ui, 'Inter', sans-serif);
+  font-weight: 600;
+}
+
+.sim-speed-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sim-label {
+  font-size: 0.72rem;
+  color: var(--text-secondary, #8a8a9a);
+  font-family: var(--font-ui, 'Inter', sans-serif);
+  min-width: 55px;
+}
+
+.sim-speed-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.sim-speed-pill {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #c0c0d0;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-family: var(--font-ui, 'Inter', sans-serif);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sim-speed-pill:hover,
+.sim-speed-pill.active {
+  background: rgba(0, 229, 255, 0.18);
+  border-color: #00e5ff;
+  color: #fff;
+  box-shadow: 0 0 8px rgba(0, 229, 255, 0.3);
+}
+
+.sim-speed-pill.cheat-pill.active {
+  background: rgba(255, 77, 77, 0.25);
+  border-color: #ff5252;
+  color: #ff8080;
+  box-shadow: 0 0 8px rgba(255, 77, 77, 0.4);
+}
+
+.sim-controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* D-Pad */
+.sim-dpad-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.sim-dpad-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sim-dpad-btn {
+  width: 32px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  border-radius: 6px;
+  color: #00e5ff;
+  font-size: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sim-dpad-btn:hover {
+  background: rgba(0, 229, 255, 0.25);
+  border-color: #00e5ff;
+  transform: scale(1.05);
+  box-shadow: 0 0 8px rgba(0, 229, 255, 0.4);
+}
+
+.sim-dpad-btn:active {
+  transform: scale(0.95);
+}
+
+.sim-dpad-center {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(0, 229, 255, 0.4);
+}
+
+.sim-actions-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.sim-cruise-btn {
+  background: rgba(0, 229, 255, 0.1);
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  color: #00e5ff;
+  padding: 8px 12px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-heading, 'Cinzel', serif);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sim-cruise-btn:hover:not(:disabled),
+.sim-cruise-btn.active {
+  background: rgba(0, 229, 255, 0.25);
+  border-color: #00e5ff;
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.3);
+}
+
+.sim-cruise-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.sim-clear-wp-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #c0c0d0;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.sim-clear-wp-btn:hover {
+  background: rgba(255, 77, 77, 0.15);
+  border-color: rgba(255, 77, 77, 0.3);
+  color: #ff6b6b;
+}
+
+.sim-key-hint {
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.3);
+  font-family: monospace;
+  text-align: center;
+}
+
 /* ── Responsive ── */
 @media (max-width: 480px) {
   .hero-value {
