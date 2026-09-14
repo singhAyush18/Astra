@@ -125,6 +125,16 @@ const login = async (req, res) => {
             });
         }
 
+        // Check if account is temporarily locked due to failed login attempts
+        if (user.lockUntil && user.lockUntil > new Date()) {
+            const minutesLeft = Math.max(1, Math.ceil((user.lockUntil - new Date()) / (60 * 1000)));
+            return res.status(429).json({
+                success: false,
+                isLocked: true,
+                message: `Account temporarily locked due to too many failed attempts. Try again in ${minutesLeft} minute${minutesLeft > 1 ? 's' : ''}.`,
+            });
+        }
+
         if (!user.isVerified) {
             return res.status(403).json({
                 success: false,
@@ -134,10 +144,32 @@ const login = async (req, res) => {
 
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
+            user.failedLoginAttempts = (user.failedLoginAttempts || 0) + 1;
+            let errMsg = "Invalid email or password";
+
+            if (user.failedLoginAttempts >= 5) {
+                // Lock account for 15 minutes
+                user.lockUntil = new Date(Date.now() + 15 * 60 * 1000);
+                user.failedLoginAttempts = 0;
+                errMsg = "Too many failed login attempts. Your account has been temporarily locked for 15 minutes.";
+            } else {
+                const remaining = 5 - user.failedLoginAttempts;
+                errMsg = `Invalid email or password. ${remaining} attempt${remaining > 1 ? 's' : ''} remaining before temporary account lock.`;
+            }
+
+            await user.save();
+
             return res.status(400).json({
                 success: false,
-                message: "Invalid email or password",
+                message: errMsg,
             });
+        }
+
+        // Reset failed login attempts and lock on successful login
+        if (user.failedLoginAttempts > 0 || user.lockUntil) {
+            user.failedLoginAttempts = 0;
+            user.lockUntil = null;
+            await user.save();
         }
 
         const token = generateToken(user);

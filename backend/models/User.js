@@ -70,6 +70,14 @@ const userSchema = new mongoose.Schema({
     cheatViolations: {
         type: Number,
         default: 0
+    },
+    failedLoginAttempts: {
+        type: Number,
+        default: 0
+    },
+    lockUntil: {
+        type: Date,
+        default: null
     }
 })
 module.exports = mongoose.model("User", userSchema);
