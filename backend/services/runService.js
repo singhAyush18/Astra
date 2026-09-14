@@ -3,6 +3,7 @@ const GridInfluence = require("../models/Gridinfluence");
 const User = require("../models/User");
 const { calculateXP, updateStreak } = require("../controllers/gamificationController");
 const { getGridIdFromCoordinates, addInfluenceToGrid } = require("./Gridservices");
+const { validateRunIntegrity } = require("./antiCheatService");
 
 /**
  * Calculate pace in minutes and format as string (e.g., "5:30 min/km")
@@ -106,6 +107,7 @@ const processRunGrids = async (run, user) => {
 
 /**
  * Encapsulates the complete run lifecycle:
+ * - Anti-cheat verification
  * - Computes duration & pace
  * - Discards short runs (< 100m)
  * - Awards XP & levels up user
@@ -113,13 +115,17 @@ const processRunGrids = async (run, user) => {
  * - Distributes grid territory influence
  */
 const completeRun = async (run, options = {}) => {
-    const { duration: frontendDuration, user: providedUser } = options;
+    const { duration: frontendDuration, user: providedUser, isSimulated } = options;
 
     run.endTime = run.endTime || new Date();
     run.duration =
         frontendDuration !== undefined
             ? frontendDuration
             : run.duration || Math.floor((run.endTime - run.startTime) / 1000);
+
+    if (isSimulated !== undefined) {
+        run.isSimulated = Boolean(isSimulated);
+    }
 
     const { paceInMinutes, paceString } = calculatePace(run.distance, run.duration);
     run.pace = paceString;
@@ -135,8 +141,19 @@ const completeRun = async (run, options = {}) => {
             streakInfo: null,
             level: providedUser?.level || 1,
             gridSummary: null,
+            antiCheat: run.antiCheat || { isFlagged: false },
         };
     }
+
+    // Perform Anti-Cheat & Kinematic Feasibility Analysis
+    const integrityResult = validateRunIntegrity(run, run.duration);
+    run.antiCheat = {
+        isFlagged: integrityResult.isFlagged,
+        reasons: integrityResult.reasons,
+        flags: integrityResult.flags,
+        maxCalculatedSpeedKmh: integrityResult.maxSpeedKmh,
+        avgCalculatedSpeedKmh: integrityResult.avgSpeedKmh,
+    };
 
     run.status = "completed";
 
@@ -147,17 +164,37 @@ const completeRun = async (run, options = {}) => {
     const user = providedUser || (await User.findById(run.userId));
 
     if (user) {
-        xpEarned = calculateXP(run.distance, paceInMinutes);
-        user.xp = (user.xp || 0) + xpEarned;
-        user.level = Math.floor(user.xp / 500) + 1;
-        await user.save();
+        if (!integrityResult.isFlagged) {
+            // Legitimate run: Award XP, level up, update streak, award territory influence
+            xpEarned = calculateXP(run.distance, paceInMinutes);
+            user.xp = (user.xp || 0) + xpEarned;
+            user.level = Math.floor(user.xp / 500) + 1;
+            await user.save();
 
-        streakInfo = await updateStreak(user._id);
+            streakInfo = await updateStreak(user._id);
 
-        const { lastGridSummary } = await processRunGrids(run, user);
-        if (lastGridSummary) {
-            lastGridSummary.influenceAdded = xpEarned;
-            gridSummary = lastGridSummary;
+            const { lastGridSummary } = await processRunGrids(run, user);
+            if (lastGridSummary) {
+                lastGridSummary.influenceAdded = xpEarned;
+                gridSummary = lastGridSummary;
+            }
+        } else {
+            // Flagged fraudulent/spoofed run: Withhold territory conquests & streaks
+            user.cheatViolations = (user.cheatViolations || 0) + 1;
+            
+            if (user.cheatViolations >= 2) {
+                user.isBanned = true;
+                user.banReason = "Permanently exiled from the realm for repeated Anti-Cheat telemetry violations (2/2 strikes).";
+                console.error(
+                    `[Anti-Cheat BAN] User ${user.username} (ID: ${user._id}) PERMANENTLY BANNED on strike #${user.cheatViolations}.`
+                );
+            } else {
+                console.warn(
+                    `[Anti-Cheat STRIKE 1] User ${user.username} received strike #1/2. Next violation results in permanent ban.`
+                );
+            }
+
+            await user.save();
         }
     }
 
@@ -171,6 +208,11 @@ const completeRun = async (run, options = {}) => {
         streakInfo,
         level: user?.level || 1,
         gridSummary,
+        antiCheat: {
+            ...run.antiCheat,
+            userViolations: user?.cheatViolations || 1,
+            isUserBanned: user?.isBanned || false,
+        },
     };
 };
 

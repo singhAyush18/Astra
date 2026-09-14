@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const auth = require("../middleware/auth");
+const { aiLimiter } = require("../middleware/rateLimiter");
 const { generateCoachDebrief, AI_SERVICE_URL } = require("../services/agentService");
 
 /**
@@ -39,7 +40,7 @@ router.get("/status", async (req, res) => {
 /**
  * Direct Coach Debrief endpoint for custom telemetry / testing
  */
-router.post("/coach-debrief", auth, async (req, res) => {
+router.post("/coach-debrief", auth, aiLimiter, async (req, res) => {
     try {
         const { distance_meters, duration_seconds, pace, current_streak } = req.body;
         const username = req.user?.username || "Athlete";

@@ -1,6 +1,34 @@
 const Run = require("../models/Run");
 const User = require("../models/User");
 
+const syncUserStreak = async (user) => {
+    if (!user) return null;
+
+    if (user.lastRunDate && user.currentStreak > 0) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const lastRun = new Date(user.lastRunDate);
+        lastRun.setHours(0, 0, 0, 0);
+
+        const diffTime = today - lastRun;
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+        // diffDays === 0: ran today -> streak valid
+        // diffDays === 1: ran yesterday -> streak alive for today
+        // diffDays > 1: missed yesterday -> streak broken to 0
+        if (diffDays > 1) {
+            user.currentStreak = 0;
+            await user.save();
+        }
+    } else if (!user.lastRunDate && user.currentStreak > 0) {
+        user.currentStreak = 0;
+        await user.save();
+    }
+
+    return user;
+};
+
 const updateStreak = async (userId) => {
     const user = await User.findById(userId);
 
@@ -29,7 +57,7 @@ const updateStreak = async (userId) => {
     }
 
     user.lastRunDate = today;
-    user.longestStreak = Math.max(user.longestStreak, user.currentStreak);
+    user.longestStreak = Math.max(user.longestStreak || 0, user.currentStreak);
 
     await user.save();
 
@@ -38,7 +66,8 @@ const updateStreak = async (userId) => {
         longestStreak: user.longestStreak,
     };
 }; 
-    function calculateXP(distance, paceInMinPerKm) {
+
+function calculateXP(distance, paceInMinPerKm) {
     // Base XP: 10 XP per km
     let xp = distance * 10;
 
@@ -61,9 +90,8 @@ const updateStreak = async (userId) => {
     return Math.round(xp);
 }
 
-
 module.exports = {
     calculateXP,
-    updateStreak
+    updateStreak,
+    syncUserStreak
 };
-

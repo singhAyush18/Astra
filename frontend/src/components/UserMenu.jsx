@@ -5,29 +5,61 @@ import { User, Settings, Info, LogOut, ChevronDown } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import './UserMenu.css';
 
-const UserMenu = () => {
-  const [open, setOpen] = useState(false);
+const UserMenu = ({ isOpen: controlledOpen, onToggle, onClose }) => {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  
   const [userData, setUserData] = useState(null);
   const menuRef = useRef(null);
   const navigate = useNavigate();
+
+  const setOpen = (val) => {
+    if (isControlled) {
+      if (typeof val === 'function') {
+        const nextVal = val(open);
+        if (nextVal) {
+          onToggle?.(true);
+        } else {
+          onClose?.();
+        }
+      } else if (val) {
+        onToggle?.(true);
+      } else {
+        onClose?.();
+      }
+    } else {
+      setInternalOpen(val);
+    }
+  };
 
   // Close on outside click
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
-        setOpen(false);
+        if (isControlled) {
+          onClose?.();
+        } else {
+          setInternalOpen(false);
+        }
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [isControlled, onClose]);
 
   // Load user data and listen for profile updates
   useEffect(() => {
     const loadUser = () => {
       const stored = localStorage.getItem('user');
       if (stored) {
-        setUserData(JSON.parse(stored));
+        try {
+          setUserData(JSON.parse(stored));
+        } catch {}
       }
     };
     
@@ -49,11 +81,20 @@ const UserMenu = () => {
   const initial = username.charAt(0).toUpperCase();
   const profilePicture = userData?.profilePicture;
 
+  const handleTriggerClick = (e) => {
+    e.stopPropagation();
+    if (isControlled) {
+      onToggle?.(!open);
+    } else {
+      setInternalOpen(!internalOpen);
+    }
+  };
+
   return (
     <div className="user-menu" ref={menuRef}>
       <button 
         className={`user-menu-trigger ${open ? 'active' : ''}`}
-        onClick={() => setOpen(!open)}
+        onClick={handleTriggerClick}
         aria-label="User menu"
       >
         <div className="user-avatar">
@@ -89,7 +130,7 @@ const UserMenu = () => {
               </div>
               <div className="dropdown-user-info">
                 <span className="dropdown-username">{username}</span>
-                <span className="dropdown-role">View Profile</span>
+                <span className="dropdown-role">View Profile & Settings</span>
               </div>
             </div>
 
@@ -103,7 +144,7 @@ const UserMenu = () => {
 
             <button className="dropdown-item" onClick={() => { setOpen(false); navigate('/about'); }}>
               <Info size={16} />
-              <span>About</span>
+              <span>About Astra</span>
             </button>
 
             <div className="dropdown-divider" />

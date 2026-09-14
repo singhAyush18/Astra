@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Trophy, Zap, MapPin, Target, ChevronRight, Crown, Flame, Bot, Activity, HeartPulse, Compass, Swords, Sparkles } from 'lucide-react';
+import { 
+  Trophy, Zap, MapPin, Target, ChevronRight, Crown, Flame, 
+  Bot, Activity, HeartPulse, Compass, Swords, Sparkles, 
+  FlameKindling, Shield, Share2, Check, AlertTriangle
+} from 'lucide-react';
 import Navbar from '../components/Navbar';
 import './RunSummary.css';
 import { useAuth } from '../context/AuthContext';
@@ -13,6 +17,7 @@ function RunSummary() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, updateUser } = useAuth();
+  const [copied, setCopied] = useState(false);
   
   const [summaryData, setSummaryData] = useState(() => {
     if (location.state) {
@@ -98,72 +103,194 @@ function RunSummary() {
   const { run, xpEarned, level, currentStreak } = summaryData;
 
   const formatDuration = (seconds) => {
-    if (!seconds) return "0m";
+    if (!seconds && seconds !== 0) return "0m 0s";
     const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
+    const s = Math.floor(seconds % 60);
+    if (m >= 60) {
+      const h = Math.floor(m / 60);
+      const remM = m % 60;
+      return `${h}h ${remM}m`;
+    }
     return `${m}m ${s}s`;
   };
 
-  const isLevelUp = user && level > user.level;
+  const isLevelUp = user && level && level > (user.level || 1);
+  const currentXp = user?.xp || 0;
+  const xpInCurrentLevel = currentXp % 500;
+  const xpProgressPercent = Math.min(100, Math.max(5, (xpInCurrentLevel / 500) * 100));
+
+  const handleShare = () => {
+    const text = `⚔️ Just completed a ${(run?.distance || 0).toFixed(2)} km conquest run on ASTRA: Stride Wars! Gained +${xpEarned || 0} XP!`;
+    if (navigator.share) {
+      navigator.share({
+        title: 'ASTRA Run Conquered',
+        text: text,
+        url: window.location.origin
+      }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    }
+  };
+
+  const calories = run?.calories || Math.round((run?.distance || 0) * 65);
 
   return (
     <div className="run-summary-container">
       <Navbar streak={currentStreak} />
       
       <main className="summary-main">
+        {/* Hero Header */}
         <motion.div 
           className="summary-header"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <div className="victory-icon">
-            <Trophy size={48} />
+          <div className="victory-icon-wrap">
+            <div className="victory-icon">
+              <Trophy size={42} />
+            </div>
+            <div className="victory-halo" />
           </div>
+
+          <div className="header-badge">
+            <Sparkles size={14} className="sparkle-icon" />
+            <span>EXPEDITION CONQUERED</span>
+          </div>
+
           <h1 className="gold-text">Run Conquered</h1>
-          <p className="subtitle">The realm acknowledges your effort.</p>
+          <p className="subtitle">The realm registers your stride and yields its spoils, Vanguard.</p>
         </motion.div>
 
+        {/* Anti-Cheat Alert Banner if Flagged */}
+        {(summaryData?.antiCheat?.isFlagged || run?.antiCheat?.isFlagged) && (
+          <motion.div
+            className="summary-card anti-cheat-card"
+            initial={{ opacity: 0, y: -10, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.4 }}
+          >
+            <div className="anti-cheat-header">
+              <div className="anti-cheat-icon-wrap">
+                <AlertTriangle size={24} />
+              </div>
+              <div className="anti-cheat-text-col">
+                <h3 className="anti-cheat-title">Anti-Cheat Alert: Unrealistic Telemetry Detected</h3>
+                <p className="anti-cheat-desc">
+                  {(summaryData?.antiCheat?.reasons || run?.antiCheat?.reasons || []).join(' ') || 'Impossible movement velocity or teleportation detected.'}
+                </p>
+              </div>
+            </div>
+            <div className="anti-cheat-badge-row">
+              <span className="anti-cheat-pill red-pill">Territory Conquests Withheld</span>
+              <span className="anti-cheat-pill orange-pill">Leaderboard Protection Active</span>
+              {(summaryData?.antiCheat?.isUserBanned || (summaryData?.antiCheat?.userViolations && summaryData?.antiCheat?.userViolations >= 2)) ? (
+                <span className="anti-cheat-pill ban-pill">
+                  ⛔ Strike 2/2: Permanent Realm Ban
+                </span>
+              ) : (
+                <span className="anti-cheat-pill warning-pill">
+                  ⚠️ Strike 1/2: Final Warning
+                </span>
+              )}
+              {(summaryData?.antiCheat?.maxCalculatedSpeedKmh || run?.antiCheat?.maxCalculatedSpeedKmh) && (
+                <span className="anti-cheat-pill cyan-pill">
+                  Peak Velocity: {(summaryData?.antiCheat?.maxCalculatedSpeedKmh || run?.antiCheat?.maxCalculatedSpeedKmh).toFixed(1)} km/h
+                </span>
+              )}
+            </div>
+          </motion.div>
+        )}
+
         <div className="summary-grid">
-          {/* Main Stats Card */}
+          {/* Main Telemetry Card */}
           <motion.div 
             className="summary-card stats-card"
-            initial={{ opacity: 0, x: -30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
           >
-            <h3>Run Statistics</h3>
+            <div className="card-header-bar">
+              <div className="card-header-left">
+                <Activity size={18} className="card-title-icon" />
+                <h3>Run Telemetry</h3>
+              </div>
+              <span className="card-tag">Verified</span>
+            </div>
+
             <div className="stats-grid">
-              <div className="stat-box">
-                <MapPin size={20} className="stat-icon" />
-                <span className="stat-val">{(run?.distance || 0).toFixed(2)}</span>
-                <span className="stat-unit">km</span>
+              <div className="stat-box distance-box">
+                <div className="stat-box-header">
+                  <div className="stat-icon-wrapper distance-glow">
+                    <MapPin size={18} />
+                  </div>
+                  <span className="stat-label">Distance</span>
+                </div>
+                <div className="stat-box-value-row">
+                  <span className="stat-val">{(run?.distance || 0).toFixed(2)}</span>
+                  <span className="stat-unit">km</span>
+                </div>
               </div>
 
-              <div className="stat-box">
-                <Target size={20} className="stat-icon" />
-                <span className="stat-val">{formatDuration(run?.duration)}</span>
-                <span className="stat-unit">time</span>
+              <div className="stat-box duration-box">
+                <div className="stat-box-header">
+                  <div className="stat-icon-wrapper duration-glow">
+                    <Target size={18} />
+                  </div>
+                  <span className="stat-label">Duration</span>
+                </div>
+                <div className="stat-box-value-row">
+                  <span className="stat-val stat-val-nowrap">{formatDuration(run?.duration)}</span>
+                </div>
               </div>
 
-              <div className="stat-box">
-                <Zap size={20} className="stat-icon" />
-                <span className="stat-val">{run?.pace || "0:00"}</span>
-                <span className="stat-unit">pace</span>
+              <div className="stat-box pace-box">
+                <div className="stat-box-header">
+                  <div className="stat-icon-wrapper pace-glow">
+                    <Zap size={18} />
+                  </div>
+                  <span className="stat-label">Avg Pace</span>
+                </div>
+                <div className="stat-box-value-row">
+                  <span className="stat-val">{run?.pace || "0:00"}</span>
+                  <span className="stat-unit">/km</span>
+                </div>
+              </div>
+
+              <div className="stat-box calories-box">
+                <div className="stat-box-header">
+                  <div className="stat-icon-wrapper calories-glow">
+                    <FlameKindling size={18} />
+                  </div>
+                  <span className="stat-label">Energy</span>
+                </div>
+                <div className="stat-box-value-row">
+                  <span className="stat-val">{calories}</span>
+                  <span className="stat-unit">kcal</span>
+                </div>
               </div>
             </div>
           </motion.div>
 
-          {/* Spoils & Level Progression */}
+          {/* Kingdom Spoils & Level Progression */}
           <motion.div 
             className="summary-card spoils-card"
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
           >
-            <h3>Kingdom Spoils</h3>
+            <div className="card-header-bar">
+              <div className="card-header-left">
+                <Trophy size={18} className="card-title-icon" />
+                <h3>Kingdom Spoils</h3>
+              </div>
+              <span className="card-tag gold-tag">Rewarded</span>
+            </div>
+
             <div className="spoils-grid">
-              <div className="spoil-item">
+              <div className="spoil-item xp-item">
                 <div className="spoil-icon xp-glow">
                   <Zap size={24} />
                 </div>
@@ -173,121 +300,152 @@ function RunSummary() {
                 </div>
               </div>
 
-              <div className="spoil-item">
+              <div className="spoil-item streak-item">
                 <div className="spoil-icon streak-glow">
                   <Flame size={24} />
                 </div>
                 <div className="spoil-text">
                   <span className="spoil-amount">{currentStreak || 1} Days</span>
-                  <span className="spoil-label">Current Streak</span>
+                  <span className="spoil-label">Active Streak</span>
                 </div>
               </div>
             </div>
 
             <div className="level-progress-section">
               <div className="level-bar-label">
-                <span>Domain Mastery</span>
-                <span>Level {level || 1}</span>
+                <div className="level-name">
+                  <Shield size={16} className="level-icon" />
+                  <span>Domain Mastery</span>
+                </div>
+                <span className="level-rank">Level {level || 1}</span>
               </div>
+              
               <div className="level-track">
                 <motion.div 
                   className="level-fill"
                   initial={{ width: 0 }}
-                  animate={{ width: `${((user?.xp || 0) % 500) / 5}%` }}
-                  transition={{ duration: 1, delay: 0.5 }}
+                  animate={{ width: `${xpProgressPercent}%` }}
+                  transition={{ duration: 1.2, delay: 0.4, ease: "easeOut" }}
                 />
               </div>
+
+              <div className="level-meta">
+                <span>{xpInCurrentLevel} / 500 XP</span>
+                <span>{500 - xpInCurrentLevel} XP to Level {(level || 1) + 1}</span>
+              </div>
+
               {isLevelUp && (
-                <p className="level-up-notify">👑 Level Up Achieved!</p>
+                <motion.div 
+                  className="level-up-notify"
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: 'spring', stiffness: 200, delay: 0.6 }}
+                >
+                  <Crown size={16} />
+                  <span>Level Up Achieved! New Realm Privileges Unlocked</span>
+                </motion.div>
               )}
             </div>
           </motion.div>
 
-          {/* Territory Influence Breakdown */}
+          {/* Territory Conquest Breakdown */}
           <motion.div 
             className="summary-card grid-card"
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
           >
-            <h3>Territory Conquest Breakdown</h3>
+            <div className="card-header-bar">
+              <div className="card-header-left">
+                <Swords size={18} className="card-title-icon" />
+                <h3>Territory Conquest Breakdown</h3>
+              </div>
+              <span className="card-tag cyan-tag">Realm HUD</span>
+            </div>
+
             {summaryData.grid ? (
               <div className="grid-summary-display">
-                <div className="grid-status-badge">
+                <div className={`grid-status-banner ${summaryData.grid.isUsurped ? 'status-usurp' : summaryData.grid.claimed ? 'status-claim' : 'status-patrol'}`}>
                   {summaryData.grid.isUsurped ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ff4d4d', fontWeight: 700 }}>
-                      <Swords size={20} />
-                      <span>Rival Sector Usurped!</span>
-                    </div>
+                    <>
+                      <Swords size={22} className="banner-icon" />
+                      <div className="banner-text">
+                        <span className="banner-title">Rival Sector Usurped!</span>
+                        <span className="banner-sub">You have overthrown the occupying ruler</span>
+                      </div>
+                    </>
                   ) : summaryData.grid.claimed ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#ffd700', fontWeight: 700 }}>
-                      <Crown size={20} />
-                      <span>Sector Claimed!</span>
-                    </div>
+                    <>
+                      <Crown size={22} className="banner-icon" />
+                      <div className="banner-text">
+                        <span className="banner-title">Sector Claimed!</span>
+                        <span className="banner-sub">New territory added to your realm dominion</span>
+                      </div>
+                    </>
                   ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#00e5ff', fontWeight: 700 }}>
-                      <MapPin size={20} />
-                      <span>Territory Patrolled</span>
-                    </div>
+                    <>
+                      <MapPin size={22} className="banner-icon" />
+                      <div className="banner-text">
+                        <span className="banner-title">Territory Patrolled</span>
+                        <span className="banner-sub">Influence bolstered across regional borders</span>
+                      </div>
+                    </>
                   )}
                 </div>
 
                 <div className="grid-stats-row">
-                  <div className="grid-stat">
-                    <span className="stat-label">Sector Code</span>
-                    <span className="stat-value">{summaryData.grid.gridId}</span>
+                  <div className="grid-stat-card">
+                    <span className="grid-stat-label">Sector Code</span>
+                    <span className="grid-stat-code">{summaryData.grid.gridId}</span>
                   </div>
-                  <div className="grid-stat">
-                    <span className="stat-label">Dominion Standing</span>
-                    <span className="stat-value" style={{ color: '#00e5ff' }}>+{summaryData.grid.influenceAdded} Influence</span>
+                  <div className="grid-stat-card">
+                    <span className="grid-stat-label">Dominion Standing</span>
+                    <span className="grid-stat-influence">+{summaryData.grid.influenceAdded || 0} Influence</span>
                   </div>
-                  <div className="grid-stat">
-                    <span className="stat-label">Sector Status</span>
-                    <span className="stat-value">{summaryData.grid.rulerName ? `Ruled by ${summaryData.grid.rulerName}` : 'Unclaimed'}</span>
+                  <div className="grid-stat-card">
+                    <span className="grid-stat-label">Sector Status</span>
+                    <span className="grid-stat-ruler">
+                      {summaryData.grid.rulerName ? `Ruled by ${summaryData.grid.rulerName}` : 'Unclaimed'}
+                    </span>
                   </div>
                 </div>
               </div>
             ) : (
-              <p className="no-grid-text">No significant territory traversed during this expedition.</p>
+              <div className="no-grid-box">
+                <MapPin size={24} className="no-grid-icon" />
+                <p className="no-grid-text">No major sector boundary traversed during this expedition.</p>
+              </div>
             )}
 
-            {/* Multiple Grids Traversed List */}
+            {/* Multiple Grids Traversed Breakdown List */}
             {run?.gridBreakdown && run.gridBreakdown.length > 0 && (
-              <div className="grid-breakdown-list" style={{ marginTop: '16px', borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '14px' }}>
-                <h4 style={{ fontSize: '0.9rem', color: '#b0a890', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Sectors Fortified</h4>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '10px' }}>
+              <div className="grid-breakdown-wrapper">
+                <h4 className="breakdown-title">
+                  <Sparkles size={14} />
+                  <span>Sectors Fortified ({run.gridBreakdown.length})</span>
+                </h4>
+                <div className="breakdown-cards-grid">
                   {run.gridBreakdown.map((g) => (
-                    <motion.div 
-                      key={g.gridId}
-                      style={{
-                        background: 'rgba(20, 20, 40, 0.6)',
-                        border: '1px solid rgba(212, 175, 55, 0.2)',
-                        borderRadius: '8px',
-                        padding: '10px 12px',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Sparkles size={14} color="#ffd700" />
-                        <span style={{ color: '#d4af37', fontFamily: 'monospace', fontWeight: 600 }}>{g.gridId}</span>
+                    <div key={g.gridId} className="breakdown-mini-card">
+                      <div className="breakdown-id">
+                        <Sparkles size={14} className="mini-sparkle" />
+                        <span>{g.gridId}</span>
                       </div>
-                      <span style={{ color: '#00e5ff', fontSize: '0.9rem', fontWeight: 600 }}>+{g.influenceEarned} Influence</span>
-                    </motion.div>
+                      <span className="breakdown-gain">+{g.influenceEarned} Influence</span>
+                    </div>
                   ))}
                 </div>
               </div>
             )}
           </motion.div>
 
-          {/* AI Tactical Coach Debrief Card - Live Loader or Full Debrief */}
+          {/* AI Tactical Coach Debrief Card */}
           {loadingDebrief && (
             <motion.div
               className="summary-card coach-card coach-loading-card"
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
+              transition={{ duration: 0.4 }}
             >
               <div className="coach-loader-content">
                 <div className="coach-radar-anim">
@@ -300,7 +458,7 @@ function RunSummary() {
                     <span>Tactical AI Coach</span>
                   </div>
                   <h4>Synthesizing Run Telemetry...</h4>
-                  <p>Evaluating cadence, pacing velocity, and biomechanical strain</p>
+                  <p>Evaluating cadence velocity, pacing stability, and biomechanical recovery</p>
                 </div>
               </div>
             </motion.div>
@@ -309,14 +467,14 @@ function RunSummary() {
           {coachDebrief && (
             <motion.div
               className="summary-card coach-card"
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
             >
               <div className="coach-card-header">
                 <div className="coach-title-wrap">
                   <div className="coach-agent-badge">
-                    <Bot size={18} />
+                    <Bot size={15} />
                     <span>Tactical AI Coach</span>
                   </div>
                   <h3 className="coach-headline">{coachDebrief.headline}</h3>
@@ -333,7 +491,7 @@ function RunSummary() {
                     <Activity size={18} />
                   </div>
                   <div className="intel-content">
-                    <span className="intel-label">Pacing & Effort</span>
+                    <span className="intel-label">Pacing & Effort Analysis</span>
                     <p className="intel-text">{coachDebrief.pacingAnalysis}</p>
                   </div>
                 </div>
@@ -353,7 +511,7 @@ function RunSummary() {
                     <Compass size={18} />
                   </div>
                   <div className="intel-content">
-                    <span className="intel-label">Next Target</span>
+                    <span className="intel-label">Next Tactical Target</span>
                     <p className="intel-text">{coachDebrief.nextWorkoutTarget}</p>
                   </div>
                 </div>
@@ -362,12 +520,21 @@ function RunSummary() {
           )}
         </div>
 
+        {/* Actions Bar */}
         <motion.div 
           className="summary-actions"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.8 }}
+          transition={{ duration: 0.5, delay: 0.6 }}
         >
+          <button 
+            className="secondary-btn"
+            onClick={handleShare}
+          >
+            {copied ? <Check size={18} color="#00e676" /> : <Share2 size={18} />}
+            <span>{copied ? 'Copied Spoils!' : 'Share Victory'}</span>
+          </button>
+
           <button 
             className="return-btn gold-shimmer"
             onClick={() => navigate('/dashboard')}

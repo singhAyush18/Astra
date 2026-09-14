@@ -72,7 +72,7 @@ function About() {
           <p className="about-tagline">
             Where every stride is a battle. Every run, a conquest.
           </p>
-          <div className="about-version">v1.0 — Forged in Code & Sweat</div>
+          <div className="about-version">v1.0</div>
         </motion.section>
 
         {/* What is it */}

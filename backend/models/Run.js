@@ -47,7 +47,21 @@ const runSchema = new mongoose.Schema({
     gridId: String,
     influenceEarned: Number,
     distance: Number
-  }]
+  }],
+  antiCheat: {
+    isFlagged: {
+      type: Boolean,
+      default: false
+    },
+    reasons: [String],
+    flags: [String],
+    maxCalculatedSpeedKmh: Number,
+    avgCalculatedSpeedKmh: Number
+  },
+  isSimulated: {
+    type: Boolean,
+    default: false
+  }
 }, { timestamps: true });
 
 module.exports = mongoose.model("Run", runSchema);
