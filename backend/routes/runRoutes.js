@@ -1,21 +1,23 @@
 const express = require('express');
-const router=express.Router();
+const router = express.Router();
 const auth = require("../middleware/auth");
-const {startRun,
-       getRuns,
-       getRunById,
-       endRun,
-       generateRunDebrief,
-       updateLocation,
-       deleteRun,
-       }=require('../controllers/runController');
+const { runLimiter, aiLimiter } = require("../middleware/rateLimiter");
+const { 
+    startRun,
+    getRuns,
+    getRunById,
+    endRun,
+    generateRunDebrief,
+    updateLocation,
+    deleteRun,
+} = require('../controllers/runController');
 
-router.post('/start',auth,startRun);
-router.get('/',auth,getRuns);
+router.post('/start', auth, startRun);
+router.get('/', auth, getRuns);
+router.get('/:id', auth, getRunById);
+router.patch('/:id/location', auth, updateLocation);
+router.patch('/:id/end', auth, runLimiter, endRun);
+router.post('/:id/debrief', auth, aiLimiter, generateRunDebrief);
+router.delete('/:id', auth, deleteRun);
 
-router.get('/:id',auth,getRunById);
-router.patch('/:id/location',auth,updateLocation);
-router.patch('/:id/end',auth,endRun);
-router.post('/:id/debrief',auth,generateRunDebrief);
-router.delete('/:id',auth,deleteRun);
-module.exports=router;
+module.exports = router;

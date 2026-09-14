@@ -182,51 +182,51 @@ function RunSummary() {
 
             <div className="stats-grid">
               <div className="stat-box distance-box">
-                <div className="stat-box-left">
+                <div className="stat-box-header">
                   <div className="stat-icon-wrapper distance-glow">
-                    <MapPin size={20} />
+                    <MapPin size={18} />
                   </div>
                   <span className="stat-label">Distance</span>
                 </div>
-                <div className="stat-box-right">
+                <div className="stat-box-value-row">
                   <span className="stat-val">{(run?.distance || 0).toFixed(2)}</span>
                   <span className="stat-unit">km</span>
                 </div>
               </div>
 
               <div className="stat-box duration-box">
-                <div className="stat-box-left">
+                <div className="stat-box-header">
                   <div className="stat-icon-wrapper duration-glow">
-                    <Target size={20} />
+                    <Target size={18} />
                   </div>
                   <span className="stat-label">Duration</span>
                 </div>
-                <div className="stat-box-right">
-                  <span className="stat-val">{formatDuration(run?.duration)}</span>
+                <div className="stat-box-value-row">
+                  <span className="stat-val stat-val-nowrap">{formatDuration(run?.duration)}</span>
                 </div>
               </div>
 
               <div className="stat-box pace-box">
-                <div className="stat-box-left">
+                <div className="stat-box-header">
                   <div className="stat-icon-wrapper pace-glow">
-                    <Zap size={20} />
+                    <Zap size={18} />
                   </div>
                   <span className="stat-label">Avg Pace</span>
                 </div>
-                <div className="stat-box-right">
+                <div className="stat-box-value-row">
                   <span className="stat-val">{run?.pace || "0:00"}</span>
                   <span className="stat-unit">/km</span>
                 </div>
               </div>
 
               <div className="stat-box calories-box">
-                <div className="stat-box-left">
+                <div className="stat-box-header">
                   <div className="stat-icon-wrapper calories-glow">
-                    <FlameKindling size={20} />
+                    <FlameKindling size={18} />
                   </div>
                   <span className="stat-label">Energy</span>
                 </div>
-                <div className="stat-box-right">
+                <div className="stat-box-value-row">
                   <span className="stat-val">{calories}</span>
                   <span className="stat-unit">kcal</span>
                 </div>

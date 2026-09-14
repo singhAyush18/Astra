@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Map, MapPin, Flag, Crown, Search, ShieldAlert } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Map, MapPin, Flag, Search, ShieldAlert } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
 import LiveGridMap from '../components/Map/LiveGridMap';
@@ -84,11 +84,6 @@ function TerritoryMap() {
       (t.name && t.name.toLowerCase().includes(q))
     );
   });
-
-  const formatDate = (dateStr) => {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-  };
 
   return (
     <div className="territory-container">

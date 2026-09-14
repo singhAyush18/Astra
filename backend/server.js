@@ -1,7 +1,9 @@
-
+const { globalLimiter } = require("./middleware/rateLimiter");
 const express = require("express");
 const dotenv = require("dotenv");
 dotenv.config();
+
+
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const path = require("path");
@@ -15,6 +17,7 @@ const clanRoutes = require("./routes/clanRoutes");
 const agentRoutes = require("./routes/agentRoutes");
 
 const app = express();
+app.set('trust proxy', 1);
 
 app.use(express.json());
 app.use(cookieParser());
@@ -26,6 +29,7 @@ app.use(cors({
     ].filter(Boolean),
     credentials: true
 }));
+app.use("/api", globalLimiter);
 
 // API routes
 app.use("/api/v2/auth", authRoutes);
