@@ -10,12 +10,13 @@ import UserMenu from './UserMenu';
 import { useAuth } from '../context/AuthContext';
 import './Navbar.css';
 
-const Navbar = ({ streak = 0 }) => {
+const Navbar = ({ streak }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated, user, logout } = useAuth();
+  const effectiveStreak = streak !== undefined ? streak : (user?.currentStreak || 0);
 
   // Close menus on route change
   useEffect(() => {
@@ -102,7 +103,7 @@ const Navbar = ({ streak = 0 }) => {
 
           {/* Right Section */}
           <div className="navbar-right">
-            {isAuthenticated && <StreakFlame streak={streak} />}
+            {isAuthenticated && <StreakFlame streak={effectiveStreak} />}
             
             {isAuthenticated && (
               <UserMenu 

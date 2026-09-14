@@ -22,7 +22,19 @@ export const AuthProvider = ({ children }) => {
 
     if (storedUser) {
       try {
-        setUser(JSON.parse(storedUser));
+        const parsed = JSON.parse(storedUser);
+        if (parsed?.lastRunDate && parsed?.currentStreak > 0) {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const lastRun = new Date(parsed.lastRunDate);
+          lastRun.setHours(0, 0, 0, 0);
+          const diffDays = Math.floor((today - lastRun) / (1000 * 60 * 60 * 24));
+          if (diffDays > 1) {
+            parsed.currentStreak = 0;
+            localStorage.setItem('user', JSON.stringify(parsed));
+          }
+        }
+        setUser(parsed);
       } catch {
         localStorage.removeItem('user');
       }

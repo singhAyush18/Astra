@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Activity, MapPin, Zap, Swords } from "lucide-react";
+import { Activity, MapPin, Zap, Swords, Flame } from "lucide-react";
 import { motion } from "framer-motion";
 import Navbar from "../components/Navbar";
 import XPBar from "../components/XPBar";
@@ -17,7 +17,7 @@ function Dashboard() {
   const [stats, setStats] = useState(null);
   const [gameStats, setGameStats] = useState(null);
   const [runs, setRuns] = useState([]);
-  const { user, handleUnauthorized } = useAuth();
+  const { user, updateUser, handleUnauthorized } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -53,7 +53,27 @@ function Dashboard() {
         return res.json();
       })
       .then(data => {
-        if (data?.success) setGameStats(data.data);
+        if (data?.success && data.data) {
+          setGameStats(data.data);
+          // Sync fresh server streak & stats with AuthContext
+          if (user) {
+            const hasChanged = 
+              user.currentStreak !== data.data.currentStreak ||
+              user.longestStreak !== data.data.longestStreak ||
+              user.xp !== data.data.xp ||
+              user.level !== data.data.level;
+
+            if (hasChanged) {
+              updateUser({
+                ...user,
+                currentStreak: data.data.currentStreak,
+                longestStreak: data.data.longestStreak,
+                xp: data.data.xp,
+                level: data.data.level,
+              });
+            }
+          }
+        }
       })
       .catch(console.error);
   }, [navigate]);
@@ -66,10 +86,12 @@ function Dashboard() {
 
   const userLevel = gameStats?.level || user.level || 1;
   const currentRank = getRankByLevel(userLevel);
+  const currentStreakVal = gameStats?.currentStreak !== undefined ? gameStats.currentStreak : (user.currentStreak || 0);
+  const longestStreakVal = gameStats?.longestStreak !== undefined ? gameStats.longestStreak : (user.longestStreak || 0);
 
   return (
     <div className="dashboard-container">
-      <Navbar streak={gameStats?.currentStreak || 0} />
+      <Navbar streak={currentStreakVal} />
       
       <main className="dashboard-main">
         <header className="dashboard-header">
@@ -104,7 +126,7 @@ function Dashboard() {
         <section className="dashboard-xp-section">
           <XPBar 
             level={userLevel} 
-            currentXP={gameStats?.xp || user.xp || 0} 
+            currentXP={gameStats?.xp !== undefined ? gameStats.xp : (user.xp || 0)} 
             maxXP={calculateMaxXP(userLevel)} 
           />
         </section>
@@ -126,6 +148,12 @@ function Dashboard() {
             label="Longest Run" 
             value={stats?.longestRun || 0} 
             suffix=" km" 
+          />
+          <StatCard 
+            icon={<Flame size={24} color="#ff9800" />} 
+            label="Longest Daily Streak" 
+            value={longestStreakVal} 
+            suffix=" Days" 
           />
         </section>
 

@@ -1,5 +1,4 @@
-const Run = require("../models/Run");
-const User = require("../models/User");
+const { syncUserStreak } = require("./gamificationController");
 
 const getGamificationstats = async (req, res) => {
     try {
@@ -12,21 +11,8 @@ const getGamificationstats = async (req, res) => {
             });
         }
 
-        // Check if streak has expired (no run yesterday or today)
-        if (user.lastRunDate && user.currentStreak > 0) {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-
-            const lastRun = new Date(user.lastRunDate);
-            lastRun.setHours(0, 0, 0, 0);
-
-            const diffDays = Math.floor((today - lastRun) / (1000 * 60 * 60 * 24));
-
-            if (diffDays > 1) {
-                user.currentStreak = 0;
-                await user.save();
-            }
-        }
+        // Validate and sync streak expiry
+        await syncUserStreak(user);
 
         res.status(200).json({
             success: true,

@@ -2,6 +2,7 @@ const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const { generateToken } = require("../services/tokenservice");
 const { sendVerificationEmail, sendPasswordResetEmail, generateVerificationToken } = require("../services/emailService");
+const { syncUserStreak } = require("./gamificationController");
 
 // Validation helpers
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -139,6 +140,8 @@ const login = async (req, res) => {
             sameSite: 'lax',
             maxAge: 24 * 60 * 60 * 1000
         });
+
+        await syncUserStreak(user);
 
         res.status(200).json({
             success: true,
@@ -305,6 +308,7 @@ const updateProfile = async (req, res) => {
         }
 
         await user.save();
+        await syncUserStreak(user);
 
         res.status(200).json({
             success: true,
