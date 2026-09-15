@@ -47,6 +47,37 @@
   50% { opacity: 0.5; }
 }
 
+/* ── Awake Lock HUD Badge ── */
+.awake-lock-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: rgba(212, 175, 55, 0.08);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: 20px;
+  font-family: var(--font-ui, 'Inter', sans-serif);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--gold-primary, #d4af37);
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.1);
+  animation: fadeIn 0.3s ease;
+}
+
+.awake-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f59e0b;
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.8);
+  animation: awakePulse 1.8s ease-in-out infinite;
+}
+
+@keyframes awakePulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.4); opacity: 0.6; }
+}
+
 /* ── Back button ── */
 .run-back-btn {
   position: absolute;

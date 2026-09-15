@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Play, Square, MapPin, Clock, Gauge, Loader, Pause, Volume2, VolumeX, 
-  Gamepad2, Navigation, Compass, FastForward, RotateCcw, Crosshair, AlertTriangle
+  Gamepad2, Navigation, Compass, FastForward, RotateCcw, Crosshair, AlertTriangle, Eye
 } from 'lucide-react';
 import { MapContainer, TileLayer, Polyline, Marker, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
@@ -11,6 +11,7 @@ import './ActiveRun.css';
 import { useAuth } from '../context/AuthContext';
 import { runsAPI } from '../api';
 import { soundEffects } from '../utils/soundEffects';
+import { backgroundKeepAlive } from '../utils/backgroundKeepAlive';
 import ConquestAlert from '../components/ConquestAlert';
 
 const warriorRunnerIcon = L.divIcon({
@@ -132,10 +133,13 @@ function ActiveRun() {
     );
   }, []);
 
-  // Timer with Auto-Pause
+  // Timer with Auto-Pause & Background Keep-Alive
   useEffect(() => {
     let interval;
     if (status === 'running') {
+      // Start Screen Wake Lock & Background Audio Keep-Alive
+      backgroundKeepAlive.start();
+
       let lastTick = Date.now();
       interval = setInterval(() => {
         const now = Date.now();
@@ -158,8 +162,14 @@ function ActiveRun() {
           lastTick = now;
         }
       }, 1000);
+    } else {
+      backgroundKeepAlive.stop();
     }
-    return () => clearInterval(interval);
+
+    return () => {
+      clearInterval(interval);
+      backgroundKeepAlive.stop();
+    };
   }, [status]);
 
   // Haversine formula to calculate distance between two lat/lng points in km
@@ -443,11 +453,21 @@ function ActiveRun() {
   return (
     <div className="active-run-container">
       {/* Top HUD Bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: '12px', gap: '8px' }}>
-        <div className="run-gps-status" style={{ margin: 0 }}>
-          <MapPin size={14} />
-          <span>{simActive ? 'Mock GPS' : gpsReady ? 'GPS Active' : 'Acquiring GPS...'}</span>
-          <div className={`gps-dot ${gpsReady || simActive ? 'active' : ''}`} style={simActive ? { background: '#00e5ff', boxShadow: '0 0 8px #00e5ff' } : {}} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: '12px', gap: '8px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <div className="run-gps-status" style={{ margin: 0 }}>
+            <MapPin size={14} />
+            <span>{simActive ? 'Mock GPS' : gpsReady ? 'GPS Active' : 'Acquiring GPS...'}</span>
+            <div className={`gps-dot ${gpsReady || simActive ? 'active' : ''}`} style={simActive ? { background: '#00e5ff', boxShadow: '0 0 8px #00e5ff' } : {}} />
+          </div>
+
+          {status === 'running' && (
+            <div className="awake-lock-badge" title="Screen Wake Lock & Background Tracking Protected">
+              <Eye size={13} />
+              <span>Awake Lock</span>
+              <span className="awake-dot" />
+            </div>
+          )}
         </div>
 
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
