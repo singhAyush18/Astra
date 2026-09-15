@@ -1,7 +1,12 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const { generateToken } = require("../services/tokenservice");
-const { sendVerificationEmail, sendPasswordResetEmail, generateVerificationToken } = require("../services/emailService");
+const { 
+    sendVerificationEmail, 
+    sendPasswordResetEmail, 
+    generateVerificationToken,
+    sendPasswordChangeOtp 
+} = require("../services/emailService");
 const { syncUserStreak } = require("./gamificationController");
 
 // Validation helpers
@@ -468,15 +473,72 @@ const resetPassword = async (req, res) => {
     }
 };
 
+const requestPasswordChangeOtp = async (req, res) => {
+    try {
+        const { currentPassword } = req.body;
+        const userId = req.user.id;
+
+        if (!currentPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "Current password is required to request a verification code",
+            });
+        }
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) {
+            return res.status(400).json({
+                success: false,
+                message: "Incorrect current password",
+            });
+        }
+
+        // Generate a cryptographically secure 6-digit numeric OTP code
+        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+        user.passwordChangeOtp = otpCode;
+        user.passwordChangeOtpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+        await user.save();
+
+        await sendPasswordChangeOtp(user.email, otpCode);
+
+        res.status(200).json({
+            success: true,
+            message: `Verification code sent to ${user.email.replace(/(.{2})(.*)(?=@)/, '$1***')}`,
+        });
+    } catch (error) {
+        console.error("Request password change OTP error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to send verification code. Please try again.",
+        });
+    }
+};
+
 const changePassword = async (req, res) => {
     try {
-        const { currentPassword, newPassword } = req.body;
+        const { currentPassword, newPassword, otpCode } = req.body;
         const userId = req.user.id;
 
         if (!currentPassword || !newPassword) {
             return res.status(400).json({
                 success: false,
                 message: "Both current password and new password are required",
+            });
+        }
+
+        if (!otpCode || !otpCode.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: "Email verification code is required",
             });
         }
 
@@ -503,6 +565,25 @@ const changePassword = async (req, res) => {
             });
         }
 
+        // Verify OTP code and expiry
+        if (
+            !user.passwordChangeOtp ||
+            !user.passwordChangeOtpExpires ||
+            user.passwordChangeOtpExpires < new Date()
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "Verification code has expired. Please request a new code.",
+            });
+        }
+
+        if (user.passwordChangeOtp !== otpCode.trim()) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid verification code. Please check your email.",
+            });
+        }
+
         const isSame = await bcrypt.compare(newPassword, user.password);
         if (isSame) {
             return res.status(400).json({
@@ -512,11 +593,13 @@ const changePassword = async (req, res) => {
         }
 
         user.password = await bcrypt.hash(newPassword, 10);
+        user.passwordChangeOtp = null;
+        user.passwordChangeOtpExpires = null;
         await user.save();
 
         res.status(200).json({
             success: true,
-            message: "Password changed successfully",
+            message: "Password changed successfully!",
         });
     } catch (error) {
         console.error("Change password error:", error);
@@ -536,5 +619,6 @@ module.exports = {
     updateProfile,
     forgotPassword,
     resetPassword,
-    changePassword
+    requestPasswordChangeOtp,
+    changePassword,
 };
