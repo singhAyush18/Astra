@@ -47,22 +47,14 @@ const startRun = async (req, res) => {
         const activeRuns = await Run.find({
             userId,
             status: "active",
-        });
+        }).sort({ updatedAt: -1 });
 
         if (activeRuns.length > 0) {
             const thirtyMinsAgo = new Date(Date.now() - 30 * 60 * 1000);
-            let freshRun = null;
-
-            for (const activeRun of activeRuns) {
-                const lastUpdated = activeRun.updatedAt || activeRun.startTime;
-                if (lastUpdated < thirtyMinsAgo) {
-                    // Stale run: auto-finish it
-                    await finalizeRun(activeRun);
-                } else {
-                    // Found a fresh one
-                    freshRun = activeRun;
-                }
-            }
+            const freshRun = activeRuns.find((r) => {
+                const lastUpdated = r.updatedAt || r.startTime;
+                return lastUpdated >= thirtyMinsAgo;
+            });
 
             if (freshRun) {
                 // Resume active run
@@ -72,7 +64,20 @@ const startRun = async (req, res) => {
                     data: { run: freshRun, resumed: true },
                 });
             }
-            // If all were stale, they are now finished. We continue to create a new run below.
+
+            // Stale runs: close them immediately in background without blocking start
+            const staleRunIds = activeRuns.map((r) => r._id);
+            Run.updateMany(
+                { _id: { $in: staleRunIds } },
+                { $set: { status: "completed", endTime: new Date() } }
+            ).catch((err) => console.warn("[startRun] Background stale run cleanup error:", err));
+
+            // Background async finalization for territory/influence if needed
+            setImmediate(() => {
+                activeRuns.forEach((stale) => {
+                    finalizeRun(stale).catch((err) => console.warn("[startRun] Background finalize error:", err));
+                });
+            });
         }
 
         const run = await Run.create({

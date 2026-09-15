@@ -64,4 +64,7 @@ const runSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
+runSchema.index({ userId: 1, status: 1 });
+runSchema.index({ userId: 1, createdAt: -1 });
+
 module.exports = mongoose.model("Run", runSchema);

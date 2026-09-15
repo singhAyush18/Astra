@@ -358,7 +358,14 @@
   background: linear-gradient(135deg, rgba(74, 222, 128, 0.25), rgba(74, 222, 128, 0.1));
 }
 
-.run-start-btn:disabled {
+.run-start-btn.starting {
+  border-color: rgba(212, 175, 55, 0.8);
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.3), rgba(212, 175, 55, 0.1));
+  color: #ffd700;
+  box-shadow: 0 0 35px rgba(212, 175, 55, 0.4);
+}
+
+.run-start-btn:disabled:not(.starting) {
   opacity: 0.5;
   cursor: not-allowed;
 }

@@ -95,7 +95,7 @@ function ActiveRun() {
   const [path, setPath] = useState([]);
   const [isAutoPaused, setIsAutoPaused] = useState(false);
   const [currentPace, setCurrentPace] = useState('--:--');
-  const [isMuted, setIsMuted] = useState(soundEffects.isMuted);
+  const [isStarting, setIsStarting] = useState(false);
   const [conquestAlert, setConquestAlert] = useState({ isOpen: false, type: 'claim', gridId: '', influence: 50 });
 
   const isSimulatedRef = useRef(false);
@@ -108,7 +108,7 @@ function ActiveRun() {
 
   const { handleUnauthorized } = useAuth();
 
-  // Get initial GPS position
+  // Get initial GPS position (fast-cached with high accuracy upgrade)
   useEffect(() => {
     if (!navigator.geolocation) {
       // Fallback default coordinates (e.g. Central Delhi / Imperial City)
@@ -130,13 +130,13 @@ function ActiveRun() {
         setGpsReady(true);
       },
       (err) => {
-        console.warn('Geolocation prompt rejected, defaulting to mock point:', err);
+        console.warn('Geolocation prompt rejected or timed out, defaulting to mock point:', err);
         const fallback = { lat: 28.6139, lng: 77.2090 };
         setCoords(fallback);
         setPath([[fallback.lat, fallback.lng]]);
         setGpsReady(true);
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: true, timeout: 6000, maximumAge: 30000 }
     );
   }, []);
 
@@ -317,12 +317,15 @@ function ActiveRun() {
   };
 
   const handleStart = async () => {
+    if (isStarting) return;
     if (!coords) {
       setError('Waiting for GPS signal...');
       return;
     }
 
     setError('');
+    setIsStarting(true);
+    soundEffects.playConquestClaim();
 
     try {
       const res = await runsAPI.start(null, { lat: coords.lat, lng: coords.lng });
@@ -365,6 +368,8 @@ function ActiveRun() {
       }
     } catch {
       setError('Network error. Check your connection.');
+    } finally {
+      setIsStarting(false);
     }
   };
 
@@ -514,16 +519,21 @@ function ActiveRun() {
       <div className="run-actions">
         {status === 'ready' && (
           <motion.button
-            className="run-start-btn"
+            className={`run-start-btn ${isStarting ? 'starting' : ''}`}
             onClick={handleStart}
-            disabled={!gpsReady}
+            disabled={!gpsReady || isStarting}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
           >
-            {gpsReady ? (
+            {isStarting ? (
+              <>
+                <Loader size={28} className="spin" />
+                <span>LAUNCHING...</span>
+              </>
+            ) : gpsReady ? (
               <>
                 <Play size={28} fill="currentColor" />
                 <span>START</span>
