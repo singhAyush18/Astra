@@ -242,22 +242,85 @@
   box-shadow: 0 0 8px rgba(255, 77, 77, 0.2);
 }
 
+/* ── Leaflet Zoom Controls Customization & Mobile Repositioning ── */
+.live-grid-map-container .leaflet-top.leaflet-left {
+  top: auto !important;
+  bottom: 20px !important;
+  left: 12px !important;
+  z-index: 990 !important;
+}
+
+.live-grid-map-container .leaflet-control-zoom {
+  border: 1px solid rgba(212, 175, 55, 0.35) !important;
+  background: rgba(12, 14, 32, 0.85) !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 10px !important;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  margin: 0 !important;
+}
+
+.live-grid-map-container .leaflet-control-zoom a {
+  background: transparent !important;
+  color: #d4af37 !important;
+  font-weight: 700 !important;
+  font-size: 15px !important;
+  width: 32px !important;
+  height: 32px !important;
+  line-height: 32px !important;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.2) !important;
+  transition: all 0.2s ease;
+}
+
+.live-grid-map-container .leaflet-control-zoom a:last-child {
+  border-bottom: none !important;
+}
+
+.live-grid-map-container .leaflet-control-zoom a:hover {
+  background: rgba(212, 175, 55, 0.2) !important;
+  color: #fff !important;
+}
+
+/* ── Leaflet Attribution ── */
+.live-grid-map-container .leaflet-control-attribution {
+  background: rgba(6, 7, 20, 0.75) !important;
+  color: rgba(255, 255, 255, 0.35) !important;
+  font-size: 8px !important;
+  padding: 1px 6px !important;
+  border-radius: 4px;
+  margin: 2px 4px !important;
+}
+
+.live-grid-map-container .leaflet-control-attribution a {
+  color: rgba(212, 175, 55, 0.6) !important;
+  text-decoration: none;
+}
+
 /* ── Floating Map Theme Toggle Bar ── */
 .map-theme-toggle-bar {
   position: absolute;
-  top: 16px;
-  left: 16px;
+  top: 12px;
+  left: 12px;
   z-index: 1000;
   display: flex;
   align-items: center;
-  gap: 4px;
-  background: rgba(12, 14, 32, 0.88);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  padding: 4px;
+  gap: 3px;
+  background: rgba(12, 14, 32, 0.9);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  padding: 3px;
   border-radius: 24px;
   border: 1px solid rgba(212, 175, 55, 0.35);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), 0 0 15px rgba(212, 175, 55, 0.1);
+  max-width: calc(100% - 130px);
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.map-theme-toggle-bar::-webkit-scrollbar {
+  display: none;
 }
 
 .theme-toggle-btn {
@@ -267,7 +330,7 @@
   background: transparent;
   border: 1px solid transparent;
   color: #a09880;
-  padding: 6px 12px;
+  padding: 6px 11px;
   border-radius: 18px;
   font-family: 'Inter', sans-serif;
   font-size: 0.76rem;
@@ -275,6 +338,7 @@
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .theme-toggle-btn:hover {
@@ -292,34 +356,36 @@
 /* ── Recenter Button ── */
 .map-recenter-btn-container {
   position: absolute;
-  top: 16px;
-  right: 16px;
+  top: 12px;
+  right: 12px;
   z-index: 1000;
 }
 
 .map-recenter-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  background: rgba(20, 20, 40, 0.85);
-  backdrop-filter: blur(10px);
+  gap: 5px;
+  background: rgba(20, 20, 40, 0.9);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   color: #d4af37;
-  border: 1px solid rgba(212, 175, 55, 0.4);
-  padding: 8px 14px;
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  padding: 7px 13px;
   border-radius: 20px;
   font-family: 'Inter', sans-serif;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 0 12px rgba(212, 175, 55, 0.15);
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
 }
 
 .map-recenter-btn:hover {
   background: rgba(212, 175, 55, 0.25);
   border-color: #d4af37;
   color: #fff;
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5), 0 0 16px rgba(212, 175, 55, 0.3);
 }
 
@@ -328,7 +394,7 @@
 }
 
 .recenter-icon {
-  font-size: 1rem;
+  font-size: 0.95rem;
 }
 
 .recenter-text {
@@ -359,40 +425,67 @@
   background: rgba(212, 175, 55, 0.3);
 }
 
-/* ── Responsive ── */
-@media (max-width: 480px) {
+/* ── Responsive for Mobile Screens ── */
+@media (max-width: 600px) {
   .live-grid-map-container {
-    height: 450px;
+    height: clamp(420px, 62vh, 560px);
     border-radius: 12px;
   }
 
   .map-theme-toggle-bar {
-    top: 10px;
-    left: 10px;
+    top: 8px;
+    left: 8px;
     gap: 2px;
-    padding: 3px;
-    max-width: calc(100% - 110px);
-    overflow-x: auto;
+    padding: 2px;
+    max-width: calc(100% - 105px);
   }
 
   .theme-toggle-btn {
-    padding: 4px 8px;
-    font-size: 0.68rem;
+    padding: 5px 8px;
+    font-size: 0.7rem;
+    gap: 3px;
+    border-radius: 14px;
   }
 
   .map-recenter-btn-container {
-    top: 10px;
-    right: 10px;
+    top: 8px;
+    right: 8px;
   }
 
   .map-recenter-btn {
-    padding: 6px 10px;
-    font-size: 0.75rem;
+    padding: 5px 10px;
+    font-size: 0.74rem;
+    gap: 4px;
+    border-radius: 16px;
+  }
+
+  .live-grid-map-container .leaflet-top.leaflet-left {
+    bottom: 12px !important;
+    left: 8px !important;
+  }
+
+  .live-grid-map-container .leaflet-control-zoom a {
+    width: 28px !important;
+    height: 28px !important;
+    line-height: 28px !important;
+    font-size: 13px !important;
   }
 
   .map-legend {
-    bottom: 10px;
-    right: 10px;
-    padding: 8px 12px;
+    bottom: 8px;
+    right: 8px;
+    padding: 6px 10px;
+    gap: 6px;
+    border-radius: 8px;
+  }
+
+  .legend-item {
+    font-size: 0.68rem;
+    gap: 6px;
+  }
+
+  .legend-swatch {
+    width: 11px;
+    height: 11px;
   }
 }
