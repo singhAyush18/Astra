@@ -144,16 +144,21 @@
   margin-bottom: 18px;
   padding-bottom: 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .card-header-left {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
+  flex: 1;
 }
 
 .card-title-icon {
   color: var(--gold-primary, #d4af37);
+  flex-shrink: 0;
 }
 
 .summary-card h3 {
@@ -452,10 +457,10 @@
 }
 
 .status-claim {
-  background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(203, 155, 81, 0.08) 100%);
-  border: 1px solid rgba(255, 215, 0, 0.4);
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.16) 0%, rgba(203, 155, 81, 0.08) 100%);
+  border: 1px solid rgba(255, 215, 0, 0.45);
   color: #ffd700;
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.15);
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.18);
 }
 
 .status-usurp {
@@ -465,11 +470,37 @@
   box-shadow: 0 0 20px rgba(255, 77, 77, 0.18);
 }
 
-.status-patrol {
-  background: linear-gradient(135deg, rgba(0, 229, 255, 0.12) 0%, rgba(18, 18, 42, 0.1) 100%);
+.status-fortify {
+  background: linear-gradient(135deg, rgba(74, 222, 128, 0.15) 0%, rgba(20, 83, 45, 0.1) 100%);
+  border: 1px solid rgba(74, 222, 128, 0.4);
+  color: #4ade80;
+  box-shadow: 0 0 20px rgba(74, 222, 128, 0.15);
+}
+
+.status-wildland {
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.12) 0%, rgba(14, 116, 144, 0.1) 100%);
   border: 1px solid rgba(0, 229, 255, 0.35);
   color: #00e5ff;
   box-shadow: 0 0 20px rgba(0, 229, 255, 0.12);
+}
+
+.status-contest {
+  background: linear-gradient(135deg, rgba(251, 146, 60, 0.15) 0%, rgba(154, 52, 18, 0.1) 100%);
+  border: 1px solid rgba(251, 146, 60, 0.4);
+  color: #fb923c;
+  box-shadow: 0 0 20px rgba(251, 146, 60, 0.15);
+}
+
+.status-patrol {
+  background: linear-gradient(135deg, rgba(147, 197, 253, 0.12) 0%, rgba(30, 58, 138, 0.1) 100%);
+  border: 1px solid rgba(147, 197, 253, 0.35);
+  color: #93c5fd;
+  box-shadow: 0 0 20px rgba(147, 197, 253, 0.12);
+}
+
+.ruler-you {
+  color: #ffd700 !important;
+  font-weight: 700;
 }
 
 .banner-icon {

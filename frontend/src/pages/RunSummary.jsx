@@ -363,54 +363,79 @@ function RunSummary() {
               <span className="card-tag cyan-tag">Realm HUD</span>
             </div>
 
-            {summaryData.grid ? (
-              <div className="grid-summary-display">
-                <div className={`grid-status-banner ${summaryData.grid.isUsurped ? 'status-usurp' : summaryData.grid.claimed ? 'status-claim' : 'status-patrol'}`}>
-                  {summaryData.grid.isUsurped ? (
-                    <>
-                      <Swords size={22} className="banner-icon" />
-                      <div className="banner-text">
-                        <span className="banner-title">Rival Sector Usurped!</span>
-                        <span className="banner-sub">You have overthrown the occupying ruler</span>
-                      </div>
-                    </>
-                  ) : summaryData.grid.claimed ? (
-                    <>
-                      <Crown size={22} className="banner-icon" />
-                      <div className="banner-text">
-                        <span className="banner-title">Sector Claimed!</span>
-                        <span className="banner-sub">New territory added to your realm dominion</span>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <MapPin size={22} className="banner-icon" />
-                      <div className="banner-text">
-                        <span className="banner-title">Territory Patrolled</span>
-                        <span className="banner-sub">Influence bolstered across regional borders</span>
-                      </div>
-                    </>
-                  )}
-                </div>
+            {summaryData.grid ? (() => {
+              const gridInfo = summaryData.grid;
+              const isUserRuler = Boolean(
+                gridInfo.isRuler || 
+                (user && gridInfo.rulerName && user.username && gridInfo.rulerName.toLowerCase() === user.username.toLowerCase())
+              );
+              const isUnclaimed = !gridInfo.rulerName || gridInfo.rulerName === 'Unclaimed Wildland' || gridInfo.rulerName === 'Unclaimed';
+              const hasClaimedNow = Boolean(gridInfo.claimed && isUserRuler);
+              const hasUsurpedNow = Boolean(gridInfo.isUsurped && isUserRuler);
 
-                <div className="grid-stats-row">
-                  <div className="grid-stat-card">
-                    <span className="grid-stat-label">Sector Code</span>
-                    <span className="grid-stat-code">{summaryData.grid.gridId}</span>
+              let bannerClass = 'status-patrol';
+              let bannerIcon = <Compass size={22} className="banner-icon" />;
+              let bannerTitle = 'Territory Scouted';
+              let bannerSub = `Added +${gridInfo.influenceAdded || 0} Influence across sector boundaries`;
+
+              if (hasUsurpedNow) {
+                bannerClass = 'status-usurp';
+                bannerIcon = <Swords size={22} className="banner-icon" />;
+                bannerTitle = 'Rival Overthrown & Usurped!';
+                bannerSub = gridInfo.rivalName 
+                  ? `You dethroned ${gridInfo.rivalName} and seized the throne!` 
+                  : 'You defeated the occupying ruler and seized the throne!';
+              } else if (hasClaimedNow) {
+                bannerClass = 'status-claim';
+                bannerIcon = <Crown size={22} className="banner-icon" />;
+                bannerTitle = 'Sector Claimed!';
+                bannerSub = 'You conquered the wildland and established realm dominion!';
+              } else if (isUserRuler) {
+                bannerClass = 'status-fortify';
+                bannerIcon = <Shield size={22} className="banner-icon" />;
+                bannerTitle = 'Domain Fortified';
+                bannerSub = `Added +${gridInfo.influenceAdded || 0} defense influence to protect your throne`;
+              } else if (isUnclaimed) {
+                bannerClass = 'status-wildland';
+                bannerIcon = <Flame size={22} className="banner-icon" />;
+                bannerTitle = 'Wildland Scouted';
+                bannerSub = `Added +${gridInfo.influenceAdded || 0} Influence toward claiming this territory (${gridInfo.totalInfluence || gridInfo.influenceAdded || 0}/500 to Claim)`;
+              } else {
+                bannerClass = 'status-contest';
+                bannerIcon = <Zap size={22} className="banner-icon" />;
+                bannerTitle = 'Territory Contested';
+                bannerSub = `Generated +${gridInfo.influenceAdded || 0} Influence contesting ${gridInfo.rulerName}'s rule`;
+              }
+
+              return (
+                <div className="grid-summary-display">
+                  <div className={`grid-status-banner ${bannerClass}`}>
+                    {bannerIcon}
+                    <div className="banner-text">
+                      <span className="banner-title">{bannerTitle}</span>
+                      <span className="banner-sub">{bannerSub}</span>
+                    </div>
                   </div>
-                  <div className="grid-stat-card">
-                    <span className="grid-stat-label">Dominion Standing</span>
-                    <span className="grid-stat-influence">+{summaryData.grid.influenceAdded || 0} Influence</span>
-                  </div>
-                  <div className="grid-stat-card">
-                    <span className="grid-stat-label">Sector Status</span>
-                    <span className="grid-stat-ruler">
-                      {summaryData.grid.rulerName ? `Ruled by ${summaryData.grid.rulerName}` : 'Unclaimed'}
-                    </span>
+
+                  <div className="grid-stats-row">
+                    <div className="grid-stat-card">
+                      <span className="grid-stat-label">Sector Code</span>
+                      <span className="grid-stat-code">{gridInfo.gridId}</span>
+                    </div>
+                    <div className="grid-stat-card">
+                      <span className="grid-stat-label">Your Standing</span>
+                      <span className="grid-stat-influence">+{gridInfo.influenceAdded || 0} Influence</span>
+                    </div>
+                    <div className="grid-stat-card">
+                      <span className="grid-stat-label">Sector Ruler</span>
+                      <span className={`grid-stat-ruler ${isUserRuler ? 'ruler-you' : ''}`}>
+                        {isUserRuler ? '👑 You (Sovereign)' : isUnclaimed ? '🌲 Unclaimed' : `⚔️ Ruled by ${gridInfo.rulerName}`}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ) : (
+              );
+            })() : (
               <div className="no-grid-box">
                 <MapPin size={24} className="no-grid-icon" />
                 <p className="no-grid-text">No major sector boundary traversed during this expedition.</p>

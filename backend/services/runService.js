@@ -86,6 +86,8 @@ const processRunGrids = async (run, user) => {
         }
     }
 
+    const isRuler = Boolean(gridDoc?.ruler && gridDoc.ruler.toString() === user._id.toString());
+
     const lastGridSummary = gridInfluenceDoc
         ? {
               gridId: lastGridId,
@@ -94,11 +96,14 @@ const processRunGrids = async (run, user) => {
               totalInfluence: gridInfluenceDoc.influence,
               totalDistance: gridInfluenceDoc.totalDistance,
               totalRuns: gridInfluenceDoc.totalRuns,
-              claimed: conquestType === "claim" || conquestType === "usurp" || conquestType === "reinforced",
-              isUsurped,
+              claimed: conquestType === "claim",
+              isUsurped: conquestType === "usurp",
+              isReinforced: conquestType === "reinforced" || isRuler,
+              isRuler,
               rulerId: gridDoc?.ruler || null,
-              rulerName: gridRulerName, // Current ruler (e.g. user)
+              rulerName: gridRulerName, // Current ruler
               rivalName: rivalRulerName, // Dethroned rival (if usurp), never current user
+              claimThreshold: 500,
           }
         : null;
 
