@@ -144,34 +144,46 @@ const validateRunIntegrity = (run, duration) => {
         sensorIntegrityScore = 0;
     }
 
-    // If runner has meaningful GPS distance (> 250m) and sensors are active on device:
-    if (distanceKm >= 0.25 && sensors.hasSensorData) {
-        const totalSteps = sensors.totalSteps || 0;
-        const motionScore = sensors.motionScore || 0;
-        const minExpectedSteps = distanceKm * MIN_STEPS_PER_KM;
+    // Couch Spoofer Signature:
+    // If user covered >= 200m on a mobile device, human biomechanics require foot strikes & dynamic acceleration.
+    if (distanceKm >= 0.2) {
+        const totalSteps = Number(sensors.totalSteps || 0);
+        const motionScore = Number(sensors.motionScore || 0);
+        const minExpectedSteps = Math.round(distanceKm * 250); // Minimum 125 steps for 500m
 
-        // Couch Spoofer Signature: GPS moved 500m+, but 0 steps and 0 motion detected
-        if (totalSteps < minExpectedSteps && motionScore < 0.12) {
-            flags.push("NO_PHYSICAL_MOVEMENT_DETECTED");
-            reasons.push(
-                `Biometric mismatch: Logged ${distanceKm.toFixed(2)} km with only ${totalSteps} physical steps detected (couch spoofing pattern).`
-            );
-            sensorIntegrityScore = Math.max(0, Math.round((totalSteps / minExpectedSteps) * 50));
+        const isMobile = sensors.isMobile !== undefined ? sensors.isMobile : true;
+
+        if (isMobile) {
+            // A. Zero steps / Zero motion while moving 200m+
+            if (totalSteps < Math.max(25, minExpectedSteps * 0.3) && motionScore < 0.22) {
+                flags.push("NO_PHYSICAL_MOVEMENT_DETECTED");
+                reasons.push(
+                    `Couch spoofing detected: Logged ${distanceKm.toFixed(2)} km with only ${totalSteps} physical footsteps and stationary phone motion score (${motionScore.toFixed(2)}).`
+                );
+                sensorIntegrityScore = 0;
+            } else if (sensors.hasSensorData && motionScore < 0.10) {
+                flags.push("STATIONARY_DEVICE_SPOOF");
+                reasons.push(
+                    `Device was motionless (motion energy ${motionScore.toFixed(3)}) while GPS coordinates were moving at running pace.`
+                );
+                sensorIntegrityScore = Math.min(sensorIntegrityScore, 10);
+            }
         }
     }
 
     // ─────────────────────────────────────────────────────────────
-    // Layer 4: Robotic Velocity Entropy (Synthetic Uniformity Analysis)
-    // Catches automated/scripted spoofers generating constant speeds (e.g. exactly 6.00 km/h)
+    // Layer 4: Robotic Velocity & Synthetic Trajectory Entropy
+    // Catches automated/scripted spoofers (LocaEdit, iAnyGo, FakeGPS) generating uniform routes
     // ─────────────────────────────────────────────────────────────
-    if (movingSegmentSpeeds.length >= 6 && distanceKm >= 0.3) {
+    if (movingSegmentSpeeds.length >= 3 && distanceKm >= 0.2) {
         const speedVariance = computeStandardDeviation(movingSegmentSpeeds);
-        // Human runners naturally fluctuate (stdDev > 0.3 km/h); spoofers interpolate with 0.00 stdDev
-        if (speedVariance < 0.04) {
+        // Human runners naturally fluctuate (stdDev > 0.35 km/h); spoofers interpolate with < 0.12 km/h stdDev
+        if (speedVariance < 0.12) {
             flags.push("ROBOTIC_SPEED_UNIFORMITY");
             reasons.push(
-                `Synthetic GPS trajectory: Mechanically constant velocity with near-zero human cadence variance (σ = ${speedVariance.toFixed(3)} km/h).`
+                `Synthetic GPS trajectory: Mechanically constant velocity with near-zero human pacing variance (σ = ${speedVariance.toFixed(3)} km/h).`
             );
+            sensorIntegrityScore = Math.min(sensorIntegrityScore, 20);
         }
     }
 

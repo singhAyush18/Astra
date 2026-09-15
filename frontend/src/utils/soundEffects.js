@@ -187,6 +187,65 @@ class SoundEngine {
       osc.stop(now + idx * 0.1 + 2.0);
     });
   }
+
+  // ==========================================
+  // 4. TACTICAL VOICE ANNOUNCER (Web Speech API)
+  // ==========================================
+  speakAnnouncement(text, onEndCallback) {
+    if (this.isMuted) {
+      if (onEndCallback) setTimeout(onEndCallback, 4500);
+      return;
+    }
+
+    if (typeof window === 'undefined' || !window.speechSynthesis) {
+      if (onEndCallback) setTimeout(onEndCallback, 4500);
+      return;
+    }
+
+    try {
+      window.speechSynthesis.cancel(); // Cancel any prior pending speech
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.02; // Crisp, energetic pacing
+      utterance.pitch = 0.96; // Authoritative tactical commander tone
+      utterance.volume = 1.0;
+
+      const voices = window.speechSynthesis.getVoices();
+      const englishVoice = voices.find(v => 
+        v.lang.startsWith('en') && 
+        (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Daniel') || v.name.includes('Samantha') || v.name.includes('David') || v.name.includes('Alex'))
+      ) || voices.find(v => v.lang.startsWith('en'));
+
+      if (englishVoice) {
+        utterance.voice = englishVoice;
+      }
+
+      let hasEnded = false;
+      const finish = () => {
+        if (!hasEnded) {
+          hasEnded = true;
+          if (onEndCallback) onEndCallback();
+        }
+      };
+
+      utterance.onend = finish;
+      utterance.onerror = finish;
+
+      // Fallback timer in case speech engine freezes on mobile OS
+      setTimeout(finish, 8500);
+
+      window.speechSynthesis.speak(utterance);
+    } catch (err) {
+      console.warn('Tactical announcer audio synthesis error:', err);
+      if (onEndCallback) setTimeout(onEndCallback, 4500);
+    }
+  }
+}
+
+if (typeof window !== 'undefined' && window.speechSynthesis) {
+  window.speechSynthesis.onvoiceschanged = () => {
+    window.speechSynthesis.getVoices();
+  };
 }
 
 export const soundEffects = new SoundEngine();
+

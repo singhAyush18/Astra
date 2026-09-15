@@ -157,13 +157,29 @@ function ActiveRun() {
       }
 
       const currentUsername = user?.username ? user.username.toLowerCase() : '';
+      const currentUserId = user?.id || user?._id;
       const rulerUsername = gridData?.ruler?.username || '';
       const isOwner = rulerUsername && currentUsername && rulerUsername.toLowerCase() === currentUsername;
       const territoryName = gridData?.name ? gridData.name.trim() : null;
       const sectorLabel = territoryName ? `${territoryName} • ${gridId}` : gridId;
 
+      // Calculate usurp points difference
+      const leaderboard = Array.isArray(gridData?.leaderboard) ? gridData.leaderboard : [];
+      const userInfluenceRecord = leaderboard.find(entry => {
+        const uid = entry?.userId?._id || entry?.userId;
+        const uname = entry?.userId?.username || '';
+        return (currentUserId && uid && uid.toString() === currentUserId.toString()) ||
+               (currentUsername && uname && uname.toLowerCase() === currentUsername);
+      });
+      const myInfluence = userInfluenceRecord?.influence || 0;
+      const rulerInfluence = leaderboard[0]?.influence || 500;
+      const pointsNeeded = Math.max(1, (rulerInfluence - myInfluence) + 1);
+
       let banner = null;
       let sectorType = 'wildland';
+      let speechText = '';
+      const sectorDisplayName = territoryName || `Sector ${gridId.replace('-', ' ')}`;
+
       if (isOwner) {
         sectorType = 'own';
         banner = {
@@ -177,6 +193,8 @@ function ActiveRun() {
           gridId,
           displayTag: sectorLabel,
         };
+        speechText = `Patrolling your realm, ${sectorDisplayName}. Sector is under your sovereignty.`;
+        soundEffects.playTerritoryClaimed();
       } else if (rulerUsername) {
         sectorType = 'rival';
         banner = {
@@ -186,10 +204,12 @@ function ActiveRun() {
           title: territoryName 
             ? `Entering Rival Territory: ${territoryName} (${gridId})` 
             : `Entering Rival Territory: ${gridId}`,
-          subtitle: `Ruled by ${rulerUsername}`,
+          subtitle: `Ruled by ${rulerUsername} • ${pointsNeeded} pts to usurp`,
           gridId,
           displayTag: sectorLabel,
         };
+        speechText = `Entering ${sectorDisplayName}, ruled by the great ${rulerUsername}. You need ${pointsNeeded} points to usurp ${rulerUsername}.`;
+        soundEffects.playTerritoryUsurped();
       } else {
         sectorType = 'wildland';
         banner = {
@@ -199,10 +219,11 @@ function ActiveRun() {
           title: territoryName 
             ? `Scouting Sector: ${territoryName} (${gridId})` 
             : `Scouting Sector: ${gridId}`,
-          subtitle: 'Unclaimed wildland available for conquest',
+          subtitle: 'Unclaimed wildland • 500 pts to conquer',
           gridId,
           displayTag: sectorLabel,
         };
+        speechText = `Scouting ${sectorDisplayName}. Unclaimed wildland. 500 points needed to conquer.`;
       }
 
       setCurrentSector({
@@ -219,9 +240,10 @@ function ActiveRun() {
 
       setSectorBanner(banner);
 
-      sectorBannerTimerRef.current = setTimeout(() => {
+      // Play tactical voice over headphones/speakers and auto-dismiss banner when finished
+      soundEffects.speakAnnouncement(speechText, () => {
         setSectorBanner(null);
-      }, 5500);
+      });
     } catch (err) {
       console.warn('Error discovering sector info:', err);
     }
@@ -489,6 +511,14 @@ function ActiveRun() {
     setIsStarting(true);
 
     try {
+      if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+        try {
+          await DeviceMotionEvent.requestPermission();
+        } catch (permErr) {
+          console.warn('DeviceMotionEvent permission not granted:', permErr);
+        }
+      }
+
       soundEffects?.playTerritoryClaimed?.();
       const res = await runsAPI.start(null, { lat: coords.lat, lng: coords.lng });
       const data = await res.json();
@@ -564,6 +594,7 @@ function ActiveRun() {
     setStatus('ending');
 
     try {
+      const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
       const res = await runsAPI.end(null, runId, {
         duration: elapsed,
         isSimulated: isSimulatedRef.current,
@@ -573,6 +604,7 @@ function ActiveRun() {
           motionScore: motionSampleCountRef.current > 0 ? (motionEnergyAccumulatorRef.current / motionSampleCountRef.current) : 0,
           hasSensorData: hasMotionSensorRef.current,
           isMockFlagged: isMockDetectedRef.current,
+          isMobile: isMobileDevice,
         },
       });
 
