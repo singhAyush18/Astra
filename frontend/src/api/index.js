@@ -174,6 +174,11 @@ export const territoryAPI = {
       headers: authHeaders(token),
     }),
 
+  getDetails: (token, gridId) =>
+    apiFetch(`/api/v2/territories/${gridId}`, {
+      headers: authHeaders(token),
+    }),
+
   nameTerritory: (token, territoryId, name) =>
     apiFetch(`/api/v2/territories/${territoryId}/name`, {
       method: 'PUT',

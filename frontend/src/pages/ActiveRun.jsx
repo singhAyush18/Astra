@@ -3,16 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Play, Square, MapPin, Clock, Gauge, Loader, Pause, Volume2, VolumeX, 
-  Gamepad2, Navigation, Compass, FastForward, RotateCcw, Crosshair, AlertTriangle, Eye
+  Gamepad2, Navigation, Compass, FastForward, RotateCcw, Crosshair, AlertTriangle, Eye,
+  Crown, Swords
 } from 'lucide-react';
 import { MapContainer, TileLayer, Polyline, Marker, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import './ActiveRun.css';
 import { useAuth } from '../context/AuthContext';
-import { runsAPI } from '../api';
+import { runsAPI, territoryAPI } from '../api';
 import { soundEffects } from '../utils/soundEffects';
 import { backgroundKeepAlive } from '../utils/backgroundKeepAlive';
-import ConquestAlert from '../components/ConquestAlert';
 
 // Google Maps style navigation arrow with rotation and pulse beacon
 const createGoogleMapsArrowIcon = (heading = 0) => L.divIcon({
@@ -97,7 +97,6 @@ function ActiveRun() {
   const [currentPace, setCurrentPace] = useState('--:--');
   const [isMuted, setIsMuted] = useState(soundEffects.isMuted);
   const [isStarting, setIsStarting] = useState(false);
-  const [conquestAlert, setConquestAlert] = useState({ isOpen: false, type: 'claim', gridId: '', influence: 50 });
 
   const isSimulatedRef = useRef(false);
   const visitedGridsRef = useRef(new Set());
@@ -106,8 +105,81 @@ function ActiveRun() {
   const lastMoveTimeRef = useRef(Date.now());
   const lastCoordsRef = useRef(null);
   const navigate = useNavigate();
+  const { user, handleUnauthorized } = useAuth();
+  const [sectorBanner, setSectorBanner] = useState(null);
+  const sectorCacheRef = useRef({});
+  const sectorBannerTimerRef = useRef(null);
 
-  const { handleUnauthorized } = useAuth();
+  const triggerSectorDiscovery = useCallback(async (gridId) => {
+    try {
+      let gridData = sectorCacheRef.current[gridId];
+      if (!gridData) {
+        const res = await territoryAPI.getDetails(null, gridId);
+        const json = await res.json();
+        if (json.success && json.data) {
+          gridData = json.data;
+          sectorCacheRef.current[gridId] = gridData;
+        }
+      }
+
+      const currentUsername = user?.username ? user.username.toLowerCase() : '';
+      const rulerUsername = gridData?.ruler?.username || '';
+      const isOwner = rulerUsername && currentUsername && rulerUsername.toLowerCase() === currentUsername;
+      const territoryName = gridData?.name ? gridData.name.trim() : null;
+      const sectorLabel = territoryName ? `${territoryName} • ${gridId}` : gridId;
+
+      let banner = null;
+      if (isOwner) {
+        banner = {
+          type: 'own',
+          badge: '👑 REALM DOMAIN',
+          name: territoryName,
+          title: territoryName 
+            ? `Patrolling Your Realm: ${territoryName} (${gridId})` 
+            : `Patrolling Your Realm: ${gridId}`,
+          subtitle: 'Sector fortified under your sovereignty',
+          gridId,
+          displayTag: sectorLabel,
+        };
+      } else if (rulerUsername) {
+        banner = {
+          type: 'rival',
+          badge: '⚔️ RIVAL DOMAIN',
+          name: territoryName,
+          title: territoryName 
+            ? `Entering Rival Territory: ${territoryName} (${gridId})` 
+            : `Entering Rival Territory: ${gridId}`,
+          subtitle: `Ruled by ${rulerUsername}`,
+          gridId,
+          displayTag: sectorLabel,
+        };
+      } else {
+        banner = {
+          type: 'wildland',
+          badge: '🌲 UNCLAIMED WILDLAND',
+          name: territoryName,
+          title: territoryName 
+            ? `Scouting Sector: ${territoryName} (${gridId})` 
+            : `Scouting Sector: ${gridId}`,
+          subtitle: 'Unclaimed wildland available for conquest',
+          gridId,
+          displayTag: sectorLabel,
+        };
+      }
+
+      if (sectorBannerTimerRef.current) {
+        clearTimeout(sectorBannerTimerRef.current);
+      }
+
+      setSectorBanner(banner);
+
+      sectorBannerTimerRef.current = setTimeout(() => {
+        setSectorBanner(null);
+      }, 5500);
+    } catch (err) {
+      console.warn('Error discovering sector info:', err);
+    }
+  }, [user]);
 
   // Get initial GPS position
   useEffect(() => {
@@ -204,6 +276,7 @@ function ActiveRun() {
       setPath([[newLat, newLng]]);
       const initialGrid = `R${Math.floor((newLat * 111320) / 1000)}-C${Math.floor((newLng * (111320 * Math.cos(newLat * Math.PI / 180))) / 1000)}`;
       visitedGridsRef.current.add(initialGrid);
+      triggerSectorDiscovery(initialGrid);
       return;
     }
 
@@ -261,25 +334,19 @@ function ActiveRun() {
     setDistance(newDistance);
     setPath(prev => [...prev, [newLat, newLng]]);
 
-    // Live sector boundary detection
+    // Live sector boundary tracking & discovery
     const currentGrid = `R${Math.floor((newLat * 111320) / 1000)}-C${Math.floor((newLng * (111320 * Math.cos(newLat * Math.PI / 180))) / 1000)}`;
     if (!visitedGridsRef.current.has(currentGrid)) {
-      if (visitedGridsRef.current.size > 0) {
-        setConquestAlert({
-          isOpen: true,
-          type: 'claim',
-          gridId: currentGrid,
-          influence: 50
-        });
-      }
       visitedGridsRef.current.add(currentGrid);
+      triggerSectorDiscovery(currentGrid);
     }
 
     if (runId) {
       runsAPI.updateLocation(null, runId, { 
         lat: newLat, 
         lng: newLng, 
-        duration: elapsedRef.current 
+        duration: elapsedRef.current,
+        timestamp: new Date().toISOString()
       }).catch(() => {});
     }
   }, [runId]);
@@ -374,7 +441,7 @@ function ActiveRun() {
   const handlePause = () => {
     setStatus('paused');
     if (runId && coords) {
-      runsAPI.updateLocation(null, runId, { lat: coords.lat, lng: coords.lng, duration: elapsedRef.current }).catch(() => {});
+      runsAPI.updateLocation(null, runId, { lat: coords.lat, lng: coords.lng, duration: elapsedRef.current, timestamp: new Date().toISOString() }).catch(() => {});
     }
   };
 
@@ -451,6 +518,42 @@ function ActiveRun() {
           </button>
         </div>
       </div>
+
+      {/* Live Smart Sector Discovery HUD Banner */}
+      <AnimatePresence>
+        {sectorBanner && (
+          <motion.div
+            key={sectorBanner.gridId}
+            className={`live-sector-toast sector-${sectorBanner.type}`}
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -15, scale: 0.95 }}
+            transition={{ type: 'spring', damping: 20, stiffness: 260 }}
+          >
+            <div className="live-sector-icon-col">
+              {sectorBanner.type === 'own' && <Crown size={22} className="sector-icon gold" />}
+              {sectorBanner.type === 'rival' && <Swords size={22} className="sector-icon crimson" />}
+              {sectorBanner.type === 'wildland' && <Compass size={22} className="sector-icon emerald" />}
+            </div>
+            <div className="live-sector-info">
+              <div className="live-sector-badge-row">
+                <span className="live-sector-badge">{sectorBanner.badge}</span>
+                <span className="live-sector-id">{sectorBanner.displayTag || sectorBanner.gridId}</span>
+              </div>
+              <div className="live-sector-title">{sectorBanner.title}</div>
+              <div className="live-sector-sub">{sectorBanner.subtitle}</div>
+            </div>
+            <button 
+              type="button" 
+              className="live-sector-close" 
+              onClick={() => setSectorBanner(null)}
+              aria-label="Dismiss"
+            >
+              ✕
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Mini Map */}
       {coords && (
@@ -618,15 +721,6 @@ function ActiveRun() {
         </div>
       )}
 
-      {/* Live Conquest Alert */}
-      <ConquestAlert
-        isOpen={conquestAlert.isOpen}
-        type={conquestAlert.type}
-        gridId={conquestAlert.gridId}
-        rivalName={conquestAlert.rivalName}
-        influence={conquestAlert.influence}
-        onClose={() => setConquestAlert(prev => ({ ...prev, isOpen: false }))}
-      />
     </div>
   );
 }

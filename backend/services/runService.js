@@ -192,15 +192,15 @@ const completeRun = async (run, options = {}) => {
             // Flagged fraudulent/spoofed run: Withhold territory conquests & streaks
             user.cheatViolations = (user.cheatViolations || 0) + 1;
             
-            if (user.cheatViolations >= 2) {
+            if (user.cheatViolations >= 3) {
                 user.isBanned = true;
-                user.banReason = "Permanently exiled from the realm for repeated Anti-Cheat telemetry violations (2/2 strikes).";
+                user.banReason = "Permanently exiled from the realm for repeated Anti-Cheat telemetry violations (3/3 strikes).";
                 console.error(
                     `[Anti-Cheat BAN] User ${user.username} (ID: ${user._id}) PERMANENTLY BANNED on strike #${user.cheatViolations}.`
                 );
             } else {
                 console.warn(
-                    `[Anti-Cheat STRIKE 1] User ${user.username} received strike #1/2. Next violation results in permanent ban.`
+                    `[Anti-Cheat STRIKE ${user.cheatViolations}] User ${user.username} received strike #${user.cheatViolations}/3. Next violations result in permanent ban.`
                 );
             }
 

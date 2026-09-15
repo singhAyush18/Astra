@@ -177,13 +177,13 @@ function RunSummary() {
             <div className="anti-cheat-badge-row">
               <span className="anti-cheat-pill red-pill">Territory Conquests Withheld</span>
               <span className="anti-cheat-pill orange-pill">Leaderboard Protection Active</span>
-              {(summaryData?.antiCheat?.isUserBanned || (summaryData?.antiCheat?.userViolations && summaryData?.antiCheat?.userViolations >= 2)) ? (
+              {(summaryData?.antiCheat?.isUserBanned || (summaryData?.antiCheat?.userViolations && summaryData?.antiCheat?.userViolations >= 3)) ? (
                 <span className="anti-cheat-pill ban-pill">
-                  ⛔ Strike 2/2: Permanent Realm Ban
+                  ⛔ Strike 3/3: Permanent Realm Ban
                 </span>
               ) : (
                 <span className="anti-cheat-pill warning-pill">
-                  ⚠️ Strike 1/2: Final Warning
+                  ⚠️ Strike {summaryData?.antiCheat?.userViolations || 1}/3: Anti-Cheat Warning
                 </span>
               )}
               {(summaryData?.antiCheat?.maxCalculatedSpeedKmh || run?.antiCheat?.maxCalculatedSpeedKmh) && (

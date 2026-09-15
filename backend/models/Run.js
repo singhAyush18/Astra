@@ -36,10 +36,13 @@ const runSchema = new mongoose.Schema({
       type: Number,
       required: true
     },
-
     lng: {
       type: Number,
       required: true
+    },
+    timestamp: {
+      type: Date,
+      default: Date.now
     }
   }],
   gridBreakdown: [{

@@ -79,7 +79,7 @@ const startRun = async (req, res) => {
             userId,
             startTime: new Date(),
             distance: 0,
-            path: [{ lat, lng }],
+            path: [{ lat, lng, timestamp: new Date() }],
         });
 
         res.status(201).json({
@@ -379,6 +379,7 @@ const updateLocation = async (req, res) => {
             });
         }
 
+        const pointTimestamp = req.body.timestamp ? new Date(req.body.timestamp) : new Date();
         const lastPoint = run.path[run.path.length - 1];
         if (lastPoint) {
             const segmentDistance = haversine(
@@ -389,10 +390,10 @@ const updateLocation = async (req, res) => {
             );
             if (segmentDistance > 0.005) {
                 run.distance += segmentDistance;
-                run.path.push({ lat, lng });
+                run.path.push({ lat, lng, timestamp: pointTimestamp });
             }
         } else {
-            run.path.push({ lat, lng });
+            run.path.push({ lat, lng, timestamp: pointTimestamp });
         }
 
         if (duration !== undefined) {

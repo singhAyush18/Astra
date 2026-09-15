@@ -70,9 +70,17 @@ const getGridDetails = async (req, res) => {
         }).populate("ruler", "username");
 
         if (!grid) {
-            return res.status(404).json({
-                success: false,
-                message: "Territory not found",
+            return res.status(200).json({
+                success: true,
+                message: "Unclaimed wildland territory",
+                data: {
+                    gridId,
+                    name: null,
+                    status: "unclaimed",
+                    ruler: null,
+                    claimedAt: null,
+                    leaderboard: [],
+                },
             });
         }
 

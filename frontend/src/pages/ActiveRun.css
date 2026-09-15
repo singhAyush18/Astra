@@ -722,6 +722,145 @@
   text-align: center;
 }
 
+/* ── Live Sector Discovery Smart HUD Toast ── */
+.live-sector-toast {
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  z-index: 50;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.live-sector-toast.sector-own {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.18), rgba(15, 15, 30, 0.95));
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  box-shadow: 0 8px 24px rgba(212, 175, 55, 0.15), 0 0 15px rgba(212, 175, 55, 0.08);
+}
+
+.live-sector-toast.sector-rival {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.18), rgba(20, 10, 20, 0.95));
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  box-shadow: 0 8px 24px rgba(239, 68, 68, 0.2), 0 0 15px rgba(239, 68, 68, 0.1);
+}
+
+.live-sector-toast.sector-wildland {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(10, 20, 25, 0.95));
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.15), 0 0 15px rgba(16, 185, 129, 0.08);
+}
+
+.live-sector-icon-col {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.sector-icon.gold {
+  color: #fbbf24;
+  filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.6));
+}
+
+.sector-icon.crimson {
+  color: #f87171;
+  filter: drop-shadow(0 0 8px rgba(248, 113, 113, 0.6));
+}
+
+.sector-icon.emerald {
+  color: #34d399;
+  filter: drop-shadow(0 0 8px rgba(52, 211, 153, 0.6));
+}
+
+.live-sector-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.live-sector-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.live-sector-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-family: var(--font-ui, 'Inter', sans-serif);
+}
+
+.sector-own .live-sector-badge {
+  color: #fbbf24;
+}
+
+.sector-rival .live-sector-badge {
+  color: #f87171;
+}
+
+.sector-wildland .live-sector-badge {
+  color: #34d399;
+}
+
+.live-sector-id {
+  font-size: 0.7rem;
+  font-family: monospace;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.live-sector-title {
+  font-family: var(--font-cinzel, 'Cinzel', serif);
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.live-sector-sub {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-family: var(--font-ui, 'Inter', sans-serif);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.live-sector-close {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: all 0.2s ease;
+}
+
+.live-sector-close:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
 /* ── Responsive ── */
 @media (max-width: 480px) {
   .hero-value {
