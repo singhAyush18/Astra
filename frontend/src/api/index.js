@@ -69,11 +69,17 @@ export const authAPI = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token, newPassword }),
     }),
-  changePassword: (token, { currentPassword, newPassword }) =>
+  requestPasswordChangeOtp: (token, currentPassword) =>
+    apiFetch('/api/v2/auth/change-password/request-otp', {
+      method: 'POST',
+      headers: jsonAuthHeaders(token),
+      body: JSON.stringify({ currentPassword }),
+    }),
+  changePassword: (token, { currentPassword, newPassword, otpCode }) =>
     apiFetch('/api/v2/auth/change-password', {
       method: 'PUT',
       headers: jsonAuthHeaders(token),
-      body: JSON.stringify({ currentPassword, newPassword }),
+      body: JSON.stringify({ currentPassword, newPassword, otpCode }),
     }),
 };
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Camera, User as UserIcon, Loader, Trash2, ArrowLeft, Volume2, VolumeX, Eye, EyeOff } from "lucide-react";
+import { Camera, User as UserIcon, Loader, Trash2, ArrowLeft, Volume2, VolumeX, Eye, EyeOff, ShieldCheck, Mail, Send, RotateCw } from "lucide-react";
 import Navbar from "../components/Navbar";
 import "./Settings.css";
 import { useAuth } from "../context/AuthContext";
@@ -25,11 +25,27 @@ function Settings() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  // OTP Verification state
+  const [otpCode, setOtpCode] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  
   const [pwdLoading, setPwdLoading] = useState(false);
   const [pwdError, setPwdError] = useState("");
   const [pwdSuccess, setPwdSuccess] = useState("");
   
   const fileInputRef = useRef(null);
+
+  // Countdown timer for OTP resend
+  useEffect(() => {
+    let timer;
+    if (countdown > 0) {
+      timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [countdown]);
 
   useEffect(() => {
     if (user) {
@@ -86,21 +102,73 @@ function Settings() {
     }
   };
 
-  const handleChangePassword = async (e) => {
-    e.preventDefault();
-    setPwdError("");
-    setPwdSuccess("");
-
+  const validatePasswordForm = () => {
+    if (!currentPassword) {
+      setPwdError("Current password is required");
+      return false;
+    }
     if (newPassword !== confirmPassword) {
       setPwdError("New passwords do not match");
-      return;
+      return false;
     }
-
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,128}$/;
     if (!passwordRegex.test(newPassword)) {
       setPwdError(
         "Password must be 8-128 characters and include at least one uppercase letter, one lowercase letter, one number, and one special character (@$!%*?&)"
       );
+      return false;
+    }
+    if (currentPassword === newPassword) {
+      setPwdError("New password must be different from current password");
+      return false;
+    }
+    return true;
+  };
+
+  const handleSendOtp = async () => {
+    setPwdError("");
+    setPwdSuccess("");
+
+    if (!validatePasswordForm()) return;
+
+    setOtpLoading(true);
+    try {
+      const res = await authAPI.requestPasswordChangeOtp(null, currentPassword);
+
+      if (res.status === 401) {
+        handleUnauthorized();
+        return;
+      }
+
+      const data = await res.json();
+      if (data.success) {
+        setOtpSent(true);
+        setCountdown(60); // 60s cooldown
+        setPwdSuccess(data.message || "Verification code sent to your email!");
+      } else {
+        setPwdError(data.message || "Failed to send verification code");
+      }
+    } catch (err) {
+      setPwdError("Network error. Please try again.");
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    setPwdError("");
+    setPwdSuccess("");
+
+    if (!validatePasswordForm()) return;
+
+    if (!otpSent) {
+      await handleSendOtp();
+      return;
+    }
+
+    if (!otpCode || otpCode.trim().length !== 6) {
+      setPwdError("Please enter the 6-digit verification code sent to your email");
       return;
     }
 
@@ -110,6 +178,7 @@ function Settings() {
       const res = await authAPI.changePassword(null, {
         currentPassword,
         newPassword,
+        otpCode: otpCode.trim(),
       });
 
       if (res.status === 401) {
@@ -124,6 +193,9 @@ function Settings() {
         setCurrentPassword("");
         setNewPassword("");
         setConfirmPassword("");
+        setOtpCode("");
+        setOtpSent(false);
+        setCountdown(0);
       } else {
         setPwdError(data.message || "Failed to change password");
       }
@@ -308,12 +380,77 @@ function Settings() {
               </div>
             </div>
 
+            {/* OTP Code Input (Visible after requesting code) */}
+            {otpSent && (
+              <div className="form-group otp-group">
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <label style={{ color: "#ffd700", fontWeight: 600, display: "flex", alignItems: "center", gap: "6px" }}>
+                    <ShieldCheck size={16} /> 6-Digit Email Code
+                  </label>
+                  <button
+                    type="button"
+                    className="otp-resend-btn"
+                    onClick={handleSendOtp}
+                    disabled={countdown > 0 || otpLoading}
+                  >
+                    {otpLoading ? (
+                      <Loader size={12} className="spin" />
+                    ) : countdown > 0 ? (
+                      `Resend in ${countdown}s`
+                    ) : (
+                      <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                        <RotateCw size={12} /> Resend Code
+                      </span>
+                    )}
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  placeholder="• • • • • •"
+                  maxLength={6}
+                  className="otp-code-input"
+                  required
+                  autoFocus
+                />
+                <p className="input-hint">
+                  Check your registered email inbox for the 6-digit code (valid for 10 minutes).
+                </p>
+              </div>
+            )}
+
             {pwdError && <div className="settings-alert error">{pwdError}</div>}
             {pwdSuccess && <div className="settings-alert success">{pwdSuccess}</div>}
 
-            <button type="submit" className="save-btn" disabled={pwdLoading}>
-              {pwdLoading ? <Loader size={20} className="spin" /> : "Update Password"}
-            </button>
+            {!otpSent ? (
+              <button 
+                type="button" 
+                className="save-btn otp-request-btn" 
+                onClick={handleSendOtp}
+                disabled={otpLoading || !currentPassword || !newPassword || !confirmPassword}
+              >
+                {otpLoading ? (
+                  <Loader size={20} className="spin" />
+                ) : (
+                  <>
+                    <Send size={18} style={{ marginRight: "8px" }} />
+                    <span>Send Verification Code</span>
+                  </>
+                )}
+              </button>
+            ) : (
+              <button type="submit" className="save-btn" disabled={pwdLoading || otpCode.length !== 6}>
+                {pwdLoading ? (
+                  <Loader size={20} className="spin" />
+                ) : (
+                  <>
+                    <ShieldCheck size={18} style={{ marginRight: "8px" }} />
+                    <span>Verify & Change Password</span>
+                  </>
+                )}
+              </button>
+            )}
           </form>
         </div>
 
