@@ -564,7 +564,7 @@ function ActiveRun() {
             scrollWheelZoom={false}
             zoomControl={false}
             dragging={false}
-            style={{ width: '100%', height: '100%', minHeight: '190px', borderRadius: '16px' }}
+            style={{ width: '100%', height: '100%', minHeight: '270px', borderRadius: '16px' }}
           >
             <TileLayer
               attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
@@ -647,12 +647,12 @@ function ActiveRun() {
           >
             {gpsReady ? (
               <>
-                <Play size={28} fill="currentColor" />
+                <Play size={24} fill="currentColor" />
                 <span>START</span>
               </>
             ) : (
               <>
-                <Loader size={28} className="spin" />
+                <Loader size={24} className="spin" />
                 <span>GPS...</span>
               </>
             )}
@@ -660,7 +660,7 @@ function ActiveRun() {
         )}
 
         {(status === 'running' || status === 'paused') && (
-          <div style={{ display: 'flex', gap: '16px' }}>
+          <div className="run-actions-row">
             {status === 'paused' || isAutoPaused ? (
               <motion.button
                 className="run-pause-btn"
@@ -671,7 +671,7 @@ function ActiveRun() {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.3 }}
               >
-                <Play size={24} fill="currentColor" />
+                <Play size={20} fill="currentColor" />
                 <span>RESUME</span>
               </motion.button>
             ) : (
@@ -684,7 +684,7 @@ function ActiveRun() {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.3 }}
               >
-                <Pause size={24} fill="currentColor" />
+                <Pause size={20} fill="currentColor" />
                 <span>PAUSE</span>
               </motion.button>
             )}
@@ -698,7 +698,7 @@ function ActiveRun() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.3 }}
             >
-              <Square size={24} fill="currentColor" />
+              <Square size={20} fill="currentColor" />
               <span>STOP</span>
             </motion.button>
           </div>
@@ -706,21 +706,11 @@ function ActiveRun() {
 
         {status === 'ending' && (
           <div className="run-ending">
-            <Loader size={28} className="spin" />
+            <Loader size={24} className="spin" />
             <span>Finishing run...</span>
           </div>
         )}
       </div>
-
-      {/* Pulsing ring animation when running */}
-      {status === 'running' && (
-        <div className="run-pulse-rings">
-          <div className="pulse-ring ring-1" />
-          <div className="pulse-ring ring-2" />
-          <div className="pulse-ring ring-3" />
-        </div>
-      )}
-
     </div>
   );
 }

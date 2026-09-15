@@ -147,11 +147,12 @@
 .run-mini-map {
   width: 100%;
   max-width: 440px;
-  height: 200px;
-  border-radius: 16px;
+  height: 270px;
+  min-height: 270px;
+  border-radius: 18px;
   overflow: hidden;
-  border: 1px solid rgba(212, 175, 55, 0.25);
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(212, 175, 55, 0.28);
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.55);
   z-index: 5;
   flex-shrink: 0;
   margin: 0;
@@ -226,10 +227,10 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   width: 100%;
   max-width: 440px;
-  margin: 4px 0 12px;
+  margin: 14px 0 20px;
 }
 
 /* Hero distance */
@@ -238,12 +239,12 @@
   align-items: baseline;
   justify-content: center;
   gap: 8px;
-  margin: 4px 0;
+  margin: 2px 0 6px;
 }
 
 .hero-value {
   font-family: var(--font-heading, 'Cinzel', serif);
-  font-size: clamp(3.6rem, 14vw, 5rem);
+  font-size: clamp(3.2rem, 12vw, 4.4rem);
   font-weight: 700;
   background: linear-gradient(135deg, #d4af37, #f5d374, #d4af37);
   background-clip: text;
@@ -255,7 +256,7 @@
 
 .hero-unit {
   font-family: var(--font-ui, 'Inter', sans-serif);
-  font-size: 1.35rem;
+  font-size: 1.25rem;
   font-weight: 600;
   color: var(--text-secondary, #8a8a9a);
 }
@@ -266,7 +267,7 @@
   align-items: center;
   justify-content: space-around;
   width: 100%;
-  padding: 14px 24px;
+  padding: 14px 20px;
   background: rgba(255, 255, 255, 0.025);
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 16px;
@@ -292,14 +293,14 @@
 
 .stat-value {
   font-family: var(--font-heading, 'Cinzel', serif);
-  font-size: 1.3rem;
+  font-size: 1.25rem;
   font-weight: 600;
   color: var(--text-primary, #e8e0d0);
 }
 
 .stat-label {
   font-family: var(--font-ui, 'Inter', sans-serif);
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 500;
   color: var(--text-secondary, #8a8a9a);
   text-transform: uppercase;
@@ -314,7 +315,7 @@
 
 /* ── Error ── */
 .run-error {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   padding: 10px 20px;
   background: rgba(255, 107, 107, 0.1);
   border: 1px solid rgba(255, 107, 107, 0.2);
@@ -330,32 +331,45 @@
   justify-content: center;
   position: relative;
   z-index: 10;
+  width: 100%;
+  max-width: 440px;
+  margin-top: auto;
+  margin-bottom: 24px;
+}
+
+.run-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  width: 100%;
 }
 
 .run-start-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  width: 120px;
-  height: 120px;
+  justify-content: center;
+  gap: 6px;
+  width: 82px;
+  height: 82px;
   border-radius: 50%;
-  border: 3px solid rgba(74, 222, 128, 0.4);
-  background: linear-gradient(135deg, rgba(74, 222, 128, 0.15), rgba(74, 222, 128, 0.05));
+  border: 2.5px solid rgba(74, 222, 128, 0.45);
+  background: linear-gradient(135deg, rgba(74, 222, 128, 0.18), rgba(74, 222, 128, 0.06));
   color: #4ade80;
   cursor: pointer;
   font-family: var(--font-heading, 'Cinzel', serif);
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.15em;
-  transition: all 0.3s ease;
-  justify-content: center;
+  letter-spacing: 0.12em;
+  transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
 .run-start-btn:hover:not(:disabled) {
-  border-color: rgba(74, 222, 128, 0.7);
-  box-shadow: 0 0 40px rgba(74, 222, 128, 0.2), 0 0 80px rgba(74, 222, 128, 0.1);
-  background: linear-gradient(135deg, rgba(74, 222, 128, 0.25), rgba(74, 222, 128, 0.1));
+  border-color: rgba(74, 222, 128, 0.8);
+  box-shadow: 0 0 30px rgba(74, 222, 128, 0.3);
+  transform: scale(1.04);
 }
 
 .run-start-btn:disabled {
@@ -363,56 +377,58 @@
   cursor: not-allowed;
 }
 
-.run-stop-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  border: 3px solid rgba(255, 77, 77, 0.4);
-  background: linear-gradient(135deg, rgba(255, 77, 77, 0.15), rgba(255, 77, 77, 0.05));
-  color: #ff4d4d;
-  cursor: pointer;
-  font-family: var(--font-heading, 'Cinzel', serif);
-  font-size: 0.8rem;
-  font-weight: 700;
-  letter-spacing: 0.15em;
-  transition: all 0.3s ease;
-  justify-content: center;
-}
-
-.run-stop-btn:hover {
-  border-color: rgba(255, 77, 77, 0.7);
-  box-shadow: 0 0 40px rgba(255, 77, 77, 0.2), 0 0 80px rgba(255, 77, 77, 0.1);
-  background: linear-gradient(135deg, rgba(255, 77, 77, 0.25), rgba(255, 77, 77, 0.1));
-}
-
 .run-pause-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  width: 120px;
-  height: 120px;
+  justify-content: center;
+  gap: 6px;
+  width: 78px;
+  height: 78px;
   border-radius: 50%;
-  border: 3px solid rgba(212, 175, 55, 0.4);
-  background: linear-gradient(135deg, rgba(212, 175, 55, 0.15), rgba(212, 175, 55, 0.05));
+  border: 2px solid rgba(212, 175, 55, 0.45);
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.18), rgba(212, 175, 55, 0.06));
   color: #d4af37;
   cursor: pointer;
   font-family: var(--font-heading, 'Cinzel', serif);
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.15em;
-  transition: all 0.3s ease;
-  justify-content: center;
+  letter-spacing: 0.12em;
+  transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
 .run-pause-btn:hover {
-  border-color: rgba(212, 175, 55, 0.7);
-  box-shadow: 0 0 40px rgba(212, 175, 55, 0.2), 0 0 80px rgba(212, 175, 55, 0.1);
-  background: linear-gradient(135deg, rgba(212, 175, 55, 0.25), rgba(212, 175, 55, 0.1));
+  border-color: rgba(212, 175, 55, 0.8);
+  box-shadow: 0 0 30px rgba(212, 175, 55, 0.3);
+  transform: scale(1.04);
+}
+
+.run-stop-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 78px;
+  height: 78px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 77, 77, 0.45);
+  background: linear-gradient(135deg, rgba(255, 77, 77, 0.18), rgba(255, 77, 77, 0.06));
+  color: #ff4d4d;
+  cursor: pointer;
+  font-family: var(--font-heading, 'Cinzel', serif);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.run-stop-btn:hover {
+  border-color: rgba(255, 77, 77, 0.8);
+  box-shadow: 0 0 30px rgba(255, 77, 77, 0.3);
+  transform: scale(1.04);
 }
 
 .run-ending {
@@ -433,42 +449,6 @@
 @keyframes spinAnim {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
-}
-
-/* ── Pulse rings (running state) ── */
-.run-pulse-rings {
-  position: absolute;
-  bottom: 80px;
-  left: 50%;
-  transform: translateX(-50%);
-  pointer-events: none;
-}
-
-.pulse-ring {
-  position: absolute;
-  border-radius: 50%;
-  border: 1px solid rgba(212, 175, 55, 0.15);
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  animation: pulseExpand 3s ease-out infinite;
-}
-
-.ring-1 { width: 140px; height: 140px; animation-delay: 0s; }
-.ring-2 { width: 140px; height: 140px; animation-delay: 1s; }
-.ring-3 { width: 140px; height: 140px; animation-delay: 2s; }
-
-@keyframes pulseExpand {
-  0% {
-    width: 120px;
-    height: 120px;
-    opacity: 0.5;
-  }
-  100% {
-    width: 300px;
-    height: 300px;
-    opacity: 0;
-  }
 }
 
 /* ── Developer GPS Simulator UI ── */
@@ -863,22 +843,49 @@
 
 /* ── Responsive ── */
 @media (max-width: 480px) {
+  .active-run-container {
+    padding: 12px 16px 28px;
+    gap: 12px;
+  }
+
+  .run-mini-map {
+    height: 260px;
+    min-height: 260px;
+    border-radius: 16px;
+  }
+
+  .run-stats-display {
+    margin: 10px 0 16px;
+    gap: 10px;
+  }
+
   .hero-value {
-    font-size: 4rem;
+    font-size: clamp(3rem, 13vw, 3.8rem);
   }
 
   .run-secondary-stats {
-    gap: 20px;
-    padding: 16px 24px;
+    gap: 16px;
+    padding: 12px 18px;
   }
 
   .stat-value {
-    font-size: 1.1rem;
+    font-size: 1.15rem;
+  }
+
+  .run-actions {
+    margin-top: auto;
+    margin-bottom: 16px;
+  }
+
+  .run-actions-row {
+    gap: 24px;
   }
 
   .run-start-btn,
+  .run-pause-btn,
   .run-stop-btn {
-    width: 100px;
-    height: 100px;
+    width: 74px;
+    height: 74px;
+    font-size: 0.68rem;
   }
 }
