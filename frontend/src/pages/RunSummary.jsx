@@ -11,6 +11,7 @@ import './RunSummary.css';
 import { useAuth } from '../context/AuthContext';
 import { soundEffects } from '../utils/soundEffects';
 import ConquestAlert from '../components/ConquestAlert';
+import ShareConquestModal from '../components/ShareConquestModal';
 import { runsAPI } from '../api';
 
 function RunSummary() {
@@ -18,6 +19,7 @@ function RunSummary() {
   const navigate = useNavigate();
   const { user, updateUser } = useAuth();
   const [copied, setCopied] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   
   const [summaryData, setSummaryData] = useState(() => {
     if (location.state) {
@@ -120,18 +122,7 @@ function RunSummary() {
   const xpProgressPercent = Math.min(100, Math.max(5, (xpInCurrentLevel / 500) * 100));
 
   const handleShare = () => {
-    const text = `⚔️ Just completed a ${(run?.distance || 0).toFixed(2)} km conquest run on ASTRA: Stride Wars! Gained +${xpEarned || 0} XP!`;
-    if (navigator.share) {
-      navigator.share({
-        title: 'ASTRA Run Conquered',
-        text: text,
-        url: window.location.origin
-      }).catch(() => {});
-    } else {
-      navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    }
+    setIsShareModalOpen(true);
   };
 
   const calories = run?.calories || Math.round((run?.distance || 0) * 65);
@@ -577,6 +568,13 @@ function RunSummary() {
         rivalName={conquestAlert.rivalName}
         influence={conquestAlert.influence}
         onClose={() => setConquestAlert(prev => ({ ...prev, isOpen: false }))}
+      />
+
+      <ShareConquestModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        summaryData={summaryData}
+        user={user}
       />
     </div>
   );
