@@ -14,33 +14,43 @@ import { soundEffects } from '../utils/soundEffects';
 import { backgroundKeepAlive } from '../utils/backgroundKeepAlive';
 import ConquestAlert from '../components/ConquestAlert';
 
-const warriorRunnerIcon = L.divIcon({
-  className: 'warrior-runner-custom-marker',
+// Google Maps style navigation arrow with rotation and pulse beacon
+const createGoogleMapsArrowIcon = (heading = 0) => L.divIcon({
+  className: 'gmaps-nav-arrow-custom-marker',
   html: `
-    <div class="warrior-pulse-aura"></div>
-    <div class="warrior-marker-badge">
-      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <!-- Helmet Plume / Crest -->
-        <path d="M11 2C13 1.2 15 1.5 16.5 2.5C15.8 3.2 14.8 3.5 13.5 3.5L11 2Z" fill="#ff4d4d"/>
-        <!-- Armored Helmet -->
-        <path d="M12.5 3C13.88 3 15 4.12 15 5.5C15 6.88 13.88 8 12.5 8C11.12 8 10 6.88 10 5.5C10 4.12 11.12 3 12.5 3Z" fill="#ffd700" stroke="#fff" stroke-width="0.5"/>
-        <path d="M11.5 4.8H14.5V6H11.5V4.8Z" fill="#111827"/>
-        <!-- Golden Armored Chestplate / Pauldron -->
-        <path d="M9.5 8.5C9.5 7.8 10.2 7.2 11 7.2H14C14.8 7.2 15.5 7.8 15.5 8.5L15 13.5L13.5 15L10.5 13.5L9.5 8.5Z" fill="#d4af37" stroke="#ffffff" stroke-width="0.6"/>
-        <!-- Right Arm & Gauntlet -->
-        <path d="M15 9L18 11.5L19 14.5L17.5 15" stroke="#ffd700" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-        <!-- Left Arm Swinging Back -->
-        <path d="M10 9.5L7.5 12L6.5 15" stroke="#d4af37" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-        <!-- Front Running Leg / Greaves -->
-        <path d="M13.5 14L16.5 17.5L19.5 18.5" stroke="#ffd700" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-        <!-- Back Trailing Leg -->
-        <path d="M11 14L8.5 17.5L5.5 18" stroke="#d4af37" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
+    <div class="gmaps-nav-arrow-wrapper" style="transform: rotate(${heading}deg);">
+      <div class="gmaps-nav-pulse"></div>
+      <div class="gmaps-nav-beam"></div>
+      <div class="gmaps-nav-arrow">
+        <svg viewBox="0 0 36 36" width="32" height="32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g filter="drop-shadow(0px 2px 5px rgba(0, 0, 0, 0.5))">
+            <!-- Navigation Arrow Body -->
+            <path d="M18 4L31 31L18 24.5L5 31L18 4Z" fill="#2563eb" stroke="#ffffff" stroke-width="2.2" stroke-linejoin="round"/>
+            <!-- Left Wing Shading -->
+            <path d="M18 6.5L7 29L18 23.5L18 6.5Z" fill="#3b82f6"/>
+            <!-- Right Wing Shading -->
+            <path d="M18 6.5L18 23.5L29 29L18 6.5Z" fill="#60a5fa"/>
+            <!-- Center Ridge Line -->
+            <path d="M18 6.5L18 23.5" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round"/>
+          </g>
+        </svg>
+      </div>
     </div>
   `,
   iconSize: [36, 36],
   iconAnchor: [18, 18],
 });
+
+// Bearing calculation in degrees between two coordinate pairs
+const calculateBearing = (lat1, lon1, lat2, lon2) => {
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const y = Math.sin(dLon) * Math.cos(lat2 * (Math.PI / 180));
+  const x =
+    Math.cos(lat1 * (Math.PI / 180)) * Math.sin(lat2 * (Math.PI / 180)) -
+    Math.sin(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.cos(dLon);
+  const brng = (Math.atan2(y, x) * 180) / Math.PI;
+  return (brng + 360) % 360;
+};
 
 const waypointIcon = L.divIcon({
   className: 'waypoint-custom-marker',
@@ -81,20 +91,14 @@ function ActiveRun() {
   const [error, setError] = useState('');
   const [gpsReady, setGpsReady] = useState(false);
   const [coords, setCoords] = useState(null);
+  const [heading, setHeading] = useState(0);
   const [path, setPath] = useState([]);
   const [isAutoPaused, setIsAutoPaused] = useState(false);
   const [currentPace, setCurrentPace] = useState('--:--');
   const [isMuted, setIsMuted] = useState(soundEffects.isMuted);
   const [conquestAlert, setConquestAlert] = useState({ isOpen: false, type: 'claim', gridId: '', influence: 50 });
 
-  // ── GPS Simulator State ──
-  const [simActive, setSimActive] = useState(false);
-  const [simSpeedKmh, setSimSpeedKmh] = useState(10); // 5, 10, 18, 80 (anti-cheat test)
-  const [simAutoMove, setSimAutoMove] = useState(false);
-  const [simHeading, setSimHeading] = useState(0); // degrees (0 = N, 90 = E, 180 = S, 270 = W)
-  const [simWaypoint, setSimWaypoint] = useState(null);
   const isSimulatedRef = useRef(false);
-
   const visitedGridsRef = useRef(new Set());
   const distanceRef = useRef(0);
   const elapsedRef = useRef(0);
@@ -119,6 +123,9 @@ function ActiveRun() {
       (pos) => {
         const initialCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setCoords(initialCoords);
+        if (pos.coords.heading !== null && !isNaN(pos.coords.heading) && pos.coords.heading >= 0) {
+          setHeading(pos.coords.heading);
+        }
         setPath([[initialCoords.lat, initialCoords.lng]]);
         setGpsReady(true);
       },
@@ -199,6 +206,14 @@ function ActiveRun() {
       );
 
       if (distDelta > 0.001) {
+        const newBearing = calculateBearing(
+          lastCoordsRef.current.lat,
+          lastCoordsRef.current.lng,
+          newLat,
+          newLng
+        );
+        setHeading(newBearing);
+
         const newDistance = distanceRef.current + distDelta;
         const timeDelta = (Date.now() - lastMoveTimeRef.current) / 1000;
         
@@ -249,14 +264,17 @@ function ActiveRun() {
     }
   }, [runId]);
 
-  // Real GPS tracking while running (only active when not using simulator auto-pilot)
+  // Real GPS tracking while running
   useEffect(() => {
     let watchId;
-    if (status === 'running' && runId && !simActive) {
+    if (status === 'running' && runId) {
       watchId = navigator.geolocation.watchPosition(
         (pos) => {
-          const { latitude: lat, longitude: lng, accuracy } = pos.coords;
+          const { latitude: lat, longitude: lng, accuracy, heading: gpsHeading } = pos.coords;
           if (accuracy > 40) return;
+          if (gpsHeading !== null && !isNaN(gpsHeading) && gpsHeading >= 0) {
+            setHeading(gpsHeading);
+          }
           advanceRunnerLocation(lat, lng);
         },
         () => { },
@@ -266,89 +284,7 @@ function ActiveRun() {
     return () => {
       if (watchId !== undefined) navigator.geolocation.clearWatch(watchId);
     };
-  }, [status, runId, simActive, advanceRunnerLocation]);
-
-  // ── GPS Simulator Auto-Movement & Waypoint Navigation Engine ──
-  useEffect(() => {
-    let simInterval;
-    if (status === 'running' && simActive && (simAutoMove || simWaypoint)) {
-      isSimulatedRef.current = true;
-      simInterval = setInterval(() => {
-        if (!coords) return;
-
-        // Calculate step distance in km per tick (1 second)
-        const stepDistKm = simSpeedKmh / 3600;
-        const earthRadiusKm = 6371;
-
-        if (simWaypoint) {
-          // Move towards waypoint
-          const dLat = (simWaypoint.lat - coords.lat) * (Math.PI / 180);
-          const dLng = (simWaypoint.lng - coords.lng) * (Math.PI / 180);
-          const currentDist = calculateDistance(coords.lat, coords.lng, simWaypoint.lat, simWaypoint.lng);
-
-          if (currentDist <= stepDistKm * 1.5) {
-            // Reached destination
-            advanceRunnerLocation(simWaypoint.lat, simWaypoint.lng);
-            setSimWaypoint(null);
-            return;
-          }
-
-          const angle = Math.atan2(dLng, dLat);
-          const nextLat = coords.lat + (stepDistKm / earthRadiusKm) * (180 / Math.PI) * Math.cos(angle);
-          const nextLng = coords.lng + (stepDistKm / (earthRadiusKm * Math.cos(coords.lat * Math.PI / 180))) * (180 / Math.PI) * Math.sin(angle);
-          advanceRunnerLocation(nextLat, nextLng);
-        } else if (simAutoMove) {
-          // Cruise along heading
-          const rad = (simHeading * Math.PI) / 180;
-          const nextLat = coords.lat + (stepDistKm / earthRadiusKm) * (180 / Math.PI) * Math.cos(rad);
-          const nextLng = coords.lng + (stepDistKm / (earthRadiusKm * Math.cos(coords.lat * Math.PI / 180))) * (180 / Math.PI) * Math.sin(rad);
-          advanceRunnerLocation(nextLat, nextLng);
-        }
-      }, 1000);
-    }
-    return () => clearInterval(simInterval);
-  }, [status, simActive, simAutoMove, simWaypoint, simSpeedKmh, simHeading, coords, advanceRunnerLocation]);
-
-  // Manual D-pad step handler
-  const handleManualStep = useCallback((headingDeg) => {
-    if (!coords) return;
-    isSimulatedRef.current = true;
-    setSimHeading(headingDeg);
-    
-    // Step distance: ~15 meters in specified direction (or larger at test speeds)
-    const stepMeters = simSpeedKmh > 40 ? 50 : 15;
-    const stepDistKm = stepMeters / 1000;
-    const earthRadiusKm = 6371;
-    const rad = (headingDeg * Math.PI) / 180;
-    
-    const nextLat = coords.lat + (stepDistKm / earthRadiusKm) * (180 / Math.PI) * Math.cos(rad);
-    const nextLng = coords.lng + (stepDistKm / (earthRadiusKm * Math.cos(coords.lat * Math.PI / 180))) * (180 / Math.PI) * Math.sin(rad);
-    
-    advanceRunnerLocation(nextLat, nextLng);
-  }, [coords, simSpeedKmh, advanceRunnerLocation]);
-
-  // Keyboard navigation (WASD / Arrows) when simulator is open
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (!simActive || status !== 'running') return;
-      if (['ArrowUp', 'KeyW'].includes(e.code)) {
-        e.preventDefault();
-        handleManualStep(0); // North
-      } else if (['ArrowRight', 'KeyD'].includes(e.code)) {
-        e.preventDefault();
-        handleManualStep(90); // East
-      } else if (['ArrowDown', 'KeyS'].includes(e.code)) {
-        e.preventDefault();
-        handleManualStep(180); // South
-      } else if (['ArrowLeft', 'KeyA'].includes(e.code)) {
-        e.preventDefault();
-        handleManualStep(270); // West
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [simActive, status, handleManualStep]);
+  }, [status, runId, advanceRunnerLocation]);
 
   const formatTime = (secs) => {
     const h = Math.floor(secs / 3600);
@@ -412,7 +348,6 @@ function ActiveRun() {
 
   const handlePause = () => {
     setStatus('paused');
-    setSimAutoMove(false);
     if (runId && coords) {
       runsAPI.updateLocation(null, runId, { lat: coords.lat, lng: coords.lng, duration: elapsedRef.current }).catch(() => {});
     }
@@ -428,7 +363,6 @@ function ActiveRun() {
     if (!runId) return;
 
     setStatus('ending');
-    setSimAutoMove(false);
 
     try {
       const res = await runsAPI.end(null, runId, {
@@ -453,12 +387,18 @@ function ActiveRun() {
   return (
     <div className="active-run-container">
       {/* Top HUD Bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginBottom: '12px', gap: '8px', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <div className="run-gps-status" style={{ margin: 0 }}>
+      <div className="run-top-hud">
+        <div className="run-hud-left">
+          {status === 'ready' && (
+            <button className="run-back-btn" onClick={() => navigate('/dashboard')}>
+              ← Kingdom
+            </button>
+          )}
+
+          <div className="run-gps-status">
             <MapPin size={14} />
-            <span>{simActive ? 'Mock GPS' : gpsReady ? 'GPS Active' : 'Acquiring GPS...'}</span>
-            <div className={`gps-dot ${gpsReady || simActive ? 'active' : ''}`} style={simActive ? { background: '#00e5ff', boxShadow: '0 0 8px #00e5ff' } : {}} />
+            <span>{gpsReady ? 'GPS Active' : 'Acquiring GPS...'}</span>
+            <div className={`gps-dot ${gpsReady ? 'active' : ''}`} />
           </div>
 
           {status === 'running' && (
@@ -470,37 +410,14 @@ function ActiveRun() {
           )}
         </div>
 
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          {/* Developer GPS Simulator Toggle */}
-          <button
-            type="button"
-            className={`dev-sim-toggle-btn ${simActive ? 'active' : ''}`}
-            onClick={() => setSimActive(!simActive)}
-            aria-label="Toggle GPS Simulator"
-          >
-            <Gamepad2 size={15} />
-            <span>{simActive ? 'Sim ON' : 'Mock GPS'}</span>
-          </button>
-
+        <div className="run-hud-right">
           {/* SFX Toggle */}
           <button
             type="button"
+            className="run-sfx-btn"
             onClick={() => {
               const next = soundEffects.toggleMute();
               setIsMuted(next);
-            }}
-            style={{
-              background: 'rgba(255, 255, 255, 0.06)',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              color: isMuted ? '#ff5252' : '#00e5ff',
-              borderRadius: '20px',
-              padding: '4px 10px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              cursor: 'pointer',
-              fontSize: '0.75rem',
-              fontFamily: 'monospace'
             }}
             aria-label="Toggle SFX"
           >
@@ -510,13 +427,6 @@ function ActiveRun() {
         </div>
       </div>
 
-      {/* Back button (only when not running) */}
-      {status === 'ready' && (
-        <button className="run-back-btn" onClick={() => navigate('/dashboard')}>
-          ← Kingdom
-        </button>
-      )}
-
       {/* Mini Map */}
       {coords && (
         <div className="run-mini-map">
@@ -525,162 +435,16 @@ function ActiveRun() {
             zoom={16}
             scrollWheelZoom={false}
             zoomControl={false}
-            dragging={simActive}
-            style={{ width: '100%', height: '220px', borderRadius: '12px' }}
+            dragging={false}
+            style={{ width: '100%', height: '100%', minHeight: '190px', borderRadius: '16px' }}
           >
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" className="leaflet-tile" />
             <Polyline positions={path} color="#d4af37" weight={4} />
-            <Marker position={[coords.lat, coords.lng]} icon={warriorRunnerIcon} />
-            {simWaypoint && (
-              <Marker position={[simWaypoint.lat, simWaypoint.lng]} icon={waypointIcon} />
-            )}
+            <Marker position={[coords.lat, coords.lng]} icon={createGoogleMapsArrowIcon(heading)} />
             <MapRecenter coords={coords} />
-            <MapClickHandler isSimActive={simActive} onMapClick={(pt) => setSimWaypoint(pt)} />
           </MapContainer>
-          {simActive && (
-            <div className="map-sim-hint">
-              <Crosshair size={12} />
-              <span>Click map to auto-run to waypoint</span>
-            </div>
-          )}
         </div>
       )}
-
-      {/* ── Developer GPS Simulator Panel ── */}
-      <AnimatePresence>
-        {simActive && (
-          <motion.div 
-            className="sim-dock-container"
-            initial={{ opacity: 0, height: 0, y: -10 }}
-            animate={{ opacity: 1, height: 'auto', y: 0 }}
-            exit={{ opacity: 0, height: 0, y: -10 }}
-            transition={{ duration: 0.3 }}
-          >
-            <div className="sim-dock-header">
-              <div className="sim-dock-title">
-                <Gamepad2 size={16} className="text-cyan" />
-                <span>GPS Telemetry Simulator</span>
-              </div>
-              {simSpeedKmh > 45 && (
-                <div className="sim-cheat-alert">
-                  <AlertTriangle size={12} />
-                  <span>Anti-Cheat Test Trigger</span>
-                </div>
-              )}
-            </div>
-
-            {/* Speed Presets */}
-            <div className="sim-speed-row">
-              <span className="sim-label">Velocity:</span>
-              <div className="sim-speed-pills">
-                <button
-                  type="button"
-                  className={`sim-speed-pill ${simSpeedKmh === 5 ? 'active' : ''}`}
-                  onClick={() => setSimSpeedKmh(5)}
-                >
-                  🚶 5 km/h
-                </button>
-                <button
-                  type="button"
-                  className={`sim-speed-pill ${simSpeedKmh === 10 ? 'active' : ''}`}
-                  onClick={() => setSimSpeedKmh(10)}
-                >
-                  🏃 10 km/h
-                </button>
-                <button
-                  type="button"
-                  className={`sim-speed-pill ${simSpeedKmh === 18 ? 'active' : ''}`}
-                  onClick={() => setSimSpeedKmh(18)}
-                >
-                  ⚡ 18 km/h
-                </button>
-                <button
-                  type="button"
-                  className={`sim-speed-pill cheat-pill ${simSpeedKmh === 80 ? 'active' : ''}`}
-                  onClick={() => setSimSpeedKmh(80)}
-                  title="Test anti-cheat spoofing rejection"
-                >
-                  🚀 80 km/h
-                </button>
-              </div>
-            </div>
-
-            {/* Controls Row: D-Pad & Auto-Run */}
-            <div className="sim-controls-row">
-              {/* D-Pad */}
-              <div className="sim-dpad-wrapper">
-                <div className="sim-dpad-row">
-                  <button 
-                    type="button" 
-                    className="sim-dpad-btn" 
-                    onClick={() => handleManualStep(0)} 
-                    title="Move North (W / Up)"
-                  >
-                    ▲
-                  </button>
-                </div>
-                <div className="sim-dpad-row">
-                  <button 
-                    type="button" 
-                    className="sim-dpad-btn" 
-                    onClick={() => handleManualStep(270)} 
-                    title="Move West (A / Left)"
-                  >
-                    ◄
-                  </button>
-                  <div className="sim-dpad-center">
-                    <Compass size={14} />
-                  </div>
-                  <button 
-                    type="button" 
-                    className="sim-dpad-btn" 
-                    onClick={() => handleManualStep(90)} 
-                    title="Move East (D / Right)"
-                  >
-                    ►
-                  </button>
-                </div>
-                <div className="sim-dpad-row">
-                  <button 
-                    type="button" 
-                    className="sim-dpad-btn" 
-                    onClick={() => handleManualStep(180)} 
-                    title="Move South (S / Down)"
-                  >
-                    ▼
-                  </button>
-                </div>
-              </div>
-
-              {/* Auto Cruise & Waypoint Actions */}
-              <div className="sim-actions-col">
-                <button
-                  type="button"
-                  className={`sim-cruise-btn ${simAutoMove ? 'active' : ''}`}
-                  onClick={() => setSimAutoMove(!simAutoMove)}
-                  disabled={status !== 'running'}
-                >
-                  <FastForward size={16} />
-                  <span>{simAutoMove ? 'Cruising...' : 'Auto-Cruise'}</span>
-                </button>
-
-                {simWaypoint && (
-                  <button
-                    type="button"
-                    className="sim-clear-wp-btn"
-                    onClick={() => setSimWaypoint(null)}
-                  >
-                    <Crosshair size={14} />
-                    <span>Clear Waypoint</span>
-                  </button>
-                )}
-                
-                <span className="sim-key-hint">Keyboard: WASD / Arrow Keys</span>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Main stats */}
       <div className="run-stats-display">
