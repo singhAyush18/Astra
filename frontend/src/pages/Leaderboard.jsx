@@ -182,75 +182,99 @@ function Leaderboard() {
             transition={{ duration: 0.6, delay: 0.3 }}
           >
             <div className="podium">
-              {/* 2nd Place (left) */}
+              {/* 2nd Place (left on desktop, 2nd on mobile) */}
               {top3[1] && (
                 <motion.div
-                  className={`podium-card silver ${top3[1].userId === storedUser.id ? "is-you" : ""}`}
+                  className={`podium-card silver ${top3[1].userId === (storedUser?.id || storedUser?._id) ? "is-you" : ""}`}
                   initial={{ opacity: 0, y: 60 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.5 }}
                 >
-                  <div className="podium-rank-badge silver-badge">2</div>
+                  <div className="podium-rank-wrap">
+                    <div className="podium-rank-badge silver-badge">2</div>
+                  </div>
                   <div className="podium-avatar silver-ring">
                     <span>{top3[1].username.charAt(0).toUpperCase()}</span>
                   </div>
-                  <h3 className="podium-name">{top3[1].username}</h3>
-                  <span className="podium-title" style={{ color: getRankByLevel(top3[1].level).color, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    <span>{getRankByLevel(top3[1].level).icon}</span>
-                    <span>{getRankTitle(top3[1].level)}</span>
-                  </span>
-                  <div className="podium-stat">{getCategoryValue(top3[1])}</div>
-                  <span className="podium-sublabel">{getCategorySublabel(top3[1])}</span>
-                  {top3[1].userId === storedUser.id && <span className="you-badge">YOU</span>}
+                  <div className="podium-warrior-info">
+                    <div className="podium-name-row">
+                      <h3 className="podium-name">{top3[1].username}</h3>
+                      {top3[1].userId === (storedUser?.id || storedUser?._id) && <span className="you-badge">YOU</span>}
+                    </div>
+                    <span className="podium-title" style={{ color: getRankByLevel(top3[1].level).color, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <span className="podium-rank-icon">{getRankByLevel(top3[1].level).icon}</span>
+                      <span>{getRankTitle(top3[1].level)}</span>
+                    </span>
+                  </div>
+                  <div className="podium-stats-wrap">
+                    <div className="podium-stat">{getCategoryValue(top3[1])}</div>
+                    <span className="podium-sublabel">{getCategorySublabel(top3[1])}</span>
+                  </div>
                 </motion.div>
               )}
 
-              {/* 1st Place (center) */}
+              {/* 1st Place (center on desktop, 1st on mobile) */}
               {top3[0] && (
                 <motion.div
-                  className={`podium-card gold ${top3[0].userId === storedUser.id ? "is-you" : ""}`}
+                  className={`podium-card gold ${top3[0].userId === (storedUser?.id || storedUser?._id) ? "is-you" : ""}`}
                   initial={{ opacity: 0, y: 60, scale: 0.9 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   transition={{ duration: 0.6, delay: 0.4 }}
                 >
-                  <div className="podium-crown">
-                    <Crown size={28} />
+                  <div className="podium-rank-wrap">
+                    <div className="podium-crown">
+                      <Crown size={24} />
+                    </div>
+                    <div className="podium-rank-badge gold-badge">1</div>
                   </div>
-                  <div className="podium-rank-badge gold-badge">1</div>
                   <div className="podium-avatar gold-ring">
                     <span>{top3[0].username.charAt(0).toUpperCase()}</span>
                   </div>
-                  <h3 className="podium-name">{top3[0].username}</h3>
-                  <span className="podium-title" style={{ color: getRankByLevel(top3[0].level).color, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    <span>{getRankByLevel(top3[0].level).icon}</span>
-                    <span>{getRankTitle(top3[0].level)}</span>
-                  </span>
-                  <div className="podium-stat">{getCategoryValue(top3[0])}</div>
-                  <span className="podium-sublabel">{getCategorySublabel(top3[0])}</span>
-                  {top3[0].userId === storedUser.id && <span className="you-badge">YOU</span>}
+                  <div className="podium-warrior-info">
+                    <div className="podium-name-row">
+                      <h3 className="podium-name">{top3[0].username}</h3>
+                      {top3[0].userId === (storedUser?.id || storedUser?._id) && <span className="you-badge">YOU</span>}
+                    </div>
+                    <span className="podium-title" style={{ color: getRankByLevel(top3[0].level).color, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <span className="podium-rank-icon">{getRankByLevel(top3[0].level).icon}</span>
+                      <span>{getRankTitle(top3[0].level)}</span>
+                    </span>
+                  </div>
+                  <div className="podium-stats-wrap">
+                    <div className="podium-stat">{getCategoryValue(top3[0])}</div>
+                    <span className="podium-sublabel">{getCategorySublabel(top3[0])}</span>
+                  </div>
                 </motion.div>
               )}
 
-              {/* 3rd Place (right) */}
+              {/* 3rd Place (right on desktop, 3rd on mobile) */}
               {top3[2] && (
                 <motion.div
-                  className={`podium-card bronze ${top3[2].userId === storedUser.id ? "is-you" : ""}`}
+                  className={`podium-card bronze ${top3[2].userId === (storedUser?.id || storedUser?._id) ? "is-you" : ""}`}
                   initial={{ opacity: 0, y: 60 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.6 }}
                 >
-                  <div className="podium-rank-badge bronze-badge">3</div>
+                  <div className="podium-rank-wrap">
+                    <div className="podium-rank-badge bronze-badge">3</div>
+                  </div>
                   <div className="podium-avatar bronze-ring">
                     <span>{top3[2].username.charAt(0).toUpperCase()}</span>
                   </div>
-                  <h3 className="podium-name">{top3[2].username}</h3>
-                  <span className="podium-title" style={{ color: getRankByLevel(top3[2].level).color, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                    <span>{getRankByLevel(top3[2].level).icon}</span>
-                    <span>{getRankTitle(top3[2].level)}</span>
-                  </span>
-                  <div className="podium-stat">{getCategoryValue(top3[2])}</div>
-                  <span className="podium-sublabel">{getCategorySublabel(top3[2])}</span>
-                  {top3[2].userId === storedUser.id && <span className="you-badge">YOU</span>}
+                  <div className="podium-warrior-info">
+                    <div className="podium-name-row">
+                      <h3 className="podium-name">{top3[2].username}</h3>
+                      {top3[2].userId === (storedUser?.id || storedUser?._id) && <span className="you-badge">YOU</span>}
+                    </div>
+                    <span className="podium-title" style={{ color: getRankByLevel(top3[2].level).color, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <span className="podium-rank-icon">{getRankByLevel(top3[2].level).icon}</span>
+                      <span>{getRankTitle(top3[2].level)}</span>
+                    </span>
+                  </div>
+                  <div className="podium-stats-wrap">
+                    <div className="podium-stat">{getCategoryValue(top3[2])}</div>
+                    <span className="podium-sublabel">{getCategorySublabel(top3[2])}</span>
+                  </div>
                 </motion.div>
               )}
             </div>
