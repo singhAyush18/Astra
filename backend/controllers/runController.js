@@ -273,6 +273,28 @@ const generateRunDebrief = async (req, res) => {
             });
         }
 
+        const distanceMeters = Math.round((run.distance || 0) * 1000);
+        if (distanceMeters < 10) {
+            const shortDebrief = {
+                headline: "Distance Too Short",
+                performanceRating: "D",
+                pacingAnalysis: "You logged less than 10 meters before halting. You should push harder and log a meaningful distance before tactical telemetry can be evaluated!",
+                recoveryAdvice: "Lace up your boots and get back out there. Every conquest requires sustained movement.",
+                nextWorkoutTarget: "Try harder! Complete at least 500 meters or 5 minutes of continuous running to unlock full tactical analysis.",
+                generatedAt: new Date(),
+            };
+            run.coachDebrief = shortDebrief;
+            await run.save();
+            return res.status(200).json({
+                success: true,
+                message: "Coach debrief generated",
+                data: {
+                    coachDebrief: shortDebrief,
+                    run,
+                },
+            });
+        }
+
         const user = await User.findById(req.user.id);
         const coachDebrief = await generateCoachDebrief({
             username: user?.username || "Athlete",

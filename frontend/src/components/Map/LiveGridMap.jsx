@@ -79,7 +79,7 @@ const MapAutoCenter = ({ territories }) => {
           map.fitBounds([
             [Math.min(...allLats), Math.min(...allLngs)],
             [Math.max(...allLats), Math.max(...allLngs)]
-          ], { padding: [40, 40] });
+          ], { padding: [50, 50], maxZoom: 15 });
           return true; // Successfully bounded to territories
         }
       }
@@ -258,11 +258,12 @@ const TerritoryGrid = ({ t, currentUserId, onRename }) => {
           click: handleZoomToTerritory,
         }}
         pathOptions={{
-          color: isMine ? '#d4af37' : '#ff4d4d',
-          weight: isMine ? 2 : 1.5,
-          fillColor: isMine ? '#d4af37' : '#ff4d4d',
-          fillOpacity: isMine ? 0.25 : 0.15,
+          color: isMine ? '#ffd700' : '#ff3366',
+          weight: isMine ? 3 : 2,
+          fillColor: isMine ? '#ffd700' : '#ff3366',
+          fillOpacity: isMine ? 0.32 : 0.2,
           dashArray: isMine ? null : '6 4',
+          className: isMine ? 'neon-kingdom-grid' : 'neon-rival-grid',
         }}
       >
         <Popup>{popupContent}</Popup>
@@ -286,9 +287,47 @@ const TerritoryGrid = ({ t, currentUserId, onRename }) => {
 
 const LiveGridMap = ({ territories, currentUserId, centerCoords, onRename }) => {
   const defaultCenter = [28.6139, 77.2090]; // Default to Delhi
+  const [mapTheme, setMapTheme] = useState(() => localStorage.getItem('astra_map_theme') || 'satellite');
+
+  const handleThemeChange = (theme) => {
+    setMapTheme(theme);
+    localStorage.setItem('astra_map_theme', theme);
+  };
 
   return (
     <div className="live-grid-map-container">
+      {/* Floating Map Theme Selector */}
+      <div className="map-theme-toggle-bar">
+        <button 
+          className={`theme-toggle-btn ${mapTheme === 'satellite' ? 'active' : ''}`}
+          onClick={() => handleThemeChange('satellite')}
+          title="Real Satellite Aerial Recon"
+        >
+          🛰️ Satellite
+        </button>
+        <button 
+          className={`theme-toggle-btn ${mapTheme === 'cyber' ? 'active' : ''}`}
+          onClick={() => handleThemeChange('cyber')}
+          title="Cyberpunk Pitch-Black Dark"
+        >
+          ⚡ Cyber
+        </button>
+        <button 
+          className={`theme-toggle-btn ${mapTheme === 'topo' ? 'active' : ''}`}
+          onClick={() => handleThemeChange('topo')}
+          title="Tactical Topographic Elevation"
+        >
+          🏔️ Topo
+        </button>
+        <button 
+          className={`theme-toggle-btn ${mapTheme === 'midnight' ? 'active' : ''}`}
+          onClick={() => handleThemeChange('midnight')}
+          title="Midnight Slate Canvas"
+        >
+          🌑 Slate
+        </button>
+      </div>
+
       <MapContainer
         center={centerCoords || defaultCenter}
         zoom={13}
@@ -300,12 +339,55 @@ const LiveGridMap = ({ territories, currentUserId, centerCoords, onRename }) => 
         tap={true}
         style={{ height: '100%', width: '100%' }}
       >
-        {/* Dark map tiles — free, sleek dark canvas with no watermark/API key */}
-        <TileLayer
-          attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
-          url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
-          maxZoom={19}
-        />
+        {mapTheme === 'satellite' && (
+          <React.Fragment key="theme-satellite">
+            <TileLayer
+              attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+              maxZoom={19}
+            />
+            <TileLayer
+              attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+              maxZoom={19}
+              opacity={0.9}
+            />
+            <TileLayer
+              attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}"
+              maxZoom={19}
+              opacity={0.85}
+            />
+          </React.Fragment>
+        )}
+
+        {mapTheme === 'cyber' && (
+          <TileLayer
+            key="theme-cyber"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            className="cyber-map-tiles"
+            maxZoom={19}
+          />
+        )}
+
+        {mapTheme === 'topo' && (
+          <TileLayer
+            key="theme-topo"
+            attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
+            maxZoom={19}
+          />
+        )}
+
+        {mapTheme === 'midnight' && (
+          <TileLayer
+            key="theme-midnight"
+            attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+            maxZoom={19}
+          />
+        )}
 
         <MapAutoCenter territories={territories} />
         <RecenterControl territories={territories} centerCoords={centerCoords} />

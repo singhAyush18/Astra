@@ -12,7 +12,12 @@
 .leaflet-container {
   width: 100%;
   height: 100%;
-  background-color: #1a1a2e;
+  background-color: #060714;
+}
+
+/* ── Cyber Dark Theme (100% Free Zero-Watermark Dark Matrix Filter) ── */
+.cyber-map-tiles {
+  filter: invert(100%) hue-rotate(185deg) brightness(82%) contrast(145%) saturate(30%);
 }
 
 /* ── Popup styling ── */
@@ -153,6 +158,15 @@
   font-style: normal;
 }
 
+/* ── Neon Laser Glow for Kingdom & Rival Grids ── */
+.neon-kingdom-grid {
+  filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.85));
+}
+
+.neon-rival-grid {
+  filter: drop-shadow(0 0 5px rgba(255, 51, 102, 0.85));
+}
+
 /* ── Crown/Sword markers ── */
 .grid-crown-icon,
 .grid-sword-icon {
@@ -161,24 +175,24 @@
 }
 
 .crown-marker {
-  font-size: 1.4rem;
-  filter: drop-shadow(0 0 6px rgba(212, 175, 55, 0.8));
+  font-size: 1.35rem;
+  filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.8));
   animation: crownFloat 3s ease-in-out infinite;
   text-align: center;
   cursor: pointer;
 }
 
 .sword-marker {
-  font-size: 1.1rem;
-  filter: drop-shadow(0 0 4px rgba(255, 77, 77, 0.6));
+  font-size: 1.15rem;
+  filter: drop-shadow(0 0 5px rgba(255, 51, 102, 0.8));
   text-align: center;
-  opacity: 0.8;
+  opacity: 0.9;
   cursor: pointer;
 }
 
 @keyframes crownFloat {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
+  50% { transform: translateY(-3px); }
 }
 
 /* ── Map Legend ── */
@@ -226,6 +240,53 @@
   background: rgba(255, 77, 77, 0.3);
   border-color: #ff4d4d;
   box-shadow: 0 0 8px rgba(255, 77, 77, 0.2);
+}
+
+/* ── Floating Map Theme Toggle Bar ── */
+.map-theme-toggle-bar {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(12, 14, 32, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 4px;
+  border-radius: 24px;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), 0 0 15px rgba(212, 175, 55, 0.1);
+}
+
+.theme-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: #a09880;
+  padding: 6px 12px;
+  border-radius: 18px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+}
+
+.theme-toggle-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.theme-toggle-btn.active {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.25), rgba(212, 175, 55, 0.1));
+  color: #ffd700;
+  border-color: rgba(212, 175, 55, 0.5);
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.25);
 }
 
 /* ── Recenter Button ── */
@@ -303,6 +364,30 @@
   .live-grid-map-container {
     height: 450px;
     border-radius: 12px;
+  }
+
+  .map-theme-toggle-bar {
+    top: 10px;
+    left: 10px;
+    gap: 2px;
+    padding: 3px;
+    max-width: calc(100% - 110px);
+    overflow-x: auto;
+  }
+
+  .theme-toggle-btn {
+    padding: 4px 8px;
+    font-size: 0.68rem;
+  }
+
+  .map-recenter-btn-container {
+    top: 10px;
+    right: 10px;
+  }
+
+  .map-recenter-btn {
+    padding: 6px 10px;
+    font-size: 0.75rem;
   }
 
   .map-legend {

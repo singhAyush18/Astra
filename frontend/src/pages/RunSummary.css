@@ -550,12 +550,34 @@
   color: var(--text-secondary, #a09880);
 }
 
+.sector-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sector-custom-name {
+  font-family: var(--font-heading, 'Cinzel', serif);
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #ffd700;
+  letter-spacing: 0.03em;
+  text-shadow: 0 0 10px rgba(212, 175, 55, 0.4);
+}
+
 .grid-stat-code {
   font-family: monospace;
   font-size: 1.1rem;
   font-weight: 700;
   color: #ffd700;
   letter-spacing: 0.05em;
+}
+
+.grid-stat-code.with-sub-code {
+  font-size: 0.82rem;
+  color: #a09880;
+  font-weight: 500;
+  opacity: 0.85;
 }
 
 .grid-stat-influence {

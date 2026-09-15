@@ -96,6 +96,7 @@ function ActiveRun() {
   const [isAutoPaused, setIsAutoPaused] = useState(false);
   const [currentPace, setCurrentPace] = useState('--:--');
   const [isMuted, setIsMuted] = useState(soundEffects.isMuted);
+  const [isStarting, setIsStarting] = useState(false);
   const [conquestAlert, setConquestAlert] = useState({ isOpen: false, type: 'claim', gridId: '', influence: 50 });
 
   const isSimulatedRef = useRef(false);
@@ -323,8 +324,10 @@ function ActiveRun() {
     }
 
     setError('');
+    setIsStarting(true);
 
     try {
+      soundEffects?.playTerritoryClaimed?.();
       const res = await runsAPI.start(null, { lat: coords.lat, lng: coords.lng });
       const data = await res.json();
 
@@ -460,8 +463,24 @@ function ActiveRun() {
             dragging={false}
             style={{ width: '100%', height: '100%', minHeight: '190px', borderRadius: '16px' }}
           >
-            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" className="leaflet-tile" />
-            <Polyline positions={path} color="#d4af37" weight={4} />
+            <TileLayer
+              attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+              maxZoom={19}
+            />
+            <TileLayer
+              attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+              maxZoom={19}
+              opacity={0.9}
+            />
+            <TileLayer
+              attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}"
+              maxZoom={19}
+              opacity={0.85}
+            />
+            <Polyline positions={path} color="#ffd700" weight={5} />
             <Marker position={[coords.lat, coords.lng]} icon={createGoogleMapsArrowIcon(heading)} />
             <MapRecenter coords={coords} />
           </MapContainer>

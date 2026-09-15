@@ -46,8 +46,11 @@ const processRunGrids = async (run, user) => {
             conquestMap[gId] = conquestResult;
         }
 
+        const gridDoc = await Grid.findOne({ gridId: gId });
+
         gridBreakdown.push({
             gridId: gId,
+            name: gridDoc?.name || null,
             influenceEarned: gridInfluence,
             distance: gridDistance,
         });
@@ -91,6 +94,8 @@ const processRunGrids = async (run, user) => {
     const lastGridSummary = gridInfluenceDoc
         ? {
               gridId: lastGridId,
+              name: gridDoc?.name || null,
+              gridName: gridDoc?.name || null,
               conquestType, // 'claim' | 'usurp' | 'reinforced' | 'none'
               influenceAdded: 0, // Assigned in completeRun with xpEarned
               totalInfluence: gridInfluenceDoc.influence,

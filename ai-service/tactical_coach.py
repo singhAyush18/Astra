@@ -174,6 +174,15 @@ class RunningCoachAgent:
 
     async def debrief(self, telemetry: RunnerTelemetryInput) -> CoachDebriefOutput:
         """Executes the AI Running Coach against the athlete's workout telemetry."""
+        if telemetry.distance_meters < 10:
+            return CoachDebriefOutput(
+                headline="Distance Too Short",
+                performance_rating="D",
+                pacing_analysis="You logged less than 10 meters before halting. You should push harder and log a meaningful distance before tactical telemetry can be evaluated!",
+                recovery_advice="Lace up your boots and get back out there. Every conquest requires sustained movement.",
+                next_workout_target="Try harder! Complete at least 500 meters or 5 minutes of continuous running to unlock full tactical analysis.",
+            )
+
         distance_km = round(telemetry.distance_meters / 1000, 2)
         minutes = telemetry.duration_seconds // 60
         seconds = telemetry.duration_seconds % 60

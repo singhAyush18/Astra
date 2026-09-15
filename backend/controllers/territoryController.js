@@ -243,30 +243,51 @@ const getMyActiveConquests = async (req, res) => {
         }).slice(0, 5); // Top 5 unclaimed
 
         const { CLAIM_THRESHOLD } = require("../services/Gridservices");
-        const targetPoints = CLAIM_THRESHOLD || 500;
+        const defaultThreshold = CLAIM_THRESHOLD || 500;
 
-        const formatted = unclaimedInfluences.map(inf => {
+        const formatted = await Promise.all(unclaimedInfluences.map(async (inf) => {
             const gridDoc = inf.gridId;
             const gridCode = inf.gridCode || gridDoc?.gridId || "Unknown Sector";
+            const isClaimed = Boolean(gridDoc?.ruler);
+
+            let rulerInfluence = 0;
+            if (isClaimed && gridDoc.ruler) {
+                const rulerId = gridDoc.ruler._id || gridDoc.ruler;
+                const rulerInfDoc = await GridInfluence.findOne({
+                    gridId: gridDoc._id,
+                    userId: rulerId
+                });
+                rulerInfluence = rulerInfDoc ? rulerInfDoc.influence : 0;
+            }
+
+            // Target points: If claimed, challenger must surpass the ruler's influence (rulerInfluence + 1); if unclaimed, need default threshold (500)
+            const targetPoints = isClaimed 
+                ? Math.max(defaultThreshold, rulerInfluence + 1)
+                : defaultThreshold;
+
             const pointsNeeded = Math.max(0, targetPoints - inf.influence);
+            const progressPercentage = Math.min(99, Math.round((inf.influence / targetPoints) * 100));
 
             return {
                 gridCode,
                 name: gridDoc?.name || null,
                 influence: inf.influence,
+                rulerInfluence,
                 targetPoints,
                 pointsNeeded,
-                progressPercentage: Math.min(99, Math.round((inf.influence / targetPoints) * 100)),
+                isClaimed,
+                isUsurp: isClaimed,
+                progressPercentage,
                 totalDistance: Number((inf.totalDistance || 0).toFixed(2)),
                 totalRuns: inf.totalRuns || 1,
                 status: gridDoc?.status || "unclaimed",
                 currentRuler: (gridDoc?.ruler?.username) || "Unclaimed Wildland"
             };
-        });
+        }));
 
         res.status(200).json({
             success: true,
-            message: "Top unclaimed conquests retrieved",
+            message: "Top active siege targets retrieved",
             data: {
                 count: formatted.length,
                 conquests: formatted

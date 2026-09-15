@@ -62,8 +62,8 @@ function ActiveConquestsWidget() {
                     <span className="ac-grid-code">{sector.gridCode}</span>
                     {sector.name && <span className="ac-grid-name">({sector.name})</span>}
                   </div>
-                  <span className="ac-status-badge in-progress">
-                    {sector.pointsNeeded} PTS TO CLAIM
+                  <span className={`ac-status-badge ${sector.isUsurp ? 'usurp' : 'in-progress'}`}>
+                    {sector.pointsNeeded} PTS TO {sector.isUsurp ? 'USURP' : 'CLAIM'}
                   </span>
                 </div>
 
@@ -72,7 +72,9 @@ function ActiveConquestsWidget() {
                     className="ac-progress-fill"
                     style={{ 
                       width: `${progress}%`,
-                      background: 'linear-gradient(90deg, #e67e22, #f0d060)'
+                      background: sector.isUsurp 
+                        ? 'linear-gradient(90deg, #ff4757, #ff6b81)'
+                        : 'linear-gradient(90deg, #e67e22, #f0d060)'
                     }} 
                   />
                 </div>
@@ -82,7 +84,7 @@ function ActiveConquestsWidget() {
                     <strong>{sector.influence}</strong> / {sector.targetPoints} PTS ({progress}%)
                   </span>
                   <span>
-                    {sector.totalDistance} km • {sector.currentRuler}
+                    {sector.totalDistance} km • {sector.isUsurp ? `⚔️ ${sector.currentRuler} (${sector.rulerInfluence} XP)` : sector.currentRuler}
                   </span>
                 </div>
               </div>

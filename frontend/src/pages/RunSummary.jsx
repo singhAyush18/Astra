@@ -410,8 +410,15 @@ function RunSummary() {
 
                   <div className="grid-stats-row">
                     <div className="grid-stat-card">
-                      <span className="grid-stat-label">Sector Code</span>
-                      <span className="grid-stat-code">{gridInfo.gridId}</span>
+                      <span className="grid-stat-label">Sector Domain</span>
+                      <div className="sector-title-wrap">
+                        {(gridInfo.name || gridInfo.gridName) && (
+                          <span className="sector-custom-name">🏛️ {gridInfo.name || gridInfo.gridName}</span>
+                        )}
+                        <span className={`grid-stat-code ${(gridInfo.name || gridInfo.gridName) ? 'with-sub-code' : ''}`}>
+                          {gridInfo.gridId}
+                        </span>
+                      </div>
                     </div>
                     <div className="grid-stat-card">
                       <span className="grid-stat-label">Your Standing</span>
@@ -445,7 +452,9 @@ function RunSummary() {
                     <div key={g.gridId} className="breakdown-mini-card">
                       <div className="breakdown-id">
                         <Sparkles size={14} className="mini-sparkle" />
-                        <span>{g.gridId}</span>
+                        <span className="breakdown-name-text">
+                          {g.name ? `${g.name} • ${g.gridId}` : g.gridId}
+                        </span>
                       </div>
                       <span className="breakdown-gain">+{g.influenceEarned} Influence</span>
                     </div>

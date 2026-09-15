@@ -88,6 +88,18 @@ const generateCoachDebrief = async ({ username, distance_meters, duration_second
         current_streak: Number(current_streak) || 0,
     };
 
+    // If distance is under 10 meters, do not invoke LLMs; return motivation prompt
+    if (payload.distance_meters < 10) {
+        return {
+            headline: "Distance Too Short",
+            performanceRating: "D",
+            pacingAnalysis: "You logged less than 10 meters before halting. You should push harder and log a meaningful distance before tactical telemetry can be evaluated!",
+            recoveryAdvice: "Lace up your boots and get back out there. Every conquest requires sustained movement.",
+            nextWorkoutTarget: "Try harder! Complete at least 500 meters or 5 minutes of continuous running to unlock full tactical analysis.",
+            generatedAt: new Date(),
+        };
+    }
+
     try {
         const controller = new AbortController();
         // 40-second timeout to allow for Render cold starts if sleeping
