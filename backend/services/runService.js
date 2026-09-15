@@ -125,7 +125,7 @@ const processRunGrids = async (run, user) => {
  * - Distributes grid territory influence
  */
 const completeRun = async (run, options = {}) => {
-    const { duration: frontendDuration, user: providedUser, isSimulated } = options;
+    const { duration: frontendDuration, user: providedUser, isSimulated, sensorTelemetry } = options;
 
     run.endTime = run.endTime || new Date();
     run.duration =
@@ -135,6 +135,16 @@ const completeRun = async (run, options = {}) => {
 
     if (isSimulated !== undefined) {
         run.isSimulated = Boolean(isSimulated);
+    }
+
+    if (sensorTelemetry) {
+        run.sensorTelemetry = {
+            totalSteps: Number(sensorTelemetry.totalSteps || 0),
+            avgCadence: Number(sensorTelemetry.avgCadence || 0),
+            motionScore: Number(sensorTelemetry.motionScore || 0),
+            hasSensorData: Boolean(sensorTelemetry.hasSensorData),
+            isMockFlagged: Boolean(sensorTelemetry.isMockFlagged),
+        };
     }
 
     const { paceInMinutes, paceString } = calculatePace(run.distance, run.duration);
@@ -163,6 +173,7 @@ const completeRun = async (run, options = {}) => {
         flags: integrityResult.flags,
         maxCalculatedSpeedKmh: integrityResult.maxSpeedKmh,
         avgCalculatedSpeedKmh: integrityResult.avgSpeedKmh,
+        sensorIntegrityScore: integrityResult.sensorIntegrityScore,
     };
 
     run.status = "completed";

@@ -157,6 +157,22 @@
   flex-shrink: 0;
   margin: 0;
   position: relative;
+  transition: border-color 0.5s ease, box-shadow 0.5s ease;
+}
+
+.run-mini-map.sector-aura-own {
+  border-color: rgba(251, 191, 36, 0.7);
+  box-shadow: 0 0 25px rgba(251, 191, 36, 0.25), 0 10px 32px rgba(0, 0, 0, 0.6);
+}
+
+.run-mini-map.sector-aura-rival {
+  border-color: rgba(239, 68, 68, 0.75);
+  box-shadow: 0 0 25px rgba(239, 68, 68, 0.35), 0 10px 32px rgba(0, 0, 0, 0.6);
+}
+
+.run-mini-map.sector-aura-wildland {
+  border-color: rgba(16, 185, 129, 0.5);
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.18), 0 10px 32px rgba(0, 0, 0, 0.6);
 }
 
 .run-mini-map .leaflet-container {

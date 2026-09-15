@@ -155,7 +155,7 @@ const getRunById = async (req, res) => {
 const endRun = async (req, res) => {
     try {
         const { id } = req.params;
-        const { duration: frontendDuration, isSimulated } = req.body || {};
+        const { duration: frontendDuration, isSimulated, sensorTelemetry } = req.body || {};
 
         // Validate ObjectId format
         if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -192,7 +192,7 @@ const endRun = async (req, res) => {
         }
 
         const user = await User.findById(req.user.id);
-        const result = await completeRun(run, { duration: frontendDuration, user, isSimulated });
+        const result = await completeRun(run, { duration: frontendDuration, user, isSimulated, sensorTelemetry });
 
         if (result.status === "discarded") {
             return res.status(200).json({

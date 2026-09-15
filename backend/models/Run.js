@@ -59,7 +59,15 @@ const runSchema = new mongoose.Schema({
     reasons: [String],
     flags: [String],
     maxCalculatedSpeedKmh: Number,
-    avgCalculatedSpeedKmh: Number
+    avgCalculatedSpeedKmh: Number,
+    sensorIntegrityScore: Number
+  },
+  sensorTelemetry: {
+    totalSteps: { type: Number, default: 0 },
+    avgCadence: { type: Number, default: 0 },
+    motionScore: { type: Number, default: 0 },
+    hasSensorData: { type: Boolean, default: false },
+    isMockFlagged: { type: Boolean, default: false }
   },
   isSimulated: {
     type: Boolean,

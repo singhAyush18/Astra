@@ -1,14 +1,18 @@
 /**
- * Anti-Cheat & GPS Spoofing Detection Engine
+ * Anti-Cheat & GPS Spoofing Detection Engine (Steel-Solid Edition)
  * 
- * Verifies run integrity, kinematic feasibility, and detects unrealistic speeds,
- * teleportation leaps, or GPS spoofing attacks while safely handling mobile screen-off gaps.
+ * Multi-layer defense against:
+ * 1. Physical limits & vehicles (Speed > 45 km/h)
+ * 2. Instant teleportation & macro coordinate leaps
+ * 3. Realistic-speed couch spoofing (6-7 km/h) via accelerometer & pedometer sensor fusion
+ * 4. Robotic mock applications & constant-speed synthetic trajectory generators
  */
 
 // Physical Limits for Human Running
-const MAX_HUMAN_SUSTAINED_SPEED_KMH = 45; // Usain Bolt peak sprint record is ~44.7 km/h
+const MAX_HUMAN_SUSTAINED_SPEED_KMH = 45; // Usain Bolt sprint peak is ~44.7 km/h
 const MAX_INSTANTANEOUS_VELOCITY_KMH = 65; // Tolerance for brief GPS drift/burst
 const MAX_TELEPORTATION_SPEED_KMH = 45; // Speed threshold across any distance jump
+const MIN_STEPS_PER_KM = 350; // Absolute minimum human walking/jogging steps per km
 
 /**
  * Haversine formula for distance in kilometers
@@ -28,11 +32,22 @@ const haversineKm = (lat1, lon1, lat2, lon2) => {
 };
 
 /**
- * Analyzes run telemetry and determines if spoofing or vehicle usage occurred.
+ * Computes standard deviation of a numeric array
+ */
+const computeStandardDeviation = (values) => {
+    if (!values || values.length <= 1) return 0;
+    const mean = values.reduce((sum, v) => sum + v, 0) / values.length;
+    const squareDiffs = values.map(v => Math.pow(v - mean, 2));
+    const avgSquareDiff = squareDiffs.reduce((sum, v) => sum + v, 0) / values.length;
+    return Math.sqrt(avgSquareDiff);
+};
+
+/**
+ * Analyzes run telemetry, hardware sensors, and kinematics to detect spoofing or cheating.
  * 
- * @param {Object} run - Run document
+ * @param {Object} run - Run document with path and optional sensorTelemetry
  * @param {Number} duration - Duration in seconds
- * @returns {Object} { isValid, isFlagged, reasons, flags, maxSpeedKmh, avgSpeedKmh }
+ * @returns {Object} { isValid, isFlagged, reasons, flags, maxSpeedKmh, avgSpeedKmh, sensorIntegrityScore }
  */
 const validateRunIntegrity = (run, duration) => {
     const reasons = [];
@@ -45,7 +60,9 @@ const validateRunIntegrity = (run, duration) => {
         ? (distanceKm / (effectiveDuration / 3600))
         : 0;
 
-    // 1. Check Overall Average Speed
+    // ─────────────────────────────────────────────────────────────
+    // Layer 1: Physical Human Speed Limits
+    // ─────────────────────────────────────────────────────────────
     if (avgSpeedKmh > MAX_HUMAN_SUSTAINED_SPEED_KMH) {
         flags.push("IMPOSSIBLE_AVERAGE_SPEED");
         reasons.push(
@@ -53,8 +70,12 @@ const validateRunIntegrity = (run, duration) => {
         );
     }
 
-    // 2. Point-to-Point Kinematic Analysis
+    // ─────────────────────────────────────────────────────────────
+    // Layer 2: Point-to-Point Kinematic Analysis
+    // ─────────────────────────────────────────────────────────────
     const path = run.path || [];
+    const movingSegmentSpeeds = [];
+
     if (path.length >= 2) {
         const fallbackSegmentTimeSec = Math.max(1, effectiveDuration / (path.length - 1));
 
@@ -65,7 +86,6 @@ const validateRunIntegrity = (run, duration) => {
             const segmentDistKm = haversineKm(prev.lat, prev.lng, curr.lat, curr.lng);
             const segmentDistMeters = segmentDistKm * 1000;
 
-            // Determine actual time delta between coordinates if timestamps exist
             let segmentTimeSec = fallbackSegmentTimeSec;
             if (prev.timestamp && curr.timestamp) {
                 const prevMs = new Date(prev.timestamp).getTime();
@@ -79,17 +99,17 @@ const validateRunIntegrity = (run, duration) => {
                 ? (segmentDistKm / (segmentTimeSec / 3600)) 
                 : 0;
 
-            // Track peak speed (filter out sub-20m micro-jitter GPS noise)
             if (segmentDistMeters >= 20 && segmentTimeSec >= 1) {
                 if (segmentSpeedKmh > maxSpeedKmh) {
                     maxSpeedKmh = Math.min(segmentSpeedKmh, 999.9);
                 }
+                if (segmentSpeedKmh >= 1.5) {
+                    movingSegmentSpeeds.push(segmentSpeedKmh);
+                }
             }
 
-            // A. Screen-off / Background gap analysis (delta >= 10 seconds)
+            // Screen-off gap vs Live stream analysis
             if (segmentTimeSec >= 10) {
-                // If the user ran 500m over 3 minutes with screen locked, speed is ~10 km/h (valid!).
-                // Only flag teleportation if the speed required to cover this gap exceeds physical limits.
                 if (segmentSpeedKmh > MAX_TELEPORTATION_SPEED_KMH && segmentDistMeters > 300) {
                     if (!flags.includes("TELEPORTATION_DETECTED")) {
                         flags.push("TELEPORTATION_DETECTED");
@@ -98,25 +118,63 @@ const validateRunIntegrity = (run, duration) => {
                         );
                     }
                 }
-            } 
-            // B. High-frequency live stream (delta < 10 seconds)
-            else {
-                // Ignore micro GPS flutter (< 30m)
-                if (segmentDistMeters >= 30) {
-                    if (segmentSpeedKmh > MAX_INSTANTANEOUS_VELOCITY_KMH) {
-                        if (!flags.includes("EXCESSIVE_BURST_VELOCITY")) {
-                            flags.push("EXCESSIVE_BURST_VELOCITY");
-                            reasons.push(
-                                `Instantaneous segment velocity reached ${segmentSpeedKmh.toFixed(1)} km/h.`
-                            );
-                        }
+            } else {
+                if (segmentDistMeters >= 30 && segmentSpeedKmh > MAX_INSTANTANEOUS_VELOCITY_KMH) {
+                    if (!flags.includes("EXCESSIVE_BURST_VELOCITY")) {
+                        flags.push("EXCESSIVE_BURST_VELOCITY");
+                        reasons.push(
+                            `Instantaneous segment velocity reached ${segmentSpeedKmh.toFixed(1)} km/h.`
+                        );
                     }
                 }
             }
         }
     }
 
-    // Set maxSpeed fallback to avgSpeed if no significant points recorded
+    // ─────────────────────────────────────────────────────────────
+    // Layer 3: Sensor Fusion & Biomechanical Movement (Pedometer/Motion)
+    // Catches 6-7 km/h spoofers sitting on couch with phone stationary
+    // ─────────────────────────────────────────────────────────────
+    const sensors = run.sensorTelemetry || {};
+    let sensorIntegrityScore = 100;
+
+    if (sensors.isMockFlagged) {
+        flags.push("MOCK_PROVIDER_DETECTED");
+        reasons.push("Device operating system reported active mock location provider.");
+        sensorIntegrityScore = 0;
+    }
+
+    // If runner has meaningful GPS distance (> 250m) and sensors are active on device:
+    if (distanceKm >= 0.25 && sensors.hasSensorData) {
+        const totalSteps = sensors.totalSteps || 0;
+        const motionScore = sensors.motionScore || 0;
+        const minExpectedSteps = distanceKm * MIN_STEPS_PER_KM;
+
+        // Couch Spoofer Signature: GPS moved 500m+, but 0 steps and 0 motion detected
+        if (totalSteps < minExpectedSteps && motionScore < 0.12) {
+            flags.push("NO_PHYSICAL_MOVEMENT_DETECTED");
+            reasons.push(
+                `Biometric mismatch: Logged ${distanceKm.toFixed(2)} km with only ${totalSteps} physical steps detected (couch spoofing pattern).`
+            );
+            sensorIntegrityScore = Math.max(0, Math.round((totalSteps / minExpectedSteps) * 50));
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Layer 4: Robotic Velocity Entropy (Synthetic Uniformity Analysis)
+    // Catches automated/scripted spoofers generating constant speeds (e.g. exactly 6.00 km/h)
+    // ─────────────────────────────────────────────────────────────
+    if (movingSegmentSpeeds.length >= 6 && distanceKm >= 0.3) {
+        const speedVariance = computeStandardDeviation(movingSegmentSpeeds);
+        // Human runners naturally fluctuate (stdDev > 0.3 km/h); spoofers interpolate with 0.00 stdDev
+        if (speedVariance < 0.04) {
+            flags.push("ROBOTIC_SPEED_UNIFORMITY");
+            reasons.push(
+                `Synthetic GPS trajectory: Mechanically constant velocity with near-zero human cadence variance (σ = ${speedVariance.toFixed(3)} km/h).`
+            );
+        }
+    }
+
     if (maxSpeedKmh === 0 && avgSpeedKmh > 0) {
         maxSpeedKmh = avgSpeedKmh;
     }
@@ -130,12 +188,14 @@ const validateRunIntegrity = (run, duration) => {
         flags,
         avgSpeedKmh: parseFloat(avgSpeedKmh.toFixed(2)),
         maxSpeedKmh: parseFloat(maxSpeedKmh.toFixed(2)),
+        sensorIntegrityScore,
     };
 };
 
 module.exports = {
     validateRunIntegrity,
     haversineKm,
+    computeStandardDeviation,
     MAX_HUMAN_SUSTAINED_SPEED_KMH,
     MAX_INSTANTANEOUS_VELOCITY_KMH,
     MAX_TELEPORTATION_SPEED_KMH,

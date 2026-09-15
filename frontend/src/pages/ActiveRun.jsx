@@ -6,13 +6,37 @@ import {
   Gamepad2, Navigation, Compass, FastForward, RotateCcw, Crosshair, AlertTriangle, Eye,
   Crown, Swords
 } from 'lucide-react';
-import { MapContainer, TileLayer, Polyline, Marker, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Polyline, Marker, Rectangle, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import './ActiveRun.css';
 import { useAuth } from '../context/AuthContext';
 import { runsAPI, territoryAPI } from '../api';
 import { soundEffects } from '../utils/soundEffects';
 import { backgroundKeepAlive } from '../utils/backgroundKeepAlive';
+
+const GRID_SIZE_METERS = 1000;
+const METERS_PER_DEGREE_LAT = 111320;
+
+// Compute bounding box coordinates for a grid ID
+const getGridBounds = (gridId) => {
+  if (!gridId) return null;
+  const match = gridId.match(/^R(-?\d+)-C(-?\d+)$/);
+  if (!match) return null;
+  const row = parseInt(match[1], 10);
+  const col = parseInt(match[2], 10);
+
+  const minLat = (row * GRID_SIZE_METERS) / METERS_PER_DEGREE_LAT;
+  const maxLat = ((row + 1) * GRID_SIZE_METERS) / METERS_PER_DEGREE_LAT;
+  const centerLat = (minLat + maxLat) / 2;
+  const metersPerDegreeLng = METERS_PER_DEGREE_LAT * Math.cos((centerLat * Math.PI) / 180);
+  const minLng = (col * GRID_SIZE_METERS) / metersPerDegreeLng;
+  const maxLng = ((col + 1) * GRID_SIZE_METERS) / metersPerDegreeLng;
+
+  return [
+    [minLat, minLng],
+    [maxLat, maxLng]
+  ];
+};
 
 // Google Maps style navigation arrow with rotation and pulse beacon
 const createGoogleMapsArrowIcon = (heading = 0) => L.divIcon({
@@ -107,11 +131,21 @@ function ActiveRun() {
   const navigate = useNavigate();
   const { user, handleUnauthorized } = useAuth();
   const [sectorBanner, setSectorBanner] = useState(null);
+  const [currentSector, setCurrentSector] = useState(null);
   const sectorCacheRef = useRef({});
   const sectorBannerTimerRef = useRef(null);
 
+  // Biometric & Hardware Sensor Fusion References (Anti-Spoofing Engine)
+  const stepCountRef = useRef(0);
+  const lastStepTimeRef = useRef(0);
+  const motionEnergyAccumulatorRef = useRef(0);
+  const motionSampleCountRef = useRef(0);
+  const hasMotionSensorRef = useRef(false);
+  const isMockDetectedRef = useRef(false);
+
   const triggerSectorDiscovery = useCallback(async (gridId) => {
     try {
+      const bounds = getGridBounds(gridId);
       let gridData = sectorCacheRef.current[gridId];
       if (!gridData) {
         const res = await territoryAPI.getDetails(null, gridId);
@@ -129,7 +163,9 @@ function ActiveRun() {
       const sectorLabel = territoryName ? `${territoryName} • ${gridId}` : gridId;
 
       let banner = null;
+      let sectorType = 'wildland';
       if (isOwner) {
+        sectorType = 'own';
         banner = {
           type: 'own',
           badge: '👑 REALM DOMAIN',
@@ -142,6 +178,7 @@ function ActiveRun() {
           displayTag: sectorLabel,
         };
       } else if (rulerUsername) {
+        sectorType = 'rival';
         banner = {
           type: 'rival',
           badge: '⚔️ RIVAL DOMAIN',
@@ -154,6 +191,7 @@ function ActiveRun() {
           displayTag: sectorLabel,
         };
       } else {
+        sectorType = 'wildland';
         banner = {
           type: 'wildland',
           badge: '🌲 UNCLAIMED WILDLAND',
@@ -166,6 +204,14 @@ function ActiveRun() {
           displayTag: sectorLabel,
         };
       }
+
+      setCurrentSector({
+        gridId,
+        type: sectorType,
+        name: territoryName,
+        rulerName: rulerUsername,
+        bounds,
+      });
 
       if (sectorBannerTimerRef.current) {
         clearTimeout(sectorBannerTimerRef.current);
@@ -189,6 +235,9 @@ function ActiveRun() {
       setCoords(fallback);
       setPath([[fallback.lat, fallback.lng]]);
       setGpsReady(true);
+      const initialGrid = `R${Math.floor((fallback.lat * 111320) / 1000)}-C${Math.floor((fallback.lng * (111320 * Math.cos(fallback.lat * Math.PI / 180))) / 1000)}`;
+      visitedGridsRef.current.add(initialGrid);
+      triggerSectorDiscovery(initialGrid);
       return;
     }
 
@@ -201,6 +250,9 @@ function ActiveRun() {
         }
         setPath([[initialCoords.lat, initialCoords.lng]]);
         setGpsReady(true);
+        const initialGrid = `R${Math.floor((initialCoords.lat * 111320) / 1000)}-C${Math.floor((initialCoords.lng * (111320 * Math.cos(initialCoords.lat * Math.PI / 180))) / 1000)}`;
+        visitedGridsRef.current.add(initialGrid);
+        triggerSectorDiscovery(initialGrid);
       },
       (err) => {
         console.warn('Geolocation prompt rejected, defaulting to mock point:', err);
@@ -208,10 +260,50 @@ function ActiveRun() {
         setCoords(fallback);
         setPath([[fallback.lat, fallback.lng]]);
         setGpsReady(true);
+        const initialGrid = `R${Math.floor((fallback.lat * 111320) / 1000)}-C${Math.floor((fallback.lng * (111320 * Math.cos(fallback.lat * Math.PI / 180))) / 1000)}`;
+        visitedGridsRef.current.add(initialGrid);
+        triggerSectorDiscovery(initialGrid);
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
-  }, []);
+  }, [triggerSectorDiscovery]);
+
+  // Physical motion & Pedometer footstep detection (Anti-Spoofing Sensor Fusion)
+  useEffect(() => {
+    if (status !== 'running') return;
+
+    const handleMotion = (event) => {
+      const acc = event.accelerationIncludingGravity || event.acceleration;
+      if (!acc) return;
+      hasMotionSensorRef.current = true;
+
+      const x = acc.x || 0;
+      const y = acc.y || 0;
+      const z = acc.z || 0;
+      const totalMag = Math.sqrt(x * x + y * y + z * z);
+      const dynamicAcc = Math.abs(totalMag - 9.81);
+
+      motionEnergyAccumulatorRef.current += dynamicAcc;
+      motionSampleCountRef.current += 1;
+
+      // Pedometer step detection: dynamic peak > 2.2 m/s² with 260ms cooldown (100 - 230 steps/min)
+      const now = Date.now();
+      if (dynamicAcc > 2.2 && (now - lastStepTimeRef.current) > 260) {
+        stepCountRef.current += 1;
+        lastStepTimeRef.current = now;
+      }
+    };
+
+    if (window.DeviceMotionEvent) {
+      window.addEventListener('devicemotion', handleMotion, true);
+    }
+
+    return () => {
+      if (window.DeviceMotionEvent) {
+        window.removeEventListener('devicemotion', handleMotion, true);
+      }
+    };
+  }, [status]);
 
   // Timer with Auto-Pause & Background Keep-Alive
   useEffect(() => {
@@ -358,6 +450,9 @@ function ActiveRun() {
       watchId = navigator.geolocation.watchPosition(
         (pos) => {
           const { latitude: lat, longitude: lng, accuracy, heading: gpsHeading, speed: gpsSpeed } = pos.coords;
+          if (pos.coords.mocked || pos.coords.isMock || pos.mockLocation) {
+            isMockDetectedRef.current = true;
+          }
           // Discard inaccurate GPS readings (> 25m uncertainty)
           if (accuracy > 25) return;
           if (gpsHeading !== null && !isNaN(gpsHeading) && gpsHeading >= 0) {
@@ -419,6 +514,10 @@ function ActiveRun() {
           setStatus('running');
           setCurrentPace('--:--');
           lastMoveTimeRef.current = Date.now();
+          if (lastCoordsRef.current) {
+            const startGrid = `R${Math.floor((lastCoordsRef.current.lat * 111320) / 1000)}-C${Math.floor((lastCoordsRef.current.lng * (111320 * Math.cos(lastCoordsRef.current.lat * Math.PI / 180))) / 1000)}`;
+            triggerSectorDiscovery(startGrid);
+          }
         } else {
           setRunId(data.data.run._id);
           setStatus('running');
@@ -429,6 +528,14 @@ function ActiveRun() {
           distanceRef.current = 0;
           lastMoveTimeRef.current = Date.now();
           lastCoordsRef.current = coords;
+          stepCountRef.current = 0;
+          motionEnergyAccumulatorRef.current = 0;
+          motionSampleCountRef.current = 0;
+          isMockDetectedRef.current = false;
+          if (coords) {
+            const startGrid = `R${Math.floor((coords.lat * 111320) / 1000)}-C${Math.floor((coords.lng * (111320 * Math.cos(coords.lat * Math.PI / 180))) / 1000)}`;
+            triggerSectorDiscovery(startGrid);
+          }
         }
       } else {
         setError(data.message || 'Failed to start run');
@@ -460,6 +567,13 @@ function ActiveRun() {
       const res = await runsAPI.end(null, runId, {
         duration: elapsed,
         isSimulated: isSimulatedRef.current,
+        sensorTelemetry: {
+          totalSteps: stepCountRef.current,
+          avgCadence: elapsed > 0 ? Math.round((stepCountRef.current / (elapsed / 60))) : 0,
+          motionScore: motionSampleCountRef.current > 0 ? (motionEnergyAccumulatorRef.current / motionSampleCountRef.current) : 0,
+          hasSensorData: hasMotionSensorRef.current,
+          isMockFlagged: isMockDetectedRef.current,
+        },
       });
 
       const data = await res.json();
@@ -557,7 +671,7 @@ function ActiveRun() {
 
       {/* Mini Map */}
       {coords && (
-        <div className="run-mini-map">
+        <div className={`run-mini-map ${currentSector?.type ? `sector-aura-${currentSector.type}` : ''}`}>
           <MapContainer
             center={[coords.lat, coords.lng]}
             zoom={16}
@@ -583,6 +697,37 @@ function ActiveRun() {
               maxZoom={19}
               opacity={0.85}
             />
+            {/* Live Sector Fog and Boundaries */}
+            {currentSector?.bounds && (
+              <Rectangle
+                bounds={currentSector.bounds}
+                pathOptions={
+                  currentSector.type === 'own'
+                    ? {
+                        color: '#fbbf24',
+                        weight: 3.5,
+                        dashArray: undefined,
+                        fillColor: '#d4af37',
+                        fillOpacity: 0.22,
+                      }
+                    : currentSector.type === 'rival'
+                    ? {
+                        color: '#ef4444',
+                        weight: 3.5,
+                        dashArray: undefined,
+                        fillColor: '#dc2626',
+                        fillOpacity: 0.24,
+                      }
+                    : {
+                        color: '#10b981',
+                        weight: 2,
+                        dashArray: '6, 6',
+                        fillColor: '#10b981',
+                        fillOpacity: 0.08,
+                      }
+                }
+              />
+            )}
             <Polyline positions={path} color="#ffd700" weight={5} />
             <Marker position={[coords.lat, coords.lng]} icon={createGoogleMapsArrowIcon(heading)} />
             <MapRecenter coords={coords} />
