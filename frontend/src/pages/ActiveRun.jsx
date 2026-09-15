@@ -192,67 +192,86 @@ function ActiveRun() {
     return R * c;
   };
 
-  // Move runner to a new coordinate and update telemetry
-  const advanceRunnerLocation = useCallback((newLat, newLng) => {
+  // Move runner to a new coordinate and update telemetry with GPS Jitter & Deadband filtering
+  const advanceRunnerLocation = useCallback((newLat, newLng, accuracy = 10, gpsSpeed = null) => {
+    // Always update current coords for smooth marker rendering
     setCoords({ lat: newLat, lng: newLng });
-    setPath(prev => [...prev, [newLat, newLng]]);
 
-    if (lastCoordsRef.current) {
-      const distDelta = calculateDistance(
-        lastCoordsRef.current.lat,
-        lastCoordsRef.current.lng,
-        newLat,
-        newLng
-      );
-
-      if (distDelta > 0.001) {
-        const newBearing = calculateBearing(
-          lastCoordsRef.current.lat,
-          lastCoordsRef.current.lng,
-          newLat,
-          newLng
-        );
-        setHeading(newBearing);
-
-        const newDistance = distanceRef.current + distDelta;
-        const timeDelta = (Date.now() - lastMoveTimeRef.current) / 1000;
-        
-        if (timeDelta > 0) {
-          const paceMin = (timeDelta / 60) / distDelta;
-          let mins = Math.floor(paceMin);
-          let secs = Math.round((paceMin - mins) * 60);
-          if (secs === 60) { mins++; secs = 0; }
-
-          if (mins > 99) {
-            setCurrentPace('99+');
-          } else {
-            setCurrentPace(`${mins}:${secs.toString().padStart(2, '0')}`);
-          }
-        }
-
-        distanceRef.current = newDistance;
-        lastMoveTimeRef.current = Date.now();
-        lastCoordsRef.current = { lat: newLat, lng: newLng };
-        setDistance(newDistance);
-
-        // Live sector boundary detection
-        const currentGrid = `R${Math.floor((newLat * 111320) / 1000)}-C${Math.floor((newLng * (111320 * Math.cos(newLat * Math.PI / 180))) / 1000)}`;
-        if (!visitedGridsRef.current.has(currentGrid)) {
-          if (visitedGridsRef.current.size > 0) {
-            setConquestAlert({
-              isOpen: true,
-              type: 'claim',
-              gridId: currentGrid,
-              influence: 50
-            });
-          }
-          visitedGridsRef.current.add(currentGrid);
-        }
-      }
-    } else {
+    if (!lastCoordsRef.current) {
       lastCoordsRef.current = { lat: newLat, lng: newLng };
+      lastMoveTimeRef.current = Date.now();
+      setPath([[newLat, newLng]]);
       const initialGrid = `R${Math.floor((newLat * 111320) / 1000)}-C${Math.floor((newLng * (111320 * Math.cos(newLat * Math.PI / 180))) / 1000)}`;
       visitedGridsRef.current.add(initialGrid);
+      return;
+    }
+
+    const distDelta = calculateDistance(
+      lastCoordsRef.current.lat,
+      lastCoordsRef.current.lng,
+      newLat,
+      newLng
+    );
+    const distMeters = distDelta * 1000;
+    const timeDelta = (Date.now() - lastMoveTimeRef.current) / 1000;
+
+    // GPS JITTER FILTERS:
+    // 1. Deadband threshold: Ignore micro-shifts under 5.5 meters (indoor jitter)
+    // 2. Accuracy noise floor: Movement must exceed 35% of GPS accuracy radius
+    // 3. Speed gate: Must move at least 0.65 m/s (~2.3 km/h walking pace)
+    const instantSpeedMps = timeDelta > 0 ? (distMeters / timeDelta) : 0;
+    const isNoise = distMeters < 5.5 || (accuracy && distMeters < accuracy * 0.35);
+    const isStationary = (gpsSpeed !== null && gpsSpeed !== undefined && gpsSpeed < 0.5) || instantSpeedMps < 0.65;
+    const isTeleportGlitch = instantSpeedMps > 15.0; // > 54 km/h
+
+    if (isNoise || isStationary || isTeleportGlitch) {
+      // Runner is stationary or GPS is jittering indoors -> DO NOT accumulate distance or draw spaghetti path
+      return;
+    }
+
+    // Valid movement confirmed!
+    const newBearing = calculateBearing(
+      lastCoordsRef.current.lat,
+      lastCoordsRef.current.lng,
+      newLat,
+      newLng
+    );
+    setHeading(newBearing);
+
+    const newDistance = distanceRef.current + distDelta;
+    
+    // Pace calculation (min/km)
+    if (timeDelta > 0 && distDelta > 0) {
+      const paceMin = (timeDelta / 60) / distDelta;
+      let mins = Math.floor(paceMin);
+      let secs = Math.round((paceMin - mins) * 60);
+      if (secs === 60) { mins++; secs = 0; }
+
+      if (mins > 45 || mins < 1) {
+        setCurrentPace('--:--');
+      } else {
+        setCurrentPace(`${mins}:${secs.toString().padStart(2, '0')}`);
+      }
+    }
+
+    distanceRef.current = newDistance;
+    lastMoveTimeRef.current = Date.now();
+    lastCoordsRef.current = { lat: newLat, lng: newLng };
+    setDistance(newDistance);
+    setPath(prev => [...prev, [newLat, newLng]]);
+
+    // Live sector boundary detection
+    const currentGrid = `R${Math.floor((newLat * 111320) / 1000)}-C${Math.floor((newLng * (111320 * Math.cos(newLat * Math.PI / 180))) / 1000)}`;
+    if (!visitedGridsRef.current.has(currentGrid)) {
+      if (visitedGridsRef.current.size > 0) {
+        setConquestAlert({
+          isOpen: true,
+          type: 'claim',
+          gridId: currentGrid,
+          influence: 50
+        });
+      }
+      visitedGridsRef.current.add(currentGrid);
     }
 
     if (runId) {
@@ -270,15 +289,18 @@ function ActiveRun() {
     if (status === 'running' && runId) {
       watchId = navigator.geolocation.watchPosition(
         (pos) => {
-          const { latitude: lat, longitude: lng, accuracy, heading: gpsHeading } = pos.coords;
-          if (accuracy > 40) return;
+          const { latitude: lat, longitude: lng, accuracy, heading: gpsHeading, speed: gpsSpeed } = pos.coords;
+          // Discard inaccurate GPS readings (> 25m uncertainty)
+          if (accuracy > 25) return;
           if (gpsHeading !== null && !isNaN(gpsHeading) && gpsHeading >= 0) {
             setHeading(gpsHeading);
           }
-          advanceRunnerLocation(lat, lng);
+          advanceRunnerLocation(lat, lng, accuracy, gpsSpeed);
         },
-        () => { },
-        { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
+        (err) => {
+          console.warn('GPS tracking error:', err?.message || err);
+        },
+        { enableHighAccuracy: true, maximumAge: 2000, timeout: 10000 }
       );
     }
     return () => {
