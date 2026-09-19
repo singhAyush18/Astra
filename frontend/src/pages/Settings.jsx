@@ -36,6 +36,25 @@ function Settings() {
   const [pwdError, setPwdError] = useState("");
   const [pwdSuccess, setPwdSuccess] = useState("");
   
+  // Tactical Audio & Voice Announcer State
+  const [isAudioMuted, setIsAudioMuted] = useState(soundEffects.isMuted);
+  const [voiceOptions, setVoiceOptions] = useState([]);
+  const [selectedVoice, setSelectedVoice] = useState(() => localStorage.getItem('astra_voice_name') || 'auto-male');
+
+  useEffect(() => {
+    const loadVoices = () => {
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        const voices = window.speechSynthesis.getVoices().filter(v => v.lang.startsWith('en'));
+        setVoiceOptions(voices);
+      }
+    };
+
+    loadVoices();
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+  }, []);
+  
   const fileInputRef = useRef(null);
 
   // Countdown timer for OTP resend
@@ -454,13 +473,13 @@ function Settings() {
           </form>
         </div>
 
-        {/* Battle SFX & Audio Engine Setting */}
+        {/* Battle SFX & Tactical Voice Announcer Setting */}
         <div className="settings-card" style={{ marginTop: "24px" }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
             <div>
-              <h3 className="section-title" style={{ margin: 0 }}>Battle SFX & Audio</h3>
+              <h3 className="section-title" style={{ margin: 0 }}>Battle SFX & Voice Audio</h3>
               <p className="input-hint" style={{ margin: '4px 0 0 0' }}>
-                Procedural audio for territory conquests, overthrows, and rank fanfares.
+                Procedural audio for territory conquests, war horns, and tactical voice announcements.
               </p>
             </div>
             <button
@@ -470,22 +489,78 @@ function Settings() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                background: soundEffects.isMuted ? 'rgba(255, 75, 75, 0.12)' : 'rgba(0, 229, 255, 0.12)',
-                color: soundEffects.isMuted ? '#ff5252' : '#00e5ff',
-                borderColor: soundEffects.isMuted ? '#ff5252' : '#00e5ff',
+                background: isAudioMuted ? 'rgba(255, 75, 75, 0.12)' : 'rgba(0, 229, 255, 0.12)',
+                color: isAudioMuted ? '#ff5252' : '#00e5ff',
+                borderColor: isAudioMuted ? '#ff5252' : '#00e5ff',
                 cursor: 'pointer'
               }}
               onClick={() => {
                 const newMuted = soundEffects.toggleMute();
+                setIsAudioMuted(newMuted);
                 if (!newMuted) {
                   soundEffects.playVictoryFanfare();
                 }
-                navigate(0); // reload state
               }}
             >
-              {soundEffects.isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-              <span>{soundEffects.isMuted ? "Muted" : "Enabled"}</span>
+              {isAudioMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+              <span>{isAudioMuted ? "Muted" : "Enabled"}</span>
             </button>
+          </div>
+
+          <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '16px' }}>
+            <label className="input-label" style={{ display: 'block', marginBottom: '8px', color: '#e2e8f0', fontWeight: '600', fontSize: '0.9rem' }}>
+              🎙️ Tactical Announcer Voice
+            </label>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+              <select
+                className="settings-input"
+                style={{
+                  flex: 1,
+                  minWidth: '220px',
+                  background: 'rgba(15, 23, 42, 0.8)',
+                  color: '#fff',
+                  border: '1px solid rgba(0, 229, 255, 0.3)',
+                  borderRadius: '8px',
+                  padding: '10px 14px',
+                  fontSize: '0.9rem',
+                  outline: 'none'
+                }}
+                value={selectedVoice}
+                onChange={(e) => {
+                  setSelectedVoice(e.target.value);
+                  localStorage.setItem('astra_voice_name', e.target.value);
+                }}
+              >
+                <option value="auto-male">⚡ Tactical Commander (Male Default - Auto Select)</option>
+                {voiceOptions.map((v) => (
+                  <option key={v.voiceURI || v.name} value={v.name}>
+                    {v.name} ({v.lang})
+                  </option>
+                ))}
+              </select>
+
+              <button
+                type="button"
+                className="btn-primary"
+                style={{
+                  padding: '10px 18px',
+                  fontSize: '0.88rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  borderRadius: '8px',
+                  whiteSpace: 'nowrap'
+                }}
+                onClick={() => {
+                  soundEffects.speakAnnouncement("Sector captured! Outstanding effort Commander, your empire expands.");
+                }}
+              >
+                🔊 Test Announcer
+              </button>
+            </div>
+            <p className="input-hint" style={{ marginTop: '8px', fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>
+              By default, Astra automatically selects the best available Male voice in your browser (e.g. Google UK English Male, Microsoft David, or Daniel).
+            </p>
           </div>
         </div>
       </main>

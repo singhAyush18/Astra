@@ -191,6 +191,59 @@ class SoundEngine {
   // ==========================================
   // 4. TACTICAL VOICE ANNOUNCER (Web Speech API)
   // ==========================================
+  getAvailableVoices() {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return [];
+    return window.speechSynthesis.getVoices().filter(v => v.lang.startsWith('en'));
+  }
+
+  getPreferredMaleVoice() {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return null;
+    const voices = window.speechSynthesis.getVoices();
+    if (!voices || voices.length === 0) return null;
+
+    // Check user preference from localStorage first
+    const savedVoiceURI = localStorage.getItem('astra_voice_name');
+    if (savedVoiceURI) {
+      const saved = voices.find(v => v.name === savedVoiceURI || v.voiceURI === savedVoiceURI);
+      if (saved) return saved;
+    }
+
+    // Premier prioritized list of authoritative Male voices
+    const malePriorityPatterns = [
+      /Google UK English Male/i,
+      /Microsoft David/i,
+      /Microsoft Mark/i,
+      /Microsoft George/i,
+      /Daniel/i,
+      /Alex/i,
+      /Arthur/i,
+      /Oliver/i,
+      /Guy/i,
+      /Tom/i,
+      /James/i,
+      /Ryan/i,
+      /en-US-Standard-B/i,
+      /en-US-Standard-D/i,
+      /en-GB-Standard-B/i,
+      /Male/i
+    ];
+
+    for (const pattern of malePriorityPatterns) {
+      const match = voices.find(v => v.lang.startsWith('en') && pattern.test(v.name));
+      if (match) return match;
+    }
+
+    // Fallback: any English voice that does NOT contain "Female" or female names
+    const nonFemaleVoice = voices.find(v => 
+      v.lang.startsWith('en') && 
+      !/female|zira|samantha|victoria|karen|susan|hazel|linda|eva/i.test(v.name)
+    );
+    if (nonFemaleVoice) return nonFemaleVoice;
+
+    // Last resort
+    return voices.find(v => v.lang.startsWith('en')) || voices[0] || null;
+  }
+
   speakAnnouncement(text, onEndCallback) {
     if (this.isMuted) {
       if (onEndCallback) setTimeout(onEndCallback, 4500);
@@ -205,18 +258,13 @@ class SoundEngine {
     try {
       window.speechSynthesis.cancel(); // Cancel any prior pending speech
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 1.02; // Crisp, energetic pacing
-      utterance.pitch = 0.96; // Authoritative tactical commander tone
+      utterance.rate = 1.0; // Crisp, commanding pacing
+      utterance.pitch = 0.90; // Deep authoritative commander pitch
       utterance.volume = 1.0;
 
-      const voices = window.speechSynthesis.getVoices();
-      const englishVoice = voices.find(v => 
-        v.lang.startsWith('en') && 
-        (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Daniel') || v.name.includes('Samantha') || v.name.includes('David') || v.name.includes('Alex'))
-      ) || voices.find(v => v.lang.startsWith('en'));
-
-      if (englishVoice) {
-        utterance.voice = englishVoice;
+      const maleVoice = this.getPreferredMaleVoice();
+      if (maleVoice) {
+        utterance.voice = maleVoice;
       }
 
       let hasEnded = false;
