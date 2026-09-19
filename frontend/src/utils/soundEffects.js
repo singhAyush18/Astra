@@ -258,13 +258,22 @@ class SoundEngine {
     try {
       window.speechSynthesis.cancel(); // Cancel any prior pending speech
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 1.0; // Crisp, commanding pacing
-      utterance.pitch = 0.90; // Deep authoritative commander pitch
       utterance.volume = 1.0;
 
-      const maleVoice = this.getPreferredMaleVoice();
-      if (maleVoice) {
-        utterance.voice = maleVoice;
+      const selectedVoice = this.getPreferredMaleVoice();
+      if (selectedVoice) {
+        utterance.voice = selectedVoice;
+      }
+
+      // If the available voice is female or generic, pitch-shift it down to 0.65 to sound like a deep masculine commander
+      const isExplicitMale = selectedVoice && /male|david|mark|george|daniel|alex|arthur|guy|tom|james|ryan/i.test(selectedVoice.name);
+      if (isExplicitMale) {
+        utterance.pitch = 0.88;
+        utterance.rate = 1.0;
+      } else {
+        // Deep baritone masculine shift for female/unspecified single voice
+        utterance.pitch = 0.68;
+        utterance.rate = 0.96;
       }
 
       let hasEnded = false;
