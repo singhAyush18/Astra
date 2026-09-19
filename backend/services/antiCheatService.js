@@ -153,15 +153,15 @@ const validateRunIntegrity = (run, duration) => {
 
         const isMobile = sensors.isMobile !== undefined ? sensors.isMobile : true;
 
-        if (isMobile) {
-            // A. Zero steps / Zero motion while moving 200m+
+        if (isMobile && sensors.hasSensorData) {
+            // A. Zero steps / Zero motion while moving 200m+ (only when motion sensors are actively sending data)
             if (totalSteps < Math.max(25, minExpectedSteps * 0.3) && motionScore < 0.22) {
                 flags.push("NO_PHYSICAL_MOVEMENT_DETECTED");
                 reasons.push(
                     `Couch spoofing detected: Logged ${distanceKm.toFixed(2)} km with only ${totalSteps} physical footsteps and stationary phone motion score (${motionScore.toFixed(2)}).`
                 );
                 sensorIntegrityScore = 0;
-            } else if (sensors.hasSensorData && motionScore < 0.10) {
+            } else if (motionScore < 0.10) {
                 flags.push("STATIONARY_DEVICE_SPOOF");
                 reasons.push(
                     `Device was motionless (motion energy ${motionScore.toFixed(3)}) while GPS coordinates were moving at running pace.`

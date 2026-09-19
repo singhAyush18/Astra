@@ -47,17 +47,26 @@ export default function InstallPrompt() {
       }
     }
 
-    // 5. Listen for successful install
-    window.addEventListener('appinstalled', () => {
+    // 5. Listen for custom install triggers from Navbar or other buttons
+    const handleOpenInstall = () => {
+      handleInstallClick();
+    };
+    window.addEventListener('astra-open-install', handleOpenInstall);
+
+    // 6. Listen for successful install
+    const handleAppInstalled = () => {
       setIsInstalled(true);
       setShowBanner(false);
       setDeferredPrompt(null);
-    });
+    };
+    window.addEventListener('appinstalled', handleAppInstalled);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('astra-open-install', handleOpenInstall);
+      window.removeEventListener('appinstalled', handleAppInstalled);
     };
-  }, []);
+  }, [deferredPrompt, isIOS]);
 
   const handleInstallClick = async () => {
     if (deferredPrompt) {

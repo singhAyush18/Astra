@@ -327,44 +327,55 @@ function ActiveRun() {
     };
   }, [status]);
 
-  // Timer with Auto-Pause & Background Keep-Alive
+  const runStartTimeRef = useRef(null);
+  const totalPausedTimeRef = useRef(0);
+  const pauseStartTimeRef = useRef(null);
+
+  // Compute absolute active duration (immune to background setInterval throttling)
+  const calculateActiveDuration = useCallback(() => {
+    if (!runStartTimeRef.current) return 0;
+    if (pauseStartTimeRef.current) {
+      const activeMs = pauseStartTimeRef.current - runStartTimeRef.current - totalPausedTimeRef.current;
+      return Math.max(0, Math.floor(activeMs / 1000));
+    }
+    const activeMs = Date.now() - runStartTimeRef.current - totalPausedTimeRef.current;
+    return Math.max(0, Math.floor(activeMs / 1000));
+  }, []);
+
+  // Timer with Wall-Clock Time Sync & Background Keep-Alive
   useEffect(() => {
     let interval;
     if (status === 'running') {
       // Start Screen Wake Lock & Background Audio Keep-Alive
       backgroundKeepAlive.start();
 
-      let lastTick = Date.now();
-      interval = setInterval(() => {
-        const now = Date.now();
-        const deltaSeconds = Math.round((now - lastTick) / 1000);
+      const syncDuration = () => {
+        const currentSecs = calculateActiveDuration();
+        setElapsed(currentSecs);
+        elapsedRef.current = currentSecs;
+      };
 
-        // Auto-pause if no distance update for 5 minutes (300,000 ms)
-        if (Date.now() - lastMoveTimeRef.current < 300000) {
-          if (deltaSeconds > 0) {
-            setElapsed(prev => {
-              const next = prev + deltaSeconds;
-              elapsedRef.current = next;
-              return next;
-            });
-            lastTick += deltaSeconds * 1000;
-          }
-          setIsAutoPaused(false);
-        } else {
-          setIsAutoPaused(true);
-          setCurrentPace('--:--');
-          lastTick = now;
+      syncDuration();
+      interval = setInterval(syncDuration, 1000);
+
+      // On screen wake / tab focus: instantly sync true wall-clock time
+      const handleVisibilitySync = () => {
+        if (document.visibilityState === 'visible') {
+          syncDuration();
+          backgroundKeepAlive.start();
         }
-      }, 1000);
+      };
+      document.addEventListener('visibilitychange', handleVisibilitySync);
+
+      return () => {
+        clearInterval(interval);
+        document.removeEventListener('visibilitychange', handleVisibilitySync);
+        backgroundKeepAlive.stop();
+      };
     } else {
       backgroundKeepAlive.stop();
     }
-
-    return () => {
-      clearInterval(interval);
-      backgroundKeepAlive.stop();
-    };
-  }, [status]);
+  }, [status, calculateActiveDuration]);
 
   // Haversine formula to calculate distance between two lat/lng points in km
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -401,19 +412,19 @@ function ActiveRun() {
       newLng
     );
     const distMeters = distDelta * 1000;
-    const timeDelta = (Date.now() - lastMoveTimeRef.current) / 1000;
+    const timeDelta = Math.max(1, (Date.now() - lastMoveTimeRef.current) / 1000);
 
-    // GPS JITTER FILTERS:
-    // 1. Deadband threshold: Ignore micro-shifts under 5.5 meters (indoor jitter)
+    // GPS JITTER & TELEPORT FILTERS:
+    // 1. Deadband threshold: Ignore micro-shifts under 4.5 meters (indoor jitter)
     // 2. Accuracy noise floor: Movement must exceed 35% of GPS accuracy radius
-    // 3. Speed gate: Must move at least 0.65 m/s (~2.3 km/h walking pace)
-    const instantSpeedMps = timeDelta > 0 ? (distMeters / timeDelta) : 0;
-    const isNoise = distMeters < 5.5 || (accuracy && distMeters < accuracy * 0.35);
-    const isStationary = (gpsSpeed !== null && gpsSpeed !== undefined && gpsSpeed < 0.5) || instantSpeedMps < 0.65;
-    const isTeleportGlitch = instantSpeedMps > 15.0; // > 54 km/h
+    // 3. Teleport glitch: Instantaneous velocity across timeDelta > 15.0 m/s (~54 km/h)
+    const instantSpeedMps = distMeters / timeDelta;
+    const isNoise = distMeters < 4.5 || (accuracy && distMeters < accuracy * 0.35);
+    const isStationary = gpsSpeed !== null && gpsSpeed !== undefined && gpsSpeed < 0.3 && distMeters < 8;
+    const isTeleportGlitch = instantSpeedMps > 15.0 && distMeters > 50;
 
     if (isNoise || isStationary || isTeleportGlitch) {
-      // Runner is stationary or GPS is jittering indoors -> DO NOT accumulate distance or draw spaghetti path
+      // Runner is stationary or GPS is jittering indoors -> DO NOT accumulate distance
       return;
     }
 
@@ -475,8 +486,8 @@ function ActiveRun() {
           if (pos.coords.mocked || pos.coords.isMock || pos.mockLocation) {
             isMockDetectedRef.current = true;
           }
-          // Discard inaccurate GPS readings (> 25m uncertainty)
-          if (accuracy > 25) return;
+          // Discard inaccurate GPS readings (> 35m uncertainty)
+          if (accuracy > 35) return;
           if (gpsHeading !== null && !isNaN(gpsHeading) && gpsHeading >= 0) {
             setHeading(gpsHeading);
           }
@@ -526,9 +537,13 @@ function ActiveRun() {
       if (data.success) {
         if (data.data.resumed) {
           const resRun = data.data.run;
+          const prevDuration = resRun.duration || 0;
           setRunId(resRun._id);
-          setElapsed(resRun.duration || 0);
-          elapsedRef.current = resRun.duration || 0;
+          setElapsed(prevDuration);
+          elapsedRef.current = prevDuration;
+          runStartTimeRef.current = Date.now() - (prevDuration * 1000);
+          totalPausedTimeRef.current = 0;
+          pauseStartTimeRef.current = null;
           setDistance(resRun.distance || 0);
           distanceRef.current = resRun.distance || 0;
           
@@ -553,6 +568,9 @@ function ActiveRun() {
           setStatus('running');
           setElapsed(0);
           elapsedRef.current = 0;
+          runStartTimeRef.current = Date.now();
+          totalPausedTimeRef.current = 0;
+          pauseStartTimeRef.current = null;
           setDistance(0);
           setCurrentPace('--:--');
           distanceRef.current = 0;
@@ -577,12 +595,17 @@ function ActiveRun() {
 
   const handlePause = () => {
     setStatus('paused');
+    pauseStartTimeRef.current = Date.now();
     if (runId && coords) {
       runsAPI.updateLocation(null, runId, { lat: coords.lat, lng: coords.lng, duration: elapsedRef.current, timestamp: new Date().toISOString() }).catch(() => {});
     }
   };
 
   const handleResume = () => {
+    if (pauseStartTimeRef.current) {
+      totalPausedTimeRef.current += (Date.now() - pauseStartTimeRef.current);
+      pauseStartTimeRef.current = null;
+    }
     setStatus('running');
     setIsAutoPaused(false);
     lastMoveTimeRef.current = Date.now();
@@ -594,13 +617,14 @@ function ActiveRun() {
     setStatus('ending');
 
     try {
+      const finalDuration = calculateActiveDuration();
       const isMobileDevice = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
       const res = await runsAPI.end(null, runId, {
-        duration: elapsed,
+        duration: finalDuration,
         isSimulated: isSimulatedRef.current,
         sensorTelemetry: {
           totalSteps: stepCountRef.current,
-          avgCadence: elapsed > 0 ? Math.round((stepCountRef.current / (elapsed / 60))) : 0,
+          avgCadence: finalDuration > 0 ? Math.round((stepCountRef.current / (finalDuration / 60))) : 0,
           motionScore: motionSampleCountRef.current > 0 ? (motionEnergyAccumulatorRef.current / motionSampleCountRef.current) : 0,
           hasSensorData: hasMotionSensorRef.current,
           isMockFlagged: isMockDetectedRef.current,

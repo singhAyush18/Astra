@@ -128,10 +128,29 @@ const completeRun = async (run, options = {}) => {
     const { duration: frontendDuration, user: providedUser, isSimulated, sensorTelemetry } = options;
 
     run.endTime = run.endTime || new Date();
-    run.duration =
-        frontendDuration !== undefined
-            ? frontendDuration
-            : run.duration || Math.floor((run.endTime - run.startTime) / 1000);
+    const serverWallClockDuration = Math.max(1, Math.floor((run.endTime - run.startTime) / 1000));
+
+    let finalDuration = frontendDuration !== undefined && Number(frontendDuration) > 0
+        ? Number(frontendDuration)
+        : serverWallClockDuration;
+
+    // Guard against impossible speeds caused by background-throttled client timers:
+    // If frontend duration is suspiciously short (< server wall-clock) resulting in > 35 km/h,
+    // but the true server wall-clock time yields a valid human speed (<= 45 km/h),
+    // use the true server wall-clock duration.
+    if (run.distance > 0.05) {
+        const clientSpeedKmh = run.distance / (finalDuration / 3600);
+        const serverWallClockSpeedKmh = run.distance / (serverWallClockDuration / 3600);
+
+        if (clientSpeedKmh > 35 && serverWallClockSpeedKmh <= 45) {
+            console.log(
+                `[RunService] Recovered background-throttled run: clientDuration=${finalDuration}s (${clientSpeedKmh.toFixed(1)} km/h) -> corrected to serverWallClock=${serverWallClockDuration}s (${serverWallClockSpeedKmh.toFixed(1)} km/h)`
+            );
+            finalDuration = serverWallClockDuration;
+        }
+    }
+
+    run.duration = Math.max(1, Math.round(finalDuration));
 
     if (isSimulated !== undefined) {
         run.isSimulated = Boolean(isSimulated);
