@@ -1,158 +1,121 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Shield, Sparkles, Award, Zap, Check, ChevronRight } from 'lucide-react';
-import './LandingSections.css';
-
-const RANKS_DATA = [
-  {
-    id: 'recruit',
-    title: 'Recruit Legionnaire',
-    level: 'Rank I',
-    req: '0 – 50 Total KM',
-    icon: '🛡️',
-    color: '#a09880',
-    relic: 'Bronze Gladius & Scout Boots',
-    perks: [
-      { title: 'GPS Conquest Access', desc: 'Claim hex sectors during any outdoor GPS run.' },
-      { title: 'Standard Clan Enlistment', desc: 'Join one of the 4 ancient dynasties and contribute to clan pool.' },
-      { title: 'Basic Pace Metrics', desc: 'Live pace, elevation and calorie tracking.' }
-    ]
-  },
-  {
-    id: 'centurion',
-    title: 'Bronze Centurion',
-    level: 'Rank II',
-    req: '50 – 150 Total KM',
-    icon: '⚔️',
-    color: '#cd7f32',
-    relic: 'Centurion Crested Galea Helmet',
-    perks: [
-      { title: '+10% Territory Defense', desc: 'Your held sectors resist decay 10% longer.' },
-      { title: 'Siege Banner Unlock', desc: 'Deploy a personal crest on any claimed sector.' },
-      { title: 'Raid Participation', desc: 'Access weekly clan siege battles.' }
-    ]
-  },
-  {
-    id: 'legatus',
-    title: 'Silver Legatus',
-    level: 'Rank III',
-    req: '150 – 350 Total KM',
-    icon: '🦅',
-    color: '#bdc3c7',
-    relic: 'Silver Aquila Standard & Cuirass',
-    perks: [
-      { title: 'Territory Perimeter Aura', desc: 'Expanding radius captures 2 adjacent border nodes automatically.' },
-      { title: '+20% Honor Yield', desc: 'Bonus war points awarded on every 5k+ run.' },
-      { title: 'Clan Officer Privileges', desc: 'Direct clan battle attack commands on enemy strongholds.' }
-    ]
-  },
-  {
-    id: 'warlord',
-    title: 'Gold Warlord',
-    level: 'Rank IV',
-    req: '350 – 750 Total KM',
-    icon: '🦁',
-    color: '#f0d060',
-    relic: 'Gilded Sun Armor & Flame Spear',
-    perks: [
-      { title: 'Berserker Pace Multiplier', desc: 'Speed runs below 4:45/km deal 2.5x stronghold siege damage.' },
-      { title: 'Imperial Relic Vault', desc: 'Equip rare ancient artifacts for custom stat buffs.' },
-      { title: 'Citadel Defense Commander', desc: 'Set defensive barricades on major city checkpoints.' }
-    ]
-  },
-  {
-    id: 'emperor',
-    title: 'Sovereign Emperor',
-    level: 'Rank V (Mythic)',
-    req: '750+ Total KM',
-    icon: '👑',
-    color: '#f1c40f',
-    relic: 'Imperial Laurel of the Gods & Solar Cape',
-    perks: [
-      { title: 'Sovereign Domain Buff', desc: 'Entire clan receives +15% territory shield when you are running.' },
-      { title: 'Immortal Hall of Fame', desc: 'Permanent gold inscription in the global Hall of Conquerors.' },
-      { title: 'Realm Overlord Title', desc: 'Unique animated neon gold avatar frame and royal leaderboard badge.' }
-    ]
-  }
-];
+import { motion, AnimatePresence } from 'framer-motion';
+import { Shield, Swords, Flame, Crown, Check, Sparkles } from 'lucide-react';
+import { RANKS_CONFIG } from '../../utils/rankUtils';
+import ranksBg from '../../assets/ranks_bg.jpg';
+import './RankProgressionSection.css';
 
 const RankProgressionSection = () => {
-  const [selectedRank, setSelectedRank] = useState(RANKS_DATA[3]);
+  const [activeRank, setActiveRank] = useState(RANKS_CONFIG[0]);
+  const [hoveredRank, setHoveredRank] = useState(null);
+
+  const displayRank = hoveredRank || activeRank;
 
   return (
-    <section id="rank-progression" className="landing-section">
-      <div className="section-header-wrap">
+    <section className="ranks-section-realm" id="rank-progression" style={{ backgroundImage: `url(${ranksBg})` }}>
+      <div className="ranks-dark-vignette" />
+
+      {/* Right Editorial Quote */}
+      <div className="ranks-editorial-right">
+        <span className="ranks-vertical-quote">
+          DISCIPLINE CREATES FREEDOM.
+        </span>
+      </div>
+
+      <div className="ranks-inner-wrap">
+        {/* Header Block */}
         <motion.div
-          className="section-subtitle-badge"
-          initial={{ opacity: 0, y: 15 }}
+          className="ranks-header-block"
+          initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
         >
-          <Award size={14} />
-          <span>Warlord Hierarchy</span>
+          <h2 className="ranks-main-title">RISE THROUGH THE RANKS</h2>
+          <p className="ranks-lead-desc">
+            From runner to ruler. Earn XP, climb levels, and leave your mark.
+          </p>
         </motion.div>
-        <h2 className="section-main-title gold-text">Ascend the Imperial Ranks</h2>
-        <p className="section-lead-text">
-          Progress from a novice scout to a Mythic Sovereign. Each rank unlocks battle relics, visual insignia, and devastating territory conquest multipliers.
-        </p>
-      </div>
 
-      {/* Interactive Step Nodes */}
-      <div className="ranks-track">
-        {RANKS_DATA.map((rank) => {
-          const isActive = selectedRank.id === rank.id;
-          return (
-            <div
-              key={rank.id}
-              className={`rank-step-node ${isActive ? 'active' : ''}`}
-              onClick={() => setSelectedRank(rank)}
-            >
-              <div className="rank-node-icon">
-                <span style={{ fontSize: '1.8rem' }}>{rank.icon}</span>
+        {/* Connected Horizontal Heraldic Sigil Track */}
+        <div className="ranks-sigil-track">
+          <div className="ranks-connecting-line" />
+
+          {RANKS_CONFIG.map((rank, idx) => {
+            const isSelected = activeRank.id === rank.id;
+            const isHovered = hoveredRank?.id === rank.id;
+
+            return (
+              <div
+                key={rank.id}
+                className={`sigil-node-item ${isSelected ? 'selected' : ''} ${isHovered ? 'hovered' : ''}`}
+                onClick={() => setActiveRank(rank)}
+                onMouseEnter={() => setHoveredRank(rank)}
+                onMouseLeave={() => setHoveredRank(null)}
+              >
+                {/* Circular Heraldic Badge */}
+                <div
+                  className="sigil-badge-circle"
+                  style={{
+                    '--sigil-color': rank.color,
+                    '--sigil-glow': rank.glow
+                  }}
+                >
+                  <span className="sigil-emoji">{rank.icon}</span>
+                  <div className="sigil-ring-bevel" />
+                </div>
+
+                {/* Rank Name & XP Subtitle */}
+                <div className="sigil-text-group">
+                  <h4 className="sigil-rank-name">{rank.name}</h4>
+                  <span className="sigil-xp-range">{rank.xpRange}</span>
+                </div>
               </div>
-              <span className="rank-node-name">{rank.title.split(' ')[0]} {rank.title.split(' ')[1]}</span>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Rank Detail Card */}
-      <motion.div
-        key={selectedRank.id}
-        className="rank-detail-card"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-      >
-        <div className="rank-badge-preview">
-          <div className="rank-insignia-giant">
-            <span style={{ fontSize: '3rem' }}>{selectedRank.icon}</span>
-          </div>
-          <h3 className="rank-badge-title">{selectedRank.title}</h3>
-          <span style={{ color: 'var(--gold-primary)', fontFamily: 'var(--font-stats)', fontSize: '0.9rem', marginBottom: '4px' }}>
-            {selectedRank.level}
-          </span>
-          <span className="rank-req">{selectedRank.req}</span>
-          <div style={{ marginTop: '16px', padding: '8px 12px', background: 'rgba(212, 175, 55, 0.1)', borderRadius: '6px', border: '1px solid rgba(212, 175, 55, 0.2)', fontSize: '0.8rem', color: 'var(--gold-light)' }}>
-            <strong>Relic:</strong> {selectedRank.relic}
-          </div>
+            );
+          })}
         </div>
 
-        <div className="rank-perks-list">
-          <h4 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.2rem', color: 'var(--text-primary)', marginBottom: '8px' }}>
-            Rank Mastery Privileges:
-          </h4>
-          {selectedRank.perks.map((perk, i) => (
-            <div key={i} className="rank-perk-row">
-              <Check size={20} className="rank-perk-check" />
-              <div className="rank-perk-text">
-                <h4>{perk.title}</h4>
-                <p>{perk.desc}</p>
+        {/* Detailed Rank Relic & Privilege Card */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={displayRank.id}
+            className="rank-perk-detail-card"
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -15 }}
+            transition={{ duration: 0.3 }}
+            style={{ '--rank-theme-color': displayRank.color }}
+          >
+            <div className="perk-card-header">
+              <div className="perk-header-left">
+                <span className="perk-card-icon">{displayRank.icon}</span>
+                <div>
+                  <h3 className="perk-card-title">{displayRank.name} — {displayRank.title}</h3>
+                  <span className="perk-card-level">{displayRank.rangeLabel} ({displayRank.xpRange})</span>
+                </div>
+              </div>
+
+              <div className="perk-relic-badge">
+                <Sparkles size={14} style={{ color: displayRank.color }} />
+                <span><strong>Relic:</strong> {displayRank.relic}</span>
               </div>
             </div>
-          ))}
-        </div>
-      </motion.div>
+
+            <p className="perk-card-desc">{displayRank.description}</p>
+
+            <div className="perk-list-grid">
+              {displayRank.perks.map((perk, i) => (
+                <div key={i} className="perk-list-item">
+                  <div className="perk-check-bullet" style={{ background: displayRank.color }}>
+                    <Check size={12} strokeWidth={3} color="#0d0c0b" />
+                  </div>
+                  <span>{perk}</span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      </div>
     </section>
   );
 };

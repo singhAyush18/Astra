@@ -3,10 +3,8 @@ import { BarChart3 } from 'lucide-react';
 import './WeeklyChart.css';
 
 function WeeklyChart({ runs }) {
-  // Aggregate runs by day of week (0-6, where 0 is Sunday or Monday depending on locale)
-  // Let's use 0 = Mon, 6 = Sun
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  
+
   const getDayIndex = (dateString) => {
     const d = new Date(dateString);
     let day = d.getDay() - 1;
@@ -45,22 +43,31 @@ function WeeklyChart({ runs }) {
         <BarChart3 size={18} className="chart-icon" />
         <h3>This Week's Conquests</h3>
       </div>
-      
+
       <div className="chart-container">
         {data.map((dist, idx) => {
-          const heightPercent = maxDistance > 0 ? (dist / maxDistance) * 100 : 0;
+          const heightPercent = maxDistance > 0 ? Math.max(8, (dist / maxDistance) * 100) : 0;
+          const hasRun = dist > 0;
           return (
             <div key={days[idx]} className="chart-bar-group">
-              <div className="chart-bar-wrapper">
-                <motion.div 
-                  className="chart-bar"
-                  initial={{ height: 0 }}
-                  animate={{ height: `${heightPercent}%` }}
-                  transition={{ duration: 0.8, delay: idx * 0.1 }}
-                >
-                  {dist > 0 && <span className="chart-val">{dist.toFixed(1)}</span>}
-                </motion.div>
+              {/* Dedicated number slot above the bar */}
+              <div className="chart-val-slot">
+                {hasRun ? `${dist.toFixed(1)} km` : ''}
               </div>
+
+              <div className="chart-bar-wrapper">
+                {hasRun ? (
+                  <motion.div
+                    className="chart-bar"
+                    initial={{ height: 0 }}
+                    animate={{ height: `${heightPercent}%` }}
+                    transition={{ duration: 0.7, delay: idx * 0.08 }}
+                  />
+                ) : (
+                  <div className="chart-bar-empty" />
+                )}
+              </div>
+
               <span className="chart-label">{days[idx]}</span>
             </div>
           );

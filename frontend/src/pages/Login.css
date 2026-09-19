@@ -1,162 +1,167 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&display=swap');
+/* ===== ASTRA AUTH PAGES (LOGIN / SIGNUP / RESET) ===== */
 
-*{
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
+.auth-container {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 20px;
+  position: relative;
+  background-image: 
+    radial-gradient(circle at center, rgba(10, 9, 8, 0.6) 0%, rgba(10, 9, 8, 0.92) 80%, #0a0908 100%),
+    url("../assets/hero_bg.jpg");
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+  overflow: hidden;
 }
 
-body{
-  font-family:'Cinzel', serif;
+.auth-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(ellipse at 50% 30%, rgba(212, 175, 55, 0.08) 0%, transparent 70%);
+  pointer-events: none;
 }
 
-.auth-container{
-  min-height:100vh;
-
-  display:flex;
-  justify-content:center;
-  align-items:center;
-
-  background:
-  linear-gradient(
-  rgba(5,10,25,0.85),
-  rgba(5,10,25,0.9)
-  ),
-  url("https://images.unsplash.com/photo-1511497584788-876760111969?w=1920");
-
-  background-size:cover;
-  background-position:center;
+.auth-card {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 440px;
+  padding: 44px 38px;
+  background: rgba(18, 15, 12, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  border-radius: 12px;
+  box-shadow: 
+    0 20px 50px rgba(0, 0, 0, 0.85),
+    0 0 35px rgba(212, 175, 55, 0.15),
+    inset 0 1px 1px rgba(255, 240, 200, 0.15);
 }
 
-.auth-card{
-  width:420px;
-
-  padding:40px;
-
-  border:2px solid #d4af37;
-
-  border-radius:20px;
-
-  background:rgba(10,15,35,0.9);
-
-  backdrop-filter:blur(10px);
-
-  box-shadow:
-  0 0 30px rgba(212,175,55,0.3);
+.logo {
+  text-align: center;
+  font-family: 'Cinzel Decorative', 'Cinzel', serif;
+  font-size: 2.8rem;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  margin-bottom: 2px;
+  background: linear-gradient(180deg, #ffffff 0%, #fdf5d6 20%, #e5c365 55%, #b8860b 85%, #5a3d07 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 12px rgba(212, 175, 55, 0.35));
 }
 
-.logo{
-  text-align:center;
-
-  color:#d4af37;
-
-  font-size:3rem;
-
-  margin-bottom:10px;
+.subtitle {
+  text-align: center;
+  font-family: 'Cinzel', serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.25em;
+  color: #c9bea9;
+  text-transform: uppercase;
+  margin-bottom: 30px;
 }
 
-.subtitle{
-  text-align:center;
-
-  color:#d8d8d8;
-
-  margin-bottom:30px;
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
 
-.auth-form{
-  display:flex;
-  flex-direction:column;
-
-  gap:16px;
+.auth-form input {
+  width: 100%;
+  padding: 14px 16px;
+  background: #110f0d;
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 6px;
+  color: #f2ece4;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.95rem;
+  transition: all 0.25s ease;
 }
 
-.auth-form input{
-  padding:14px;
-
-  border:1px solid #d4af37;
-
-  border-radius:10px;
-
-  background:#101827;
-
-  color:white;
-
-  font-size:1rem;
+.auth-form input::placeholder {
+  color: #7d7265;
 }
 
-.auth-form input:focus{
-  outline:none;
-
-  border-color:#ffd700;
-
-  box-shadow:
-  0 0 12px rgba(255,215,0,0.5);
+.auth-form input:focus {
+  outline: none;
+  background: #171410;
+  border-color: #f5e6a3;
+  box-shadow: 0 0 14px rgba(212, 175, 55, 0.35);
 }
 
-.auth-form button{
-  padding:15px;
-
-  border:none;
-
-  border-radius:10px;
-
-  background:#d4af37;
-
-  color:black;
-
-  font-weight:bold;
-
-  cursor:pointer;
-
-  transition:0.3s;
+.auth-form button[type="submit"] {
+  width: 100%;
+  padding: 15px;
+  margin-top: 8px;
+  background: linear-gradient(180deg, #961b1b 0%, #680f0f 50%, #460909 100%);
+  border: 1px solid rgba(245, 230, 163, 0.45);
+  border-radius: 6px;
+  color: #fff9e6;
+  font-family: 'Cinzel', serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 4px 18px rgba(104, 15, 15, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.auth-form button:hover{
-  transform:translateY(-2px);
-
-  background:#ffd700;
+.auth-form button[type="submit"]:hover:not(:disabled) {
+  background: linear-gradient(180deg, #b32222 0%, #831414 50%, #5a0b0b 100%);
+  border-color: rgba(245, 230, 163, 0.8);
+  box-shadow: 0 6px 24px rgba(179, 34, 34, 0.7), 0 0 18px rgba(212, 175, 55, 0.35);
+  transform: translateY(-2px);
 }
 
-.auth-footer{
-  margin-top:20px;
-
-  text-align:center;
-
-  color:#ddd;
+.auth-form button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
-.auth-footer span{
-  color:#d4af37;
-
-  cursor:pointer;
+.auth-footer {
+  margin-top: 24px;
+  text-align: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.88rem;
+  color: #a0927e;
 }
 
-.auth-footer a{
-  color:#d4af37;
-  text-decoration:none;
+.auth-footer a {
+  color: #f5e6a3;
+  font-weight: 600;
+  text-decoration: none;
+  margin-left: 4px;
+  transition: color 0.2s ease;
 }
 
-.auth-footer a:hover{
-  color:#ffd700;
-  text-decoration:underline;
+.auth-footer a:hover {
+  color: #ffffff;
+  text-decoration: underline;
 }
 
-.auth-error{
-  color:#e74c3c;
-  text-align:center;
-  font-size:0.9rem;
-  font-family:'Inter', sans-serif;
-  background:rgba(231,76,60,0.1);
-  border:1px solid rgba(231,76,60,0.3);
-  padding:10px;
-  border-radius:8px;
+.auth-error {
+  color: #e74c3c;
+  text-align: center;
+  font-size: 0.88rem;
+  font-family: 'Inter', sans-serif;
+  background: rgba(231, 76, 60, 0.12);
+  border: 1px solid rgba(231, 76, 60, 0.35);
+  padding: 10px;
+  border-radius: 6px;
 }
 
-.auth-form button:disabled{
-  opacity:0.6;
-  cursor:not-allowed;
-}
-
+/* Password Toggle */
 .password-input-wrapper {
   position: relative !important;
   width: 100% !important;
@@ -183,17 +188,12 @@ body{
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  transition: color 0.2s ease, transform 0.2s ease, background 0.2s ease !important;
+  transition: color 0.2s ease, transform 0.2s ease !important;
   z-index: 10 !important;
   box-shadow: none !important;
-  border-radius: 6px !important;
-  line-height: 1 !important;
-  width: auto !important;
-  height: auto !important;
 }
 
 .password-toggle-btn:hover {
   color: #ffd700 !important;
-  background: rgba(212, 175, 55, 0.15) !important;
   transform: translateY(-50%) scale(1.1) !important;
-}
+}

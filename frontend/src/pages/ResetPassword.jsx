@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Crown } from "lucide-react";
 import toast from "react-hot-toast";
 import { authAPI } from "../api";
 import "./Login.css";
@@ -66,6 +66,21 @@ function ResetPassword() {
     return (
       <div className="auth-container">
         <div className="auth-card">
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
+            <img 
+              src="/logo.jpg" 
+              alt="Astra Logo" 
+              style={{ 
+                width: '64px', 
+                height: '64px', 
+                borderRadius: '50%', 
+                border: '2px solid rgba(212, 175, 55, 0.6)', 
+                boxShadow: '0 0 20px rgba(212, 175, 55, 0.4)',
+                objectFit: 'cover'
+              }} 
+            />
+          </div>
+
           <h1 className="logo">ASTRA</h1>
           <p className="subtitle">Invalid Reset Link</p>
           <p className="auth-error" style={{ marginBottom: "20px" }}>
@@ -84,6 +99,21 @@ function ResetPassword() {
   return (
     <div className="auth-container">
       <div className="auth-card">
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
+          <img 
+            src="/logo.jpg" 
+            alt="Astra Logo" 
+            style={{ 
+              width: '64px', 
+              height: '64px', 
+              borderRadius: '50%', 
+              border: '2px solid rgba(212, 175, 55, 0.6)', 
+              boxShadow: '0 0 20px rgba(212, 175, 55, 0.4)',
+              objectFit: 'cover'
+            }} 
+          />
+        </div>
+
         <h1 className="logo">ASTRA</h1>
         <p className="subtitle">Set Your New Password</p>
 

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Sword, Map, Trophy, Scroll, Menu, X, Shield, 
-  Settings, Info, LogOut, ChevronRight, User, Sparkles
+  Settings, Info, LogOut, ChevronRight, User, Sparkles, Download
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import StreakFlame from './StreakFlame';
@@ -36,29 +36,30 @@ const Navbar = ({ streak }) => {
     };
   }, [mobileOpen]);
 
-  const closeMobile = () => setMobileOpen(false);
-
   const toggleMobileMenu = () => {
-    if (!mobileOpen) {
-      setUserMenuOpen(false); // Close profile if opening explore menu
-    }
-    setMobileOpen(!mobileOpen);
+    setMobileOpen(prev => !prev);
   };
 
-  const handleUserMenuToggle = (nextState) => {
-    if (nextState) {
-      setMobileOpen(false); // Close mobile drawer if opening profile menu
-    }
-    setUserMenuOpen(nextState);
+  const closeMobile = () => {
+    setMobileOpen(false);
+  };
+
+  const handleUserMenuToggle = () => {
+    setUserMenuOpen(prev => !prev);
   };
 
   const handleMobileLogout = () => {
     closeMobile();
     logout();
-    navigate('/');
   };
 
-  const username = user?.username || 'Vanguard';
+  const handleInstallApp = () => {
+    closeMobile();
+    // Dispatch custom event to trigger install prompt if available
+    window.dispatchEvent(new CustomEvent('astra-open-install'));
+  };
+
+  const username = user?.username || 'Warrior';
   const initial = username.charAt(0).toUpperCase();
   const profilePicture = user?.profilePicture;
   const userLevel = user?.level || 1;
@@ -73,8 +74,8 @@ const Navbar = ({ streak }) => {
       >
         <div className="navbar-inner">
           <Link to="/dashboard" className="navbar-logo" onClick={closeMobile}>
-            <div className="logo-icon">
-              <Sword size={22} />
+            <div className="logo-icon logo-image-wrapper">
+              <img src="/logo.jpg" alt="Astra Logo" className="navbar-logo-img" />
             </div>
             <div className="logo-text">
               <span className="logo-astra">ASTRA</span>
@@ -261,6 +262,15 @@ const Navbar = ({ streak }) => {
 
               {/* Utility / Footer options */}
               <div className="mobile-drawer-footer">
+                <button 
+                  type="button"
+                  className="mobile-footer-btn install-app-nav-btn"
+                  onClick={handleInstallApp}
+                >
+                  <Download size={18} />
+                  <span>Install App</span>
+                </button>
+
                 <Link 
                   to="/settings" 
                   className="mobile-footer-btn"

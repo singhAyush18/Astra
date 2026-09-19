@@ -18,9 +18,12 @@ import VerifyEmail from "./pages/VerifyEmail";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 
+import InstallPrompt from "./components/InstallPrompt";
+
 function App() {
   return (
     <AuthProvider>
+      <InstallPrompt />
       <Toaster position="top-center" toastOptions={{
         style: {
           background: '#141428',

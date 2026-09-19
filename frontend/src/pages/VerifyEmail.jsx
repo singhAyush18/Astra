@@ -64,6 +64,21 @@ function VerifyEmail() {
   return (
     <div className="auth-container">
       <div className="auth-card">
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
+          <img 
+            src="/logo.jpg" 
+            alt="Astra Logo" 
+            style={{ 
+              width: '64px', 
+              height: '64px', 
+              borderRadius: '50%', 
+              border: '2px solid rgba(212, 175, 55, 0.6)', 
+              boxShadow: '0 0 20px rgba(212, 175, 55, 0.4)',
+              objectFit: 'cover'
+            }} 
+          />
+        </div>
+
         <h1 className="logo">ASTRA</h1>
 
         {status === "loading" && (

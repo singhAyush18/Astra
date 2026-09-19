@@ -1,18 +1,81 @@
 .about-container {
   min-height: 100vh;
-  background: var(--bg-primary, #0a0a1a);
+  position: relative;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+/* ── Fixed Floating Ember Canvas ── */
+.about-ember-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ── Atmospheric Fortress Vignette ── */
+.about-backdrop-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: 
+    linear-gradient(180deg, rgba(8, 7, 6, 0.86) 0%, rgba(14, 11, 9, 0.92) 50%, rgba(6, 5, 4, 0.97) 100%),
+    radial-gradient(circle at 50% 30%, transparent 20%, rgba(0, 0, 0, 0.85) 90%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Golden Torchlight / Sunburst Ambient Glow ── */
+.about-torch-sunburst {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 120vw;
+  height: 600px;
+  background: 
+    radial-gradient(ellipse at 50% 15%, rgba(212, 175, 55, 0.18) 0%, rgba(197, 22, 22, 0.08) 40%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Tactical Topographic & Hex Grid Watermark ── */
+.about-tactical-grid-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-image: 
+    radial-gradient(rgba(212, 175, 55, 0.08) 1px, transparent 1px),
+    linear-gradient(to right, rgba(212, 175, 55, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(212, 175, 55, 0.02) 1px, transparent 1px);
+  background-size: 32px 32px, 64px 64px, 64px 64px;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.6;
 }
 
 .about-main {
-  max-width: 800px;
+  max-width: 860px;
   margin: 0 auto;
-  padding: calc(var(--navbar-height, 70px) + 40px) var(--space-xl, 24px) 60px;
+  width: 100%;
+  padding: calc(var(--navbar-height, 70px) + 30px) var(--space-xl, 24px) 60px;
+  position: relative;
+  z-index: 2;
 }
 
 /* ── Hero ── */
 .about-hero {
   text-align: center;
-  padding: 48px 0 40px;
+  padding: 36px 0 40px;
 }
 
 .about-hero-icon {
@@ -116,16 +179,20 @@
 
 .about-feature-card {
   padding: 24px 20px;
-  background: rgba(212, 175, 55, 0.03);
-  border: 1px solid rgba(212, 175, 55, 0.1);
+  background: rgba(18, 15, 13, 0.75);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(212, 175, 55, 0.22);
   border-radius: 14px;
-  transition: all 0.3s ease;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 215, 0, 0.1);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .about-feature-card:hover {
-  background: rgba(212, 175, 55, 0.06);
-  border-color: rgba(212, 175, 55, 0.2);
-  transform: translateY(-2px);
+  background: rgba(25, 20, 16, 0.85);
+  border-color: rgba(212, 175, 55, 0.45);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6), 0 0 20px rgba(212, 175, 55, 0.15);
+  transform: translateY(-3px);
 }
 
 .feature-icon-wrapper {
@@ -134,27 +201,28 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, rgba(212, 175, 55, 0.12), rgba(212, 175, 55, 0.03));
-  border: 1px solid rgba(212, 175, 55, 0.15);
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.2), rgba(212, 175, 55, 0.05));
+  border: 1px solid rgba(212, 175, 55, 0.3);
   border-radius: 12px;
   color: var(--gold-primary, #d4af37);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   margin-bottom: 14px;
 }
 
 .about-feature-card h3 {
   font-family: var(--font-heading, 'Cinzel', serif);
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--text-primary, #e8e0d0);
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
   margin-bottom: 8px;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.03em;
 }
 
 .about-feature-card p {
   font-family: var(--font-ui, 'Inter', sans-serif);
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   line-height: 1.6;
-  color: var(--text-secondary, #8a8a9a);
+  color: #bfa880;
 }
 
 /* ── Rank cards ── */
@@ -172,10 +240,19 @@
   align-items: center;
   gap: 12px;
   padding: 24px 16px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(18, 15, 13, 0.78);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(212, 175, 55, 0.22);
   border-radius: 14px;
-  transition: all 0.3s ease;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.rank-card:hover {
+  border-color: rgba(212, 175, 55, 0.5);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6), 0 0 24px rgba(212, 175, 55, 0.2);
+  transform: translateY(-3px);
 }
 
 .rank-card:hover {

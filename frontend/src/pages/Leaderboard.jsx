@@ -300,50 +300,53 @@ function Leaderboard() {
             </div>
 
             <AnimatePresence mode="popLayout">
-              {rest.map((entry, idx) => (
-                <motion.div
-                  key={entry.userId}
-                  className={`ranking-row ${entry.userId === storedUser.id ? "is-you" : ""}`}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  transition={{ duration: 0.3, delay: idx * 0.05 }}
-                  layout
-                >
-                  <span className="row-rank">
-                    <span className="rank-number">{entry.rank}</span>
-                  </span>
-                  <div className="row-warrior">
-                    <div className="row-avatar">
-                      {entry.username.charAt(0).toUpperCase()}
+              {rest.map((entry, idx) => {
+                const isUser = entry.userId === (storedUser?.id || storedUser?._id);
+                return (
+                  <motion.div
+                    key={entry.userId}
+                    className={`ranking-row ${isUser ? "is-you" : ""}`}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    transition={{ duration: 0.3, delay: idx * 0.05 }}
+                    layout
+                  >
+                    <span className="row-rank">
+                      <span className="rank-number">{entry.rank}</span>
+                    </span>
+                    <div className="row-warrior">
+                      <div className="row-avatar">
+                        {entry.username.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="row-info">
+                        <span className="row-name">{entry.username}</span>
+                        <span className="row-title" style={{ color: getRankByLevel(entry.level).color, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <span>{getRankByLevel(entry.level).icon}</span>
+                          <span>{getRankTitle(entry.level)}</span>
+                        </span>
+                      </div>
                     </div>
-                    <div className="row-info">
-                      <span className="row-name">{entry.username}</span>
-                      <span className="row-title" style={{ color: getRankByLevel(entry.level).color, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                        <span>{getRankByLevel(entry.level).icon}</span>
-                        <span>{getRankTitle(entry.level)}</span>
-                      </span>
-                    </div>
-                  </div>
-                  <span className="row-level">
-                    <span className="level-pill">Lvl {entry.level}</span>
-                  </span>
-                  <span className="row-value">{getCategoryValue(entry)}</span>
-                  <span className="row-secondary">
-                    {getCategorySublabel(entry)}
-                  </span>
-                  {entry.userId === storedUser.id && (
-                    <span className="you-indicator" />
-                  )}
-                </motion.div>
-              ))}
+                    <span className="row-level">
+                      <span className="level-pill">Lvl {entry.level}</span>
+                    </span>
+                    <span className="row-value">{getCategoryValue(entry)}</span>
+                    <span className="row-secondary">
+                      {getCategorySublabel(entry)}
+                    </span>
+                    {isUser && (
+                      <span className="you-indicator" />
+                    )}
+                  </motion.div>
+                );
+              })}
             </AnimatePresence>
           </motion.section>
         )}
 
         {/* Current User Summary (if not in top visible) */}
         {currentUser && !sorted.find(
-          (e) => e.userId === storedUser.id && e.rank <= sorted.length
+          (e) => e.userId === (storedUser?.id || storedUser?._id) && e.rank <= sorted.length
         ) && (
             <motion.div
               className="your-rank-banner ornate-border"

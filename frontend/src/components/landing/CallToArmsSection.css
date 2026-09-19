@@ -1,0 +1,49 @@
+/* ===== CTA SUNSET REALM SECTION ===== */
+
+.cta-sunset-realm {
+  position: relative;
+  width: 100%;
+  min-height: 480px;
+  background-size: cover;
+  background-position: center bottom;
+  background-repeat: no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 100px 24px;
+  text-align: center;
+  overflow: hidden;
+}
+
+.cta-sunset-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle at center, rgba(10, 9, 8, 0.4) 0%, rgba(10, 9, 8, 0.85) 85%, #0a0908 100%);
+  pointer-events: none;
+}
+
+.cta-sunset-content {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.cta-sunset-title {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(2.4rem, 5.5vw, 3.8rem);
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  line-height: 1.15;
+  color: #f7e7a9;
+  background: linear-gradient(180deg, #ffffff 0%, #fdf5d6 20%, #e5c365 55%, #b8860b 85%, #583e07 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 32px;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.9);
+}

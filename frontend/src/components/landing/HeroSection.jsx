@@ -1,31 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
-import { ChevronRight, Sword, Shield, MapPin, Flame, Trophy, Play } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowRight, Play, X, Crown, Shield, Flame, Sparkles } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import heroBg from '../../assets/hero_bg.jpg';
 import './HeroSection.css';
 
 const HeroSection = () => {
+  const navigate = useNavigate();
   const canvasRef = useRef(null);
-  const cardRef = useRef(null);
-  const [rotateX, setRotateX] = useState(0);
-  const [rotateY, setRotateY] = useState(0);
+  const [showTrailer, setShowTrailer] = useState(false);
 
-  // 3D Tilt Effect on Hero Battle Card
-  const handleMouseMove = (e) => {
-    if (!cardRef.current) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left - rect.width / 2;
-    const y = e.clientY - rect.top - rect.height / 2;
-    setRotateX(-y * 0.04);
-    setRotateY(x * 0.04);
-  };
-
-  const handleMouseLeave = () => {
-    setRotateX(0);
-    setRotateY(0);
-  };
-
-  // Particle/star & fiery ember animation
+  // Floating Golden Embers and Sparks
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -34,25 +19,23 @@ const HeroSection = () => {
     let particles = [];
 
     const resize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      canvas.width = canvas.parentElement?.offsetWidth || window.innerWidth;
+      canvas.height = canvas.parentElement?.offsetHeight || window.innerHeight;
     };
     resize();
     window.addEventListener('resize', resize);
 
-    // Create dual-type particles: Golden stars + Fiery Embers
-    for (let i = 0; i < 140; i++) {
-      const isEmber = Math.random() > 0.45;
+    for (let i = 0; i < 90; i++) {
       particles.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
-        size: isEmber ? Math.random() * 2.5 + 1 : Math.random() * 1.5 + 0.5,
-        speedY: isEmber ? Math.random() * 0.8 + 0.3 : Math.random() * 0.2 + 0.05,
-        speedX: (Math.random() - 0.5) * (isEmber ? 0.6 : 0.2),
-        opacity: Math.random() * 0.7 + 0.3,
-        twinkleSpeed: Math.random() * 0.03 + 0.01,
+        size: Math.random() * 2.2 + 0.8,
+        speedY: Math.random() * 0.7 + 0.25,
+        speedX: (Math.random() - 0.5) * 0.4,
+        opacity: Math.random() * 0.75 + 0.25,
         twinklePhase: Math.random() * Math.PI * 2,
-        isEmber
+        twinkleSpeed: Math.random() * 0.03 + 0.015,
+        isGolden: Math.random() > 0.35,
       });
     }
 
@@ -70,39 +53,21 @@ const HeroSection = () => {
           p.x = Math.random() * canvas.width;
         }
 
-        if (p.isEmber) {
-          // Fiery Ember Glow
-          const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size * 3.5);
-          gradient.addColorStop(0, `rgba(230, 80, 40, ${currentOpacity})`);
-          gradient.addColorStop(0.5, `rgba(212, 120, 20, ${currentOpacity * 0.4})`);
+        const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size * 3.5);
+        if (p.isGolden) {
+          gradient.addColorStop(0, `rgba(255, 215, 120, ${currentOpacity})`);
+          gradient.addColorStop(0.5, `rgba(212, 175, 55, ${currentOpacity * 0.5})`);
           gradient.addColorStop(1, 'transparent');
-
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, p.size * 3.5, 0, Math.PI * 2);
-          ctx.fillStyle = gradient;
-          ctx.fill();
-
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, p.size * 0.6, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(255, 180, 80, ${currentOpacity})`;
-          ctx.fill();
         } else {
-          // Golden Celestial Stardust
-          const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size * 3);
-          gradient.addColorStop(0, `rgba(212, 175, 55, ${currentOpacity})`);
-          gradient.addColorStop(0.6, `rgba(212, 175, 55, ${currentOpacity * 0.2})`);
+          gradient.addColorStop(0, `rgba(255, 120, 60, ${currentOpacity})`);
+          gradient.addColorStop(0.6, `rgba(180, 40, 20, ${currentOpacity * 0.3})`);
           gradient.addColorStop(1, 'transparent');
-
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, p.size * 3, 0, Math.PI * 2);
-          ctx.fillStyle = gradient;
-          ctx.fill();
-
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, p.size * 0.5, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(240, 208, 96, ${currentOpacity})`;
-          ctx.fill();
         }
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * 3.5, 0, Math.PI * 2);
+        ctx.fillStyle = gradient;
+        ctx.fill();
       });
 
       animationId = requestAnimationFrame(animate);
@@ -116,157 +81,169 @@ const HeroSection = () => {
   }, []);
 
   return (
-    <section className="hero-section">
-      <canvas ref={canvasRef} className="hero-particles" />
-      <div className="hero-glow" />
+    <section className="astra-hero-realm" style={{ backgroundImage: `url(${heroBg})` }}>
+      <canvas ref={canvasRef} className="hero-ember-canvas" />
+      <div className="hero-dark-overlay" />
+      <div className="hero-golden-fog" />
 
-      <div className="hero-grid-container">
-        {/* Left Column: Epic Historical Hook */}
-        <div className="hero-content-left">
-          <motion.div
-            className="hero-badge"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.6 }}
-          >
-            <Sword size={14} className="hero-sword-icon" />
-            <span>A New Age of Imperial Warfare</span>
-          </motion.div>
+      {/* Left Vertical Editorial Note */}
+      <div className="editorial-side-left">
+        <div className="editorial-ornament" />
+        <span className="editorial-vertical-text">MORE THAN A RUN</span>
+        <div className="editorial-ornament" />
+      </div>
 
-          <motion.h1
-            className="hero-title"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.8 }}
-          >
-            <span className="title-line">CONQUER THE REALM</span>
-            <span className="title-line title-gold gold-text">WITH EVERY STRIDE</span>
-          </motion.h1>
+      {/* Right Vertical Editorial Note */}
+      <div className="editorial-side-right">
+        <span className="editorial-quote-card">
+          RUNNERS<br />BUILD<br />STRONGER<br />KINGDOMS
+        </span>
+      </div>
 
-          <motion.p
-            className="hero-subtitle"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6, duration: 0.6 }}
-          >
-            Turn every kilometer of your run into real-world geographic conquest. Join ancient clans, wage weekly territory raids, ascend warlord ranks, and carve your dynasty into history.
-          </motion.p>
-
-          <motion.div
-            className="hero-actions"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8, duration: 0.6 }}
-          >
-            <Link to="/signup" className="hero-cta-primary gold-shimmer">
-              <Sword size={18} />
-              <span>Begin Your Conquest</span>
-              <ChevronRight size={18} />
-            </Link>
-            <a href="#territory-conquest" className="hero-cta-secondary">
-              <Play size={16} />
-              <span>Explore Tactical Map</span>
-            </a>
-          </motion.div>
-
-          <motion.div
-            className="hero-stats-bar"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.1, duration: 0.8 }}
-          >
-            <div className="hero-stat">
-              <span className="hero-stat-value">14,800+</span>
-              <span className="hero-stat-label">Active Warlords</span>
-            </div>
-            <div className="hero-stat-divider" />
-            <div className="hero-stat">
-              <span className="hero-stat-value">3.4M</span>
-              <span className="hero-stat-label">Km Conquered</span>
-            </div>
-            <div className="hero-stat-divider" />
-            <div className="hero-stat">
-              <span className="hero-stat-value">1,240</span>
-              <span className="hero-stat-label">Realms Claimed</span>
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Right Column: 3D Interactive Tactical Card */}
+      {/* Central Epic Stage */}
+      <div className="astra-hero-stage">
         <motion.div
-          className="hero-card-right"
-          initial={{ opacity: 0, scale: 0.9 }}
+          className="hero-crown-emblem"
+          initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.5, duration: 0.8 }}
-          onMouseMove={handleMouseMove}
-          onMouseLeave={handleMouseLeave}
+          transition={{ duration: 0.8, ease: 'easeOut' }}
         >
-          <div
-            ref={cardRef}
-            className="hero-3d-card"
-            style={{
-              transform: `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`,
-              transition: 'transform 0.15s ease-out'
-            }}
+          <Crown className="crown-icon-gold" size={42} />
+        </motion.div>
+
+        <motion.h1
+          className="hero-main-title"
+          initial={{ opacity: 0, y: 25 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.8 }}
+        >
+          ASTRA
+        </motion.h1>
+
+        <motion.div
+          className="hero-subline-block"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35, duration: 0.7 }}
+        >
+          <div className="hero-ornate-line left" />
+          <span className="hero-stride-text">STRIDE · WARS</span>
+          <div className="hero-ornate-line right" />
+        </motion.div>
+
+        <motion.div
+          className="hero-tagline-motto"
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.45, duration: 0.6 }}
+        >
+          RUN <span>·</span> CONQUER <span>·</span> RULE
+        </motion.div>
+
+        <motion.p
+          className="hero-lead-description"
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.55, duration: 0.6 }}
+        >
+          Turn your runs into territories.<br />
+          A bigger, stronger you awaits.
+        </motion.p>
+
+        {/* Hero CTAs */}
+        <motion.div
+          className="hero-cta-cluster"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.65, duration: 0.6 }}
+        >
+          <button
+            className="btn-crimson-battle"
+            onClick={() => navigate('/signup')}
           >
-            <div className="card-top-glow" />
+            <span>ENTER THE BATTLEFIELD</span>
+            <ArrowRight size={18} className="btn-arrow" />
+          </button>
 
-            <div className="card-inner-header">
-              <div className="card-sigil-icon">
-                <Shield size={22} />
-              </div>
-              <div>
-                <div className="card-hud-badge">REAL-TIME GPS CAMPAIGN</div>
-                <h3 className="card-hud-title">Sector 09: Dawn Fortress</h3>
-              </div>
+          <button
+            className="btn-trailer-ghost"
+            onClick={() => setShowTrailer(true)}
+          >
+            <div className="play-icon-circle">
+              <Play size={13} fill="currentColor" />
             </div>
+            <span>Watch Trailer</span>
+          </button>
+        </motion.div>
 
-            <div className="card-radar-box">
-              <div className="radar-sweep" />
-              <div className="radar-node node-1" />
-              <div className="radar-node node-2" />
-              <div className="radar-node node-3" />
-              <div className="radar-runner-indicator">
-                <span className="pulse-ring" />
-                <span className="runner-label">YOU (5.2 km)</span>
-              </div>
-            </div>
-
-            <div className="card-stats-hud">
-              <div className="card-stat-hud-item">
-                <span className="stat-hud-label">Dominion</span>
-                <span className="stat-hud-val gold-text">88.4%</span>
-              </div>
-              <div className="card-stat-hud-item">
-                <span className="stat-hud-label">Clan Defense</span>
-                <span className="stat-hud-val" style={{ color: '#2ecc71' }}>Fortified</span>
-              </div>
-              <div className="card-stat-hud-item">
-                <span className="stat-hud-label">Siege Honor</span>
-                <span className="stat-hud-val" style={{ color: '#ff7675' }}>+750 PTS</span>
-              </div>
-            </div>
-
-            <div className="card-live-log">
-              <div className="log-pulse-dot" />
-              <span>Solar Paladins breached Western Gate • 4m ago</span>
-            </div>
-          </div>
+        {/* Bottom Quote Badge */}
+        <motion.div
+          className="hero-bottom-quote"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.9, duration: 0.8 }}
+        >
+          "DISCIPLINE TODAY, EMPIRES TOMORROW."
         </motion.div>
       </div>
 
-      {/* Scroll indicator */}
-      <motion.div
-        className="scroll-indicator"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.6 }}
-      >
-        <a href="#how-it-works" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', color: 'var(--gold-primary)', fontSize: '0.75rem', fontFamily: 'var(--font-heading)', letterSpacing: '1px' }}>
-          <span>SCROLL TO MARCH</span>
-          <div className="scroll-line" />
-        </a>
-      </motion.div>
+      {/* Trailer Video Modal */}
+      <AnimatePresence>
+        {showTrailer && (
+          <motion.div
+            className="trailer-modal-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowTrailer(false)}
+          >
+            <motion.div
+              className="trailer-modal-window"
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="trailer-header">
+                <div className="trailer-title">
+                  <Crown size={16} className="text-gold" />
+                  <span>ASTRA: STRIDE WARS — REALM REVEAL</span>
+                </div>
+                <button
+                  className="trailer-close-btn"
+                  onClick={() => setShowTrailer(false)}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="trailer-video-container">
+                <div className="trailer-mock-playback">
+                  <Crown size={64} className="trailer-watermark" />
+                  <h3>THE KINGDOM CALLS FOR RUNNERS</h3>
+                  <p>Every step claims land. Every sprint defends the realm.</p>
+                  <div className="trailer-stats-ticker">
+                    <span>🗺️ GPS Hex Conquest</span>
+                    <span>⚔️ Clan Battles</span>
+                    <span>👑 Maharaj Ranks</span>
+                  </div>
+                  <button
+                    className="btn-crimson-battle"
+                    style={{ marginTop: '24px' }}
+                    onClick={() => {
+                      setShowTrailer(false);
+                      navigate('/signup');
+                    }}
+                  >
+                    <span>JOIN THE EXPEDITION</span>
+                    <ArrowRight size={16} />
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 };

@@ -1,6 +1,6 @@
 .clans-container {
   min-height: 100vh;
-  background: var(--bg-primary);
+  background: transparent;
   display: flex;
   flex-direction: column;
 }

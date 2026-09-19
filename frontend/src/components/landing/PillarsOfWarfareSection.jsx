@@ -1,74 +1,79 @@
 import { motion } from 'framer-motion';
-import { Footprints, MapPin, Swords, Crown, Sparkles } from 'lucide-react';
-import './LandingSections.css';
+import { Footprints, Crown, MapPin, Swords, Maximize2 } from 'lucide-react';
+import './PillarsOfWarfareSection.css';
 
-const PILLARS_DATA = [
+const PILLARS_STEPS = [
   {
-    num: '01',
+    id: 'run',
     icon: Footprints,
-    title: 'Lace Up & Mobilize',
-    desc: 'Hit start and run. High-precision GPS tracks your cadence, pace, elevation, and routes, converting your physical effort into imperial conquest currency.'
+    title: 'RUN',
+    desc: 'Track your runs and make progress.'
   },
   {
-    num: '02',
-    icon: MapPin,
-    title: 'Claim Hex Sectors',
-    desc: 'Every kilometer run claims real-world sectors on the tactical map. Defend your home territory or breach enemy lines to expand your empire border.'
-  },
-  {
-    num: '03',
-    icon: Swords,
-    title: 'Wage Clan Battles',
-    desc: 'Join a legendary Dynasty. Pool your collective mileage with warriors worldwide to siege strongholds and dominate weekly faction wars.'
-  },
-  {
-    num: '04',
+    id: 'earn-xp',
     icon: Crown,
-    title: 'Ascend to Emperor',
-    desc: 'Level up from Recruit to Sovereign Emperor. Unlock historical relics, customized banners, tactical speed buffs, and claim your place in the Hall of Conquerors.'
+    title: 'EARN XP',
+    desc: 'Level up with every run.'
+  },
+  {
+    id: 'claim',
+    icon: MapPin,
+    title: 'CLAIM',
+    desc: 'Turn real places into your territory.'
+  },
+  {
+    id: 'defend',
+    icon: Swords,
+    title: 'DEFEND',
+    desc: 'Hold your land and fight for it.'
+  },
+  {
+    id: 'expand',
+    icon: Maximize2,
+    title: 'EXPAND',
+    desc: 'Grow your kingdom across the world.'
   }
 ];
 
 const PillarsOfWarfareSection = () => {
   return (
-    <section id="how-it-works" className="landing-section">
-      <div className="section-header-wrap">
-        <motion.div
-          className="section-subtitle-badge"
-          initial={{ opacity: 0, y: 15 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-        >
-          <Sparkles size={14} />
-          <span>The Path to Sovereignty</span>
-        </motion.div>
-        <h2 className="section-main-title gold-text">How Conquest Works</h2>
-        <p className="section-lead-text">
-          Four simple steps turn your daily jog into an epic saga of empire building and tactical conquest.
-        </p>
-      </div>
+    <section className="parchment-banner-container" id="how-it-works">
+      <div className="parchment-scroll-wrapper">
+        <div className="parchment-torn-edge top" />
+        
+        <div className="parchment-ribbon-content">
+          <div className="parchment-pillars-grid">
+            {PILLARS_STEPS.map((step, idx) => {
+              const Icon = step.icon;
+              return (
+                <motion.div
+                  key={step.id}
+                  className="parchment-pillar-item"
+                  initial={{ opacity: 0, y: 15 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: idx * 0.1, duration: 0.5 }}
+                >
+                  <div className="parchment-icon-wrap">
+                    <Icon size={24} strokeWidth={2.2} />
+                  </div>
+                  <h4 className="parchment-pillar-title">{step.title}</h4>
+                  <p className="parchment-pillar-desc">{step.desc}</p>
+                </motion.div>
+              );
+            })}
+          </div>
 
-      <div className="pillars-grid">
-        {PILLARS_DATA.map((pillar, idx) => {
-          const Icon = pillar.icon;
-          return (
-            <motion.div
-              key={pillar.num}
-              className="pillar-card"
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: idx * 0.12, duration: 0.6 }}
-            >
-              <span className="pillar-num">{pillar.num}</span>
-              <div className="pillar-icon-box">
-                <Icon size={24} />
-              </div>
-              <h3 className="pillar-title">{pillar.title}</h3>
-              <p className="pillar-desc">{pillar.desc}</p>
-            </motion.div>
-          );
-        })}
+          <div className="parchment-vertical-divider" />
+
+          <div className="parchment-side-motto">
+            <span>SAME ROADS.</span>
+            <span>A BIGGER STORY.</span>
+            <div className="parchment-motto-line" />
+          </div>
+        </div>
+
+        <div className="parchment-torn-edge bottom" />
       </div>
     </section>
   );

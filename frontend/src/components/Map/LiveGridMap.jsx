@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { MapContainer, TileLayer, Rectangle, Popup, useMap, Marker } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -41,21 +41,147 @@ const getGridCenter = (bounds) => {
   ];
 };
 
-// Custom crown icon for owned territories
-const crownIcon = L.divIcon({
-  className: 'grid-crown-icon',
-  html: `<div class="crown-marker">👑</div>`,
-  iconSize: [32, 32],
-  iconAnchor: [16, 16],
-});
+// Create custom Flag marker icon for individual grid cells
+// Self-owned: Crimson red flag with 8-pointed golden compass star (exact match to screenshot)
+// Enemy: Pitch-black flag with white skull & crossbones
+const createGridFlagIcon = (isMine, name = '') => {
+  const iconId = isMine ? 'mine' : 'enemy';
 
-// Sword icon for enemy territories
-const swordIcon = L.divIcon({
-  className: 'grid-sword-icon',
-  html: `<div class="sword-marker">⚔️</div>`,
-  iconSize: [28, 28],
-  iconAnchor: [14, 14],
-});
+  return L.divIcon({
+    className: 'grid-flag-icon-container',
+    html: `
+      <div class="grid-flag-wrapper ${isMine ? 'flag-mine' : 'flag-enemy'}" title="${name || (isMine ? 'Your Territory' : 'Enemy Territory')}">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 44" width="38" height="38" class="grid-flag-svg">
+          <defs>
+            <linearGradient id="poleMetalGrad-${iconId}" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#181215" />
+              <stop offset="45%" stop-color="#4a3b40" />
+              <stop offset="70%" stop-color="#2a2024" />
+              <stop offset="100%" stop-color="#120c0f" />
+            </linearGradient>
+
+            <radialGradient id="finialGrad-${iconId}" cx="35%" cy="30%" r="70%">
+              <stop offset="0%" stop-color="#5a484e" />
+              <stop offset="50%" stop-color="#281e22" />
+              <stop offset="100%" stop-color="#100a0d" />
+            </radialGradient>
+
+            <linearGradient id="redFlagGrad-${iconId}" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#940000" />
+              <stop offset="40%" stop-color="#780000" />
+              <stop offset="100%" stop-color="#4d0000" />
+            </linearGradient>
+
+            <linearGradient id="blackFlagGrad-${iconId}" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#2c2c2c" />
+              <stop offset="45%" stop-color="#181818" />
+              <stop offset="100%" stop-color="#080808" />
+            </linearGradient>
+
+            <filter id="flagShadow-${iconId}" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="1.2" dy="2" stdDeviation="1.5" flood-color="rgba(0,0,0,0.7)" />
+            </filter>
+          </defs>
+
+          <!-- Ground Base Shadow -->
+          <ellipse cx="11" cy="41" rx="6" ry="2.2" fill="rgba(0,0,0,0.55)" />
+
+          <!-- Flagpole Foot Cap -->
+          <ellipse cx="11" cy="39.5" rx="2.5" ry="1.4" fill="#1c1618" stroke="#3d3034" stroke-width="0.5" />
+
+          <!-- Flagpole Shaft -->
+          <rect x="9.8" y="7" width="2.4" height="33" rx="1.2" fill="url(#poleMetalGrad-${iconId})" />
+
+          <!-- Pole Top Finial Sphere -->
+          <circle cx="11" cy="6.5" r="2.8" fill="url(#finialGrad-${iconId})" stroke="#1a1215" stroke-width="0.5" />
+          <circle cx="10.2" cy="5.7" r="0.8" fill="rgba(255,255,255,0.4)" />
+
+          <!-- Swallowtail Flag Cloth -->
+          <path 
+            d="M 12 9 L 38 10 L 31 20.5 L 38 31 L 12 30 Z" 
+            fill="${isMine ? `url(#redFlagGrad-${iconId})` : `url(#blackFlagGrad-${iconId})`}" 
+            stroke="${isMine ? '#d4af37' : '#4f4f4f'}" 
+            stroke-width="0.85"
+            filter="url(#flagShadow-${iconId})"
+          />
+
+          ${isMine ? `
+            <!-- 8-Pointed Golden Compass Star (Exact match to screenshot) -->
+            <g class="flag-gold-star-sigil">
+              <!-- Cardinal North Point -->
+              <polygon points="23.5,20 22,20 23.5,11" fill="#ffe98a" />
+              <polygon points="23.5,20 23.5,11 25,20" fill="#b8860b" />
+
+              <!-- Cardinal South Point -->
+              <polygon points="23.5,20 22,20 23.5,29" fill="#b8860b" />
+              <polygon points="23.5,20 23.5,29 25,20" fill="#ffe98a" />
+
+              <!-- Cardinal East Point -->
+              <polygon points="23.5,20 23.5,18.6 32,20" fill="#ffe98a" />
+              <polygon points="23.5,20 32,20 23.5,21.4" fill="#b8860b" />
+
+              <!-- Cardinal West Point -->
+              <polygon points="23.5,20 15,20 23.5,18.6" fill="#b8860b" />
+              <polygon points="23.5,20 23.5,21.4 15,20" fill="#ffe98a" />
+
+              <!-- Diagonal NW Point -->
+              <polygon points="23.5,20 18,14.5 23.5,17.8" fill="#fff3a8" />
+              <polygon points="23.5,20 21.2,20 18,14.5" fill="#9e7308" />
+
+              <!-- Diagonal NE Point -->
+              <polygon points="23.5,20 29,14.5 25.8,20" fill="#fff3a8" />
+              <polygon points="23.5,20 23.5,17.8 29,14.5" fill="#9e7308" />
+
+              <!-- Diagonal SE Point -->
+              <polygon points="23.5,20 29,25.5 23.5,22.2" fill="#fff3a8" />
+              <polygon points="23.5,20 25.8,20 29,25.5" fill="#9e7308" />
+
+              <!-- Diagonal SW Point -->
+              <polygon points="23.5,20 18,25.5 21.2,20" fill="#fff3a8" />
+              <polygon points="23.5,20 23.5,22.2 18,25.5" fill="#9e7308" />
+
+              <!-- Center Gold Spark Jewel -->
+              <circle cx="23.5" cy="20" r="1.1" fill="#ffffff" />
+            </g>
+          ` : `
+            <!-- Skull & Crossbones Emblem for Enemy Black Flag -->
+            <g class="flag-enemy-skull-sigil">
+              <!-- Crossed Bones -->
+              <!-- Top-Left to Bottom-Right -->
+              <line x1="16.5" y1="13.5" x2="30.5" y2="26.5" stroke="#e0ded8" stroke-width="1.6" stroke-linecap="round" />
+              <circle cx="16.5" cy="13.5" r="1.2" fill="#e0ded8" />
+              <circle cx="30.5" cy="26.5" r="1.2" fill="#e0ded8" />
+
+              <!-- Bottom-Left to Top-Right -->
+              <line x1="16.5" y1="26.5" x2="30.5" y2="13.5" stroke="#e0ded8" stroke-width="1.6" stroke-linecap="round" />
+              <circle cx="16.5" cy="26.5" r="1.2" fill="#e0ded8" />
+              <circle cx="30.5" cy="13.5" r="1.2" fill="#e0ded8" />
+
+              <!-- Skull Cranium Head -->
+              <path d="M 19 17 C 19 13.5, 28 13.5, 28 17 C 28 19.3, 26.8 20.8, 26.2 22.3 L 20.8 22.3 C 20.2 20.8, 19 19.3, 19 17 Z" fill="#f5f3ee" stroke="#ded9cf" stroke-width="0.3" />
+
+              <!-- Skull Teeth / Jaw -->
+              <path d="M 21.2 22.3 L 25.8 22.3 L 25.3 25.2 L 21.7 25.2 Z" fill="#f5f3ee" stroke="#ded9cf" stroke-width="0.3" />
+              <line x1="22.7" y1="23" x2="22.7" y2="25.2" stroke="#121212" stroke-width="0.55"/>
+              <line x1="24.3" y1="23" x2="24.3" y2="25.2" stroke="#121212" stroke-width="0.55"/>
+
+              <!-- Eye Sockets -->
+              <ellipse cx="21.5" cy="17.6" rx="1.4" ry="1.7" fill="#121212" />
+              <ellipse cx="25.5" cy="17.6" rx="1.4" ry="1.7" fill="#121212" />
+
+              <!-- Nose Cavity -->
+              <polygon points="23.5,19.2 22.7,20.8 24.3,20.8" fill="#121212" />
+            </g>
+          `}
+        </svg>
+      </div>
+    `,
+    iconSize: [38, 38],
+    iconAnchor: [11, 39],
+    popupAnchor: [0, -36]
+  });
+};
+
 
 // Auto-center map on initial load
 const MapAutoCenter = ({ territories }) => {
@@ -80,22 +206,20 @@ const MapAutoCenter = ({ territories }) => {
             [Math.min(...allLats), Math.min(...allLngs)],
             [Math.max(...allLats), Math.max(...allLngs)]
           ], { padding: [50, 50], maxZoom: 15 });
-          return true; // Successfully bounded to territories
+          return true;
         }
       }
-      return false; // No territories to bound to
+      return false;
     }
 
-    // Try to fit to territories first
     const bounded = fitToTerritories();
 
-    // Only fallback to user location if there are no territories to show
     if (!bounded && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           map.setView([pos.coords.latitude, pos.coords.longitude], 14);
         },
-        () => {}, // Ignore errors
+        () => {},
         { enableHighAccuracy: false, timeout: 5000 }
       );
     }
@@ -163,7 +287,7 @@ const RecenterControl = ({ territories, centerCoords }) => {
   );
 };
 
-// Single Territory component with smooth click-to-zoom
+// Single Separate Territory Grid Cell Component
 const TerritoryGrid = ({ t, currentUserId, onRename }) => {
   const map = useMap();
   const bounds = getGridBounds(t.gridId);
@@ -178,6 +302,8 @@ const TerritoryGrid = ({ t, currentUserId, onRename }) => {
     }
   };
 
+  const flagIcon = useMemo(() => createGridFlagIcon(isMine, t.name), [isMine, t.name]);
+
   const rulerInfluence = t.rulerInfluence || t.influence || 0;
   const userInfluence = t.userInfluence || 0;
   const targetInfluence = Math.max(rulerInfluence, 500);
@@ -187,7 +313,7 @@ const TerritoryGrid = ({ t, currentUserId, onRename }) => {
   const popupContent = (
     <div className="territory-popup-content">
       <div className="popup-header">
-        <span className="popup-emoji">{isMine ? '👑' : '⚔️'}</span>
+        <span className="popup-emoji">{isMine ? '🚩' : '🏴‍☠️'}</span>
         <h4>{t.name || (isMine ? 'Your Territory' : 'Enemy Territory')}</h4>
       </div>
       <div className="popup-details">
@@ -206,10 +332,10 @@ const TerritoryGrid = ({ t, currentUserId, onRename }) => {
         ) : (
           <div className="popup-influence-rival">
             <p className="influence-line">
-              <strong>Ruler's Influence:</strong> <span className="ruler-xp">{rulerInfluence.toLocaleString()} XP</span>
+              <strong>Ruler's Influence:</strong> <span className="ruler-xp">⚔️ {rulerInfluence.toLocaleString()} XP</span>
             </p>
             <p className="influence-line">
-              <strong>Your Influence:</strong> <span className="cyan-xp">{userInfluence.toLocaleString()} XP</span>
+              <strong>Your Influence:</strong> <span className="cyan-xp">⚡ {userInfluence.toLocaleString()} XP</span>
             </p>
             <div className="dethrone-progress-container">
               <div className="dethrone-progress-header">
@@ -225,12 +351,12 @@ const TerritoryGrid = ({ t, currentUserId, onRename }) => {
               {xpNeeded > 0 ? (
                 <span className="dethrone-hint">{xpNeeded.toLocaleString()} XP needed to usurp</span>
               ) : (
-                <span className="dethrone-hint ready">Dominion within reach!</span>
+                <span className="dethrone-hint ready">⚔️ Dominion within reach! Run here to claim!</span>
               )}
             </div>
           </div>
         )}
-        
+
         {isMine && onRename && (
           <button 
             className="rename-btn"
@@ -242,7 +368,7 @@ const TerritoryGrid = ({ t, currentUserId, onRename }) => {
               }
             }}
           >
-            ✏️ Rename
+            ✏️ Rename Territory
           </button>
         )}
       </div>
@@ -251,7 +377,7 @@ const TerritoryGrid = ({ t, currentUserId, onRename }) => {
 
   return (
     <React.Fragment>
-      {/* Grid rectangle with glow effect and click-to-zoom */}
+      {/* Individual Grid cell rectangle with glow effect and click-to-zoom */}
       <Rectangle
         bounds={bounds}
         eventHandlers={{
@@ -259,9 +385,9 @@ const TerritoryGrid = ({ t, currentUserId, onRename }) => {
         }}
         pathOptions={{
           color: isMine ? '#ffd700' : '#ff3366',
-          weight: isMine ? 3 : 2,
+          weight: isMine ? 2.5 : 1.8,
           fillColor: isMine ? '#ffd700' : '#ff3366',
-          fillOpacity: isMine ? 0.32 : 0.2,
+          fillOpacity: isMine ? 0.3 : 0.18,
           dashArray: isMine ? null : '6 4',
           className: isMine ? 'neon-kingdom-grid' : 'neon-rival-grid',
         }}
@@ -269,11 +395,11 @@ const TerritoryGrid = ({ t, currentUserId, onRename }) => {
         <Popup>{popupContent}</Popup>
       </Rectangle>
 
-      {/* Crown/Sword marker with click-to-zoom */}
+      {/* Flag marker at center of each grid with click-to-zoom */}
       {center && (
         <Marker
           position={center}
-          icon={isMine ? crownIcon : swordIcon}
+          icon={flagIcon}
           eventHandlers={{
             click: handleZoomToTerritory,
           }}
@@ -392,6 +518,7 @@ const LiveGridMap = ({ territories, currentUserId, centerCoords, onRename }) => 
         <MapAutoCenter territories={territories} />
         <RecenterControl territories={territories} centerCoords={centerCoords} />
 
+        {/* Render each separate grid cell with its own flag */}
         {territories.map((t, idx) => (
           <TerritoryGrid
             key={`${t.gridId}-${idx}`}
@@ -406,11 +533,11 @@ const LiveGridMap = ({ territories, currentUserId, centerCoords, onRename }) => 
       <div className="map-legend">
         <div className="legend-item">
           <span className="legend-swatch mine"></span>
-          <span>Your Kingdom</span>
+          <span>🚩 Your Kingdom (Royal Red)</span>
         </div>
         <div className="legend-item">
           <span className="legend-swatch enemy"></span>
-          <span>Enemy Territory</span>
+          <span>🏴‍☠️ Enemy Territory (Black Skull)</span>
         </div>
       </div>
     </div>
@@ -418,3 +545,4 @@ const LiveGridMap = ({ territories, currentUserId, centerCoords, onRename }) => 
 };
 
 export default LiveGridMap;
+

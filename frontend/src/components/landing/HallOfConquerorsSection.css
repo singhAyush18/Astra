@@ -1,0 +1,146 @@
+/* ===== COMPETE CONQUER BELONG SECTION ===== */
+
+.community-section-realm {
+  width: 100%;
+  background: #0a0908;
+  padding: 90px 32px 100px 32px;
+  position: relative;
+  border-top: 1px solid rgba(212, 175, 55, 0.15);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.15);
+}
+
+.community-inner-wrap {
+  max-width: 1260px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.1fr 1.2fr 0.7fr;
+  gap: 40px;
+  align-items: center;
+}
+
+/* Left Info Column */
+.community-info-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.community-main-title {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(2rem, 3.5vw, 2.7rem);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  line-height: 1.15;
+  color: #f7e7a9;
+  background: linear-gradient(180deg, #ffffff 0%, #fdf5d6 25%, #e5c365 60%, #b8860b 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 16px;
+}
+
+.community-lead-desc {
+  font-family: 'Cormorant Garamond', 'Lora', serif;
+  font-size: 1.15rem;
+  line-height: 1.6;
+  color: #c9bea9;
+}
+
+/* Center Stats Column */
+.community-stats-col {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 20px;
+}
+
+.realm-stat-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.realm-stat-icon-wrap {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #d4af37;
+  margin-bottom: 8px;
+}
+
+.realm-stat-number {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+  font-weight: 900;
+  color: #f7e7a9;
+  letter-spacing: 0.05em;
+  line-height: 1.1;
+}
+
+.realm-stat-label {
+  font-family: 'Cinzel', serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: #9f917e;
+  margin-top: 4px;
+}
+
+/* Right Banner Column */
+.community-banner-col {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.war-flag-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 24px;
+  background: radial-gradient(circle at center, rgba(132, 24, 24, 0.4) 0%, transparent 80%);
+  border-right: 2px solid rgba(132, 24, 24, 0.7);
+}
+
+.war-flag-crown {
+  margin-bottom: 12px;
+}
+
+.banner-crown-icon {
+  color: #f5e6a3;
+  filter: drop-shadow(0 0 12px rgba(212, 175, 55, 0.6));
+}
+
+.war-flag-motto {
+  font-family: 'Cinzel', serif;
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1.5;
+  letter-spacing: 0.2em;
+  color: #e5dac7;
+}
+
+/* Responsive */
+@media (max-width: 1050px) {
+  .community-inner-wrap {
+    grid-template-columns: 1fr;
+    gap: 40px;
+    text-align: center;
+  }
+
+  .community-info-col {
+    align-items: center;
+  }
+
+  .community-banner-col {
+    justify-content: center;
+  }
+
+  .war-flag-container {
+    border-right: none;
+    border-top: 1px solid rgba(132, 24, 24, 0.7);
+  }
+}
