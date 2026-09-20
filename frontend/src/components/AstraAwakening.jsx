@@ -51,13 +51,40 @@ export default function AstraAwakening({ onComplete, minDuration = 5500 }) {
   const [activePillar, setActivePillar] = useState(0);
   const [isBackendReady, setIsBackendReady] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
+  const [isGoldenSplashActive, setIsGoldenSplashActive] = useState(false);
   const [showSkip, setShowSkip] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [audioDurationMs, setAudioDurationMs] = useState(minDuration);
   const canvasRef = useRef(null);
   const audioRef = useRef(null);
+  const audioCtxRef = useRef(null);
+  const masterGainRef = useRef(null);
   const startTimeRef = useRef(Date.now());
   const completedRef = useRef(false);
+
+  // Smooth Audio Fade-Out Function
+  const fadeOutAudio = () => {
+    if (audioRef.current) {
+      const audio = audioRef.current;
+      let step = 0;
+      const fadeInterval = setInterval(() => {
+        step += 1;
+        if (audio && audio.volume > 0.08) {
+          audio.volume = Math.max(0, audio.volume - 0.1);
+        } else if (audio) {
+          audio.volume = 0;
+          audio.pause();
+          clearInterval(fadeInterval);
+        }
+        if (step > 15) clearInterval(fadeInterval);
+      }, 50);
+    }
+    if (masterGainRef.current && audioCtxRef.current) {
+      try {
+        masterGainRef.current.gain.linearRampToValueAtTime(0.0001, audioCtxRef.current.currentTime + 0.8);
+      } catch {}
+    }
+  };
 
   // Fail-Safe Cinematic Sound Engine (AudioContext Synthesizer + HTML5 Audio)
   useEffect(() => {
@@ -88,12 +115,14 @@ export default function AstraAwakening({ onComplete, minDuration = 5500 }) {
         if (!AudioCtx) return;
         if (!audioCtx) {
           audioCtx = new AudioCtx();
+          audioCtxRef.current = audioCtx;
         }
         if (audioCtx.state === 'suspended') {
           audioCtx.resume();
         }
 
         masterGain = audioCtx.createGain();
+        masterGainRef.current = masterGain;
         masterGain.gain.setValueAtTime(0.001, audioCtx.currentTime);
         masterGain.gain.exponentialRampToValueAtTime(isMuted ? 0.001 : 0.45, audioCtx.currentTime + 1.2);
         masterGain.connect(audioCtx.destination);
@@ -400,13 +429,19 @@ export default function AstraAwakening({ onComplete, minDuration = 5500 }) {
       completedRef.current = true;
       setStatusIndex(STATUS_MESSAGES.length - 1);
       
+      // Step 1: Smoothly Fade Out Audio & Launch Full Golden Splash
+      fadeOutAudio();
+      setIsGoldenSplashActive(true);
+
+      // Step 2: Fade Golden Splash to unveil Kingdom page
       setTimeout(() => {
         setIsExiting(true);
-      }, 400);
+      }, 600);
 
+      // Step 3: Complete transition & clean unmount
       setTimeout(() => {
         if (onComplete) onComplete();
-      }, 950);
+      }, 1300);
     }
   }, [progress, onComplete]);
 
@@ -415,10 +450,14 @@ export default function AstraAwakening({ onComplete, minDuration = 5500 }) {
     completedRef.current = true;
     setProgress(100);
     setStatusIndex(STATUS_MESSAGES.length - 1);
-    setIsExiting(true);
+    fadeOutAudio();
+    setIsGoldenSplashActive(true);
+    setTimeout(() => {
+      setIsExiting(true);
+    }, 350);
     setTimeout(() => {
       if (onComplete) onComplete();
-    }, 550);
+    }, 750);
   };
 
   return (
@@ -435,16 +474,20 @@ export default function AstraAwakening({ onComplete, minDuration = 5500 }) {
       <div className="awakening-celestial-glow" />
       <div className="awakening-vignette" />
 
-      {/* Golden Flash Effect on completion */}
+      {/* Two-Stage Fullscreen Golden Splash Transition */}
       <AnimatePresence>
-        {isExiting && (
+        {isGoldenSplashActive && (
           <motion.div
-            className="awakening-gold-flash"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 2 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.6, ease: 'easeOut' }}
-          />
+            className="awakening-gold-splash-screen"
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.15 }}
+            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <div className="splash-sunburst-rays" />
+            <div className="splash-center-flare" />
+            <div className="splash-emblem-halo" />
+          </motion.div>
         )}
       </AnimatePresence>
 

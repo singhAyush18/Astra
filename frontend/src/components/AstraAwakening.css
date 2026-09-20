@@ -65,14 +65,108 @@
   z-index: 1;
 }
 
-/* Golden Sunburst Flash Burst */
-.awakening-gold-flash {
-  position: absolute;
+/* Golden Full-Screen Splash Burst Transition */
+.awakening-gold-splash-screen {
+  position: fixed;
   inset: 0;
-  background: radial-gradient(circle at 50% 38%, rgba(255, 245, 205, 0.98) 0%, rgba(212, 175, 55, 0.7) 42%, rgba(212, 175, 55, 0) 78%);
+  z-index: 9999999;
+  background: radial-gradient(circle at 50% 40%, #fff8db 0%, #ffd700 24%, #d4af37 54%, #876214 82%, #1a1206 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   pointer-events: none;
-  z-index: 60;
-  mix-blend-mode: screen;
+  overflow: hidden;
+}
+
+.splash-sunburst-rays {
+  position: absolute;
+  width: 220vmax;
+  height: 220vmax;
+  background: conic-gradient(
+    from 0deg,
+    rgba(255, 255, 255, 0.45) 0deg 15deg,
+    transparent 15deg 30deg,
+    rgba(255, 255, 255, 0.45) 30deg 45deg,
+    transparent 45deg 60deg,
+    rgba(255, 255, 255, 0.45) 60deg 75deg,
+    transparent 75deg 90deg,
+    rgba(255, 255, 255, 0.45) 90deg 105deg,
+    transparent 105deg 120deg,
+    rgba(255, 255, 255, 0.45) 120deg 135deg,
+    transparent 135deg 150deg,
+    rgba(255, 255, 255, 0.45) 150deg 165deg,
+    transparent 165deg 180deg,
+    rgba(255, 255, 255, 0.45) 180deg 195deg,
+    transparent 195deg 210deg,
+    rgba(255, 255, 255, 0.45) 210deg 225deg,
+    transparent 225deg 240deg,
+    rgba(255, 255, 255, 0.45) 240deg 255deg,
+    transparent 255deg 270deg,
+    rgba(255, 255, 255, 0.45) 270deg 285deg,
+    transparent 285deg 300deg,
+    rgba(255, 255, 255, 0.45) 300deg 315deg,
+    transparent 315deg 330deg,
+    rgba(255, 255, 255, 0.45) 330deg 345deg,
+    transparent 345deg 360deg
+  );
+  animation: rotateSunburst 20s linear infinite;
+  opacity: 0.4;
+  mix-blend-mode: overlay;
+}
+
+.splash-center-flare {
+  position: absolute;
+  width: clamp(300px, 70vw, 550px);
+  height: clamp(300px, 70vw, 550px);
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffffff 0%, rgba(255, 245, 180, 0.95) 35%, rgba(212, 175, 55, 0) 72%);
+  filter: blur(20px);
+  animation: flareExpansion 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.splash-emblem-halo {
+  position: absolute;
+  width: clamp(240px, 60vw, 420px);
+  height: clamp(240px, 60vw, 420px);
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 50px rgba(255, 255, 255, 0.8), inset 0 0 35px rgba(255, 225, 120, 0.6);
+  animation: haloBurst 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes rotateSunburst {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes flareExpansion {
+  0% {
+    transform: scale(0.3);
+    opacity: 0.4;
+  }
+  50% {
+    transform: scale(1.6);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2.6);
+    opacity: 0.95;
+  }
+}
+
+@keyframes haloBurst {
+  0% {
+    transform: scale(0.6);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(2.8);
+    opacity: 0;
+  }
 }
 
 /* Main Container Frame (Responsive 9:16 mobile canvas) */
