@@ -29,7 +29,14 @@ app.use(cors({
     ].filter(Boolean),
     credentials: true
 }));
-app.use("/api", globalLimiter);
+// Health check endpoint for fast wake-up / health checks
+app.get("/api/health", (req, res) => {
+    res.status(200).json({
+        status: "ok",
+        service: "Astra: Stride Wars",
+        timestamp: new Date().toISOString()
+    });
+});
 
 // API routes
 app.use("/api/v2/auth", authRoutes);

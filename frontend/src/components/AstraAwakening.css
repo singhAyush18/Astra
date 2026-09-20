@@ -1,0 +1,579 @@
+/* ==========================================================================
+   ASTRA AWAKENING — Exact Poster-Matched Mobile Responsive Splash
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Alex+Brush&family=Cinzel:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700&display=swap');
+
+.astra-awakening-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  background-color: #060505;
+  background-position: center bottom;
+  background-size: cover;
+  background-repeat: no-repeat;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  user-select: none;
+  color: #f2ece4;
+  height: 100vh;
+  height: 100dvh;
+  width: 100vw;
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1), transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.astra-awakening-overlay.awakening-fade-out {
+  opacity: 0;
+  transform: scale(1.04);
+  pointer-events: none;
+}
+
+/* Background Atmosphere & Particles */
+.awakening-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.awakening-celestial-glow {
+  position: absolute;
+  top: 32%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: clamp(280px, 80vw, 560px);
+  height: clamp(280px, 80vw, 560px);
+  background: radial-gradient(circle, rgba(212, 160, 45, 0.28) 0%, rgba(180, 100, 20, 0.1) 48%, transparent 72%);
+  border-radius: 50%;
+  filter: blur(40px);
+  pointer-events: none;
+  z-index: 1;
+  animation: celestialAuraPulse 4.5s ease-in-out infinite alternate;
+}
+
+.awakening-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 35%, transparent 20%, rgba(6, 5, 5, 0.6) 65%, rgba(6, 5, 5, 0.95) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Golden Sunburst Flash Burst */
+.awakening-gold-flash {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 38%, rgba(255, 245, 205, 0.98) 0%, rgba(212, 175, 55, 0.7) 42%, rgba(212, 175, 55, 0) 78%);
+  pointer-events: none;
+  z-index: 60;
+  mix-blend-mode: screen;
+}
+
+/* Main Container Frame (Responsive 9:16 mobile canvas) */
+.awakening-container {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 440px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: clamp(1.2rem, 3.5vh, 2.5rem) clamp(1rem, 4vw, 1.8rem) clamp(1rem, 2.8vh, 1.8rem) clamp(1rem, 4vw, 1.8rem);
+  box-sizing: border-box;
+}
+
+/* 1. TOP HEADER */
+.awakening-top-header {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  position: relative;
+  text-align: center;
+}
+
+.awakening-sound-toggle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  background: rgba(18, 14, 10, 0.65);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  color: #dfc88e;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 5px;
+  backdrop-filter: blur(6px);
+  transition: all 0.25s ease;
+  z-index: 20;
+}
+
+.awakening-sound-toggle:hover {
+  background: rgba(36, 26, 16, 0.95);
+  border-color: #d4af37;
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.4);
+}
+
+.awakening-sound-toggle svg {
+  width: 15px;
+  height: 15px;
+}
+
+.header-text-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.header-line-1 {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(0.68rem, 2.2vw, 0.78rem);
+  letter-spacing: 0.36em;
+  color: #d1b88a;
+  text-transform: uppercase;
+  font-weight: 600;
+  text-shadow: 0 0 10px rgba(212, 175, 55, 0.35);
+}
+
+.header-line-2 {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(0.58rem, 1.8vw, 0.68rem);
+  letter-spacing: 0.28em;
+  color: #9e9382;
+  text-transform: uppercase;
+  margin-top: 0.2rem;
+}
+
+.header-diamond-star {
+  color: #d4af37;
+  font-size: 0.65rem;
+  margin-top: 0.35rem;
+  filter: drop-shadow(0 0 5px #d4af37);
+  animation: diamondBreathe 2.4s ease-in-out infinite alternate;
+}
+
+.header-version {
+  position: absolute;
+  right: 0;
+  top: 0;
+  font-family: 'Cinzel', serif;
+  font-size: clamp(0.62rem, 1.8vw, 0.7rem);
+  letter-spacing: 0.12em;
+  color: rgba(209, 184, 138, 0.55);
+}
+
+/* 2. CENTER MEDALLION CREST */
+.awakening-medallion-area {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  margin: clamp(0.4rem, 1.5vh, 1.2rem) 0;
+}
+
+.medallion-outer-ring {
+  position: absolute;
+  width: clamp(230px, 68vw, 340px);
+  height: clamp(230px, 68vw, 340px);
+  border-radius: 50%;
+  border: 1.5px dashed rgba(212, 175, 55, 0.45);
+  box-shadow:
+    0 0 35px rgba(212, 175, 55, 0.3),
+    inset 0 0 25px rgba(212, 175, 55, 0.18);
+  animation: rotateRing 32s linear infinite;
+  pointer-events: none;
+}
+
+.medallion-sunburst-glow {
+  position: absolute;
+  width: clamp(200px, 60vw, 300px);
+  height: clamp(200px, 60vw, 300px);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 215, 110, 0.28) 0%, rgba(212, 175, 55, 0.12) 50%, transparent 75%);
+  filter: blur(12px);
+  pointer-events: none;
+  animation: glowPulse 3.8s ease-in-out infinite alternate;
+}
+
+.medallion-box {
+  position: relative;
+  z-index: 5;
+  width: clamp(190px, 56vw, 275px);
+  height: clamp(190px, 56vw, 275px);
+}
+
+.medallion-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow:
+    0 0 40px rgba(212, 175, 55, 0.5),
+    0 0 80px rgba(212, 175, 55, 0.25),
+    inset 0 0 25px rgba(0, 0, 0, 0.9);
+  border: 2.5px solid rgba(212, 175, 55, 0.85);
+  background: #080706;
+}
+
+.medallion-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: contrast(1.12) brightness(1.06) drop-shadow(0 4px 16px rgba(0, 0, 0, 0.9));
+}
+
+/* Bottom-up golden illumination sweep across medallion */
+.medallion-light-sweep {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    0deg,
+    rgba(255, 230, 140, 0.5) 0%,
+    rgba(212, 175, 55, 0.3) 35%,
+    rgba(212, 175, 55, 0) 72%
+  );
+  pointer-events: none;
+  animation: sweepUpward 2.6s ease-in-out infinite alternate;
+  mix-blend-mode: screen;
+}
+
+/* Center 8-point Star Flare */
+.medallion-star-flare {
+  position: absolute;
+  top: 48%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: clamp(38px, 12vw, 60px);
+  height: clamp(38px, 12vw, 60px);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(255, 225, 120, 0.65) 45%, transparent 75%);
+  filter: blur(2px);
+  pointer-events: none;
+  animation: starBurstPulse 2.2s ease-in-out infinite alternate;
+  mix-blend-mode: screen;
+}
+
+/* 3. MIDDLE STATUS & CHEVRON PROGRESS BAR */
+.awakening-middle-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: clamp(0.2rem, 1vh, 0.8rem) 0;
+}
+
+.awakening-status-text {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(0.72rem, 2.4vw, 0.84rem);
+  letter-spacing: 0.28em;
+  color: #ecdab2;
+  font-weight: 600;
+  text-shadow: 0 0 12px rgba(212, 175, 55, 0.5);
+  margin-bottom: clamp(0.6rem, 1.6vh, 0.9rem);
+  height: 1.2rem;
+  text-align: center;
+}
+
+/* Angular Medieval Chevron Progress Frame */
+.chevron-progress-wrapper {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.chevron-progress-frame {
+  width: 100%;
+  height: clamp(10px, 2vh, 13px);
+  padding: 2px;
+  background: rgba(14, 11, 8, 0.92);
+  border: 1px solid rgba(212, 175, 55, 0.65);
+  clip-path: polygon(8px 0%, calc(100% - 8px) 0%, 100% 50%, calc(100% - 8px) 100%, 8px 100%, 0% 50%);
+  box-shadow:
+    0 0 18px rgba(212, 175, 55, 0.3),
+    inset 0 1px 4px rgba(0, 0, 0, 0.95);
+  position: relative;
+  box-sizing: border-box;
+}
+
+.chevron-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #7c5c16 0%, #d4af37 55%, #fff2b5 100%);
+  clip-path: polygon(6px 0%, calc(100% - 6px) 0%, 100% 50%, calc(100% - 6px) 100%, 6px 100%, 0% 50%);
+  box-shadow: 0 0 16px rgba(212, 175, 55, 0.8);
+  position: relative;
+  transition: width 0.15s cubic-bezier(0.2, 0.8, 0.4, 1);
+}
+
+.progress-shimmer-beam {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.7) 50%,
+    transparent 100%
+  );
+  animation: beamSweep 1.6s infinite linear;
+}
+
+.progress-flare-head {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 10px #ffffff, 0 0 20px #d4af37;
+}
+
+/* 4. THREE PILLARS (RUN • CONQUER • RULE) */
+.awakening-pillars-block {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.8rem, 3.2vw, 1.5rem);
+  margin-top: clamp(0.9rem, 2.2vh, 1.4rem);
+  width: 100%;
+}
+
+.pillar-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  opacity: 0.45;
+  transform: scale(0.95);
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.pillar-col-active {
+  opacity: 1;
+  transform: scale(1.12);
+}
+
+.pillar-glyph {
+  width: clamp(26px, 7vw, 32px);
+  height: clamp(26px, 7vw, 32px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a89d89;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.8));
+  transition: all 0.35s ease;
+}
+
+.pillar-col-active .pillar-glyph {
+  color: #fff4cb;
+  filter: drop-shadow(0 0 12px rgba(212, 175, 55, 0.95)) drop-shadow(0 0 20px rgba(212, 175, 55, 0.6));
+}
+
+.pillar-glyph svg {
+  width: 100%;
+  height: 100%;
+}
+
+.pillar-txt {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(0.64rem, 2vw, 0.74rem);
+  letter-spacing: 0.24em;
+  font-weight: 700;
+  color: #998e7c;
+  text-transform: uppercase;
+  transition: all 0.35s ease;
+}
+
+.pillar-col-active .pillar-txt {
+  color: #fce8ad;
+  text-shadow: 0 0 10px rgba(212, 175, 55, 0.8);
+}
+
+.pillar-dash-line {
+  width: clamp(16px, 4.5vw, 28px);
+  height: 1px;
+  background: rgba(212, 175, 55, 0.4);
+}
+
+/* 5. BOTTOM CINEMATIC SIGNATURE */
+.awakening-bottom-section {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-end;
+  position: relative;
+  min-height: clamp(45px, 8vh, 70px);
+}
+
+.bottom-cursive-signature {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-family: 'Alex Brush', cursive;
+  font-size: clamp(1.4rem, 4.8vw, 1.85rem);
+  color: #dfc88e;
+  line-height: 0.88;
+  text-shadow: 0 0 15px rgba(212, 175, 55, 0.45);
+  margin-right: 0.4rem;
+  margin-bottom: 0.2rem;
+}
+
+.cursive-line {
+  position: relative;
+}
+
+.cursive-rule {
+  position: relative;
+}
+
+.cursive-underline {
+  position: absolute;
+  bottom: -4px;
+  left: 10%;
+  right: -5%;
+  height: 1.5px;
+  background: linear-gradient(90deg, rgba(212, 175, 55, 0.3), #f2d893, rgba(212, 175, 55, 0.2));
+  border-radius: 2px;
+  box-shadow: 0 0 6px rgba(212, 175, 55, 0.7);
+}
+
+/* Skip / Enter Button */
+.awakening-quick-enter {
+  position: absolute;
+  bottom: clamp(0.8rem, 2vh, 1.4rem);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(18, 14, 10, 0.88);
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  color: #ecdab2;
+  padding: 0.4rem 1.1rem;
+  border-radius: 999px;
+  font-family: 'Cinzel', serif;
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.65);
+  z-index: 30;
+  transition: all 0.25s ease;
+}
+
+.awakening-quick-enter:hover {
+  background: rgba(32, 24, 16, 0.98);
+  border-color: #d4af37;
+  color: #ffffff;
+  box-shadow: 0 0 16px rgba(212, 175, 55, 0.5);
+}
+
+/* Animations */
+@keyframes rotateRing {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes celestialAuraPulse {
+  0% {
+    transform: translate(-50%, -50%) scale(0.92);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.12);
+    opacity: 1;
+  }
+}
+
+@keyframes glowPulse {
+  0% {
+    transform: scale(0.94);
+    opacity: 0.75;
+  }
+  100% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+}
+
+@keyframes sweepUpward {
+  0% {
+    opacity: 0.25;
+    transform: translateY(18%);
+  }
+  100% {
+    opacity: 0.95;
+    transform: translateY(-6%);
+  }
+}
+
+@keyframes starBurstPulse {
+  0% {
+    opacity: 0.45;
+    transform: translate(-50%, -50%) scale(0.85);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.3);
+  }
+}
+
+@keyframes diamondBreathe {
+  0% {
+    opacity: 0.5;
+    transform: scale(0.85);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes beamSweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+/* Responsive Micro Adjustments for Small Mobile Displays */
+@media (max-height: 640px) {
+  .awakening-container {
+    padding: 0.8rem 1rem;
+  }
+  .medallion-box {
+    width: 160px;
+    height: 160px;
+  }
+  .medallion-outer-ring {
+    width: 200px;
+    height: 200px;
+  }
+  .awakening-pillars-block {
+    margin-top: 0.5rem;
+  }
+}

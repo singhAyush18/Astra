@@ -18,11 +18,16 @@ import VerifyEmail from "./pages/VerifyEmail";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 
+import { useState } from "react";
+import AstraAwakening from "./components/AstraAwakening";
 import InstallPrompt from "./components/InstallPrompt";
 
 function App() {
+  const [isAwakened, setIsAwakened] = useState(false);
+
   return (
     <AuthProvider>
+      {!isAwakened && <AstraAwakening onComplete={() => setIsAwakened(true)} />}
       <InstallPrompt />
       <Toaster position="top-center" toastOptions={{
         style: {
