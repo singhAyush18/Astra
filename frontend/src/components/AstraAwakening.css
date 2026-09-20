@@ -621,56 +621,6 @@
   background: rgba(212, 175, 55, 0.4);
 }
 
-/* 5. BOTTOM CINEMATIC SIGNATURE */
-.awakening-bottom-section {
-  width: 100%;
-  display: flex;
-  justify-content: flex-end;
-  align-items: flex-end;
-  position: relative;
-  min-height: clamp(45px, 8vh, 70px);
-}
-
-.bottom-cursive-signature {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  font-family: 'Alex Brush', cursive;
-  font-size: clamp(1.45rem, 5vw, 2rem);
-  color: #dfc88e;
-  line-height: 1;
-  text-shadow: 0 0 15px rgba(212, 175, 55, 0.5);
-  margin-right: 0.4rem;
-  margin-bottom: 0.4rem;
-  position: relative;
-  padding-bottom: 6px;
-}
-
-.cursive-word {
-  position: relative;
-  display: inline-block;
-}
-
-.cursive-sep {
-  font-family: 'Cinzel', serif;
-  font-size: 0.62rem;
-  color: #d4af37;
-  opacity: 0.75;
-  margin: 0 0.15rem;
-  filter: drop-shadow(0 0 4px #d4af37);
-}
-
-.cursive-underline {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 1.5px;
-  background: linear-gradient(90deg, transparent 0%, rgba(212, 175, 55, 0.4) 15%, #f2d893 50%, rgba(212, 175, 55, 0.4) 85%, transparent 100%);
-  border-radius: 2px;
-  box-shadow: 0 0 8px rgba(212, 175, 55, 0.7);
-}
-
 /* Skip / Enter Button */
 .awakening-quick-enter {
   position: absolute;

@@ -577,18 +577,6 @@ export default function AstraAwakening({ onComplete, minDuration = 5500 }) {
           </div>
         </div>
 
-        {/* 5. BOTTOM CINEMATIC SIGNATURE */}
-        <div className="awakening-bottom-section">
-          <div className="bottom-cursive-signature">
-            <span className="cursive-word">Run</span>
-            <span className="cursive-sep">•</span>
-            <span className="cursive-word">Conquer</span>
-            <span className="cursive-sep">•</span>
-            <span className="cursive-word">Rule</span>
-            <div className="cursive-underline" />
-          </div>
-        </div>
-
         {/* Skip / Enter Action */}
         {showSkip && !isExiting && (
           <motion.button
