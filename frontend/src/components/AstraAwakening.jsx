@@ -45,14 +45,15 @@ const PILLARS = [
   },
 ];
 
-export default function AstraAwakening({ onComplete, minDuration = 2600 }) {
-  const [progress, setProgress] = useState(12);
+export default function AstraAwakening({ onComplete, minDuration = 5500 }) {
+  const [progress, setProgress] = useState(8);
   const [statusIndex, setStatusIndex] = useState(0);
   const [activePillar, setActivePillar] = useState(0);
   const [isBackendReady, setIsBackendReady] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const [showSkip, setShowSkip] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  const [audioDurationMs, setAudioDurationMs] = useState(minDuration);
   const canvasRef = useRef(null);
   const audioRef = useRef(null);
   const startTimeRef = useRef(Date.now());
@@ -70,6 +71,11 @@ export default function AstraAwakening({ onComplete, minDuration = 2600 }) {
     try {
       htmlAudio = new Audio('/sounds/Astra_loading_sound.aac');
       htmlAudio.volume = isMuted ? 0 : 0.85;
+      htmlAudio.addEventListener('loadedmetadata', () => {
+        if (htmlAudio.duration && htmlAudio.duration > 1 && !isNaN(htmlAudio.duration)) {
+          setAudioDurationMs(Math.max(htmlAudio.duration * 1000, 4800));
+        }
+      });
       audioRef.current = htmlAudio;
     } catch (e) {
       console.warn('HTML5 Audio init:', e);
@@ -325,26 +331,30 @@ export default function AstraAwakening({ onComplete, minDuration = 2600 }) {
     };
   }, []);
 
-  // Progress Bar Simulation
+  // Progress Bar Simulation synchronized to audio duration & backend
   useEffect(() => {
+    const targetDuration = Math.max(minDuration, audioDurationMs);
     const progressInterval = setInterval(() => {
+      const elapsed = Date.now() - startTimeRef.current;
+      const timeProgress = Math.min(100, (elapsed / targetDuration) * 100);
+
       setProgress((prev) => {
         if (isBackendReady) {
-          const elapsed = Date.now() - startTimeRef.current;
-          if (elapsed >= minDuration) {
+          if (elapsed >= targetDuration) {
             return 100;
           }
-          return Math.min(100, prev + 6);
+          return Math.max(prev, Math.min(99, timeProgress));
         }
+        // If backend still waking up, progress smoothly up to 88%
         if (prev < 88) {
-          return prev + (88 - prev) * 0.08 + 0.4;
+          return Math.min(88, Math.max(prev + 0.25, timeProgress * 0.88));
         }
         return prev;
       });
-    }, 100);
+    }, 40);
 
     return () => clearInterval(progressInterval);
-  }, [isBackendReady, minDuration]);
+  }, [isBackendReady, minDuration, audioDurationMs]);
 
   // Transition trigger when 100% complete
   useEffect(() => {
