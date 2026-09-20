@@ -475,63 +475,146 @@ export default function AstraAwakening({ onComplete, minDuration = 5500 }) {
       <div className="awakening-celestial-glow" />
       <div className="awakening-vignette" />
 
-      {/* Standalone Crimson War Banner Hoist Transition (The Battle Flag from behind the 'A') */}
+      {/* Full-Screen Royal Crimson War Banner Hoist Animation */}
       <AnimatePresence>
         {isFlagHoistActive && (
           <motion.div
-            className="war-banner-hoist-overlay"
+            className="fullscreen-banner-hoist-stage"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.7 }}
+            transition={{ duration: 0.5 }}
           >
-            {/* Ambient battle wind glow & golden light shaft */}
-            <div className="banner-wind-glow" />
-            <div className="banner-celestial-pillar" />
+            {/* Ambient War Atmosphere & Sunbeam Backlight */}
+            <div className="fullscreen-hoist-sky-glow" />
+            <div className="fullscreen-hoist-sunbeam" />
+            <div className="fullscreen-hoist-embers-field" />
 
-            {/* Standalone Crimson War Banner on Spear */}
+            {/* The Full Screen Hoisting War Banner Structure */}
             <motion.div
-              className="crimson-war-banner-container"
-              initial={{ y: 320, scale: 0.75, opacity: 0, rotate: -6 }}
+              className="fullscreen-flag-hoist-assembly"
+              initial={{ y: '105vh', scale: 0.92, rotate: -3 }}
               animate={{
-                y: [320, -10, 0],
-                scale: [0.75, 1.05, 1],
-                opacity: 1,
-                rotate: [-6, 3, -1, 0],
+                y: ['105vh', '-2vh', '0vh'],
+                scale: [0.92, 1.02, 1],
+                rotate: [-3, 1, 0],
               }}
               exit={{
-                y: -100,
-                scale: 1.35,
+                y: '-105vh',
+                scale: 1.08,
                 opacity: 0,
-                filter: 'blur(10px)',
+                filter: 'blur(8px)',
               }}
               transition={{
-                duration: 1.6,
+                duration: 1.7,
                 ease: [0.16, 1, 0.3, 1],
               }}
             >
-              <div className="war-banner-visual-wrapper">
-                <img
-                  src={warBannerImg}
-                  alt="Astra War Banner"
-                  className="war-banner-isolated-img"
-                />
-                {/* Dynamic golden wave shimmer on the silk */}
-                <div className="war-banner-silk-sheen" />
-                {/* Golden ambient aura */}
-                <div className="war-banner-gold-aura" />
+              {/* Spear Staff on the Left */}
+              <div className="hoist-spear-column">
+                <div className="hoist-spear-head">
+                  <div className="spear-blade-gilded" />
+                  <div className="spear-blade-core" />
+                  <div className="spear-blade-glint" />
+                </div>
+                <div className="hoist-spear-collar" />
+                <div className="hoist-spear-shaft" />
               </div>
 
-              {/* Majestic Subtitle under the banner */}
-              <motion.div
-                className="hoist-banner-title"
-                initial={{ opacity: 0, y: 18 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.35, duration: 0.7 }}
-              >
-                <div className="hoist-title-crest">✦ ASTRA ✦</div>
-                <div className="hoist-title-sub">REALM CONQUEST COMMENCES</div>
-              </motion.div>
+              {/* Massive Animated Crimson Silk Flag Spanning Full Screen */}
+              <div className="fullscreen-crimson-cloth">
+                {/* Layer 1: Animated Silk Cloth Wave Base SVG */}
+                <svg
+                  className="fullscreen-flag-svg"
+                  viewBox="0 0 1200 800"
+                  preserveAspectRatio="none"
+                >
+                  <defs>
+                    <linearGradient id="crimsonSilkGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#3d0505" />
+                      <stop offset="25%" stopColor="#7a0d0d" />
+                      <stop offset="50%" stopColor="#aa1414" />
+                      <stop offset="75%" stopColor="#700909" />
+                      <stop offset="100%" stopColor="#300303" />
+                    </linearGradient>
+
+                    <linearGradient id="goldStarShine" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#ffffff" />
+                      <stop offset="25%" stopColor="#ffe680" />
+                      <stop offset="60%" stopColor="#d4af37" />
+                      <stop offset="100%" stopColor="#7a5a14" />
+                    </linearGradient>
+
+                    <filter id="starGlow" x="-50%" y="-50%" width="200%" height="200%">
+                      <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="blur1" />
+                      <feGaussianBlur in="SourceGraphic" stdDeviation="24" result="blur2" />
+                      <feMerge>
+                        <feMergeNode in="blur2" />
+                        <feMergeNode in="blur1" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                  </defs>
+
+                  {/* Main Crimson Flag Body */}
+                  <path
+                    className="svg-cloth-wave-body"
+                    d="M 0,40 C 300,10 600,70 900,20 C 1050,-5 1150,15 1200,45 L 1200,740 C 1140,780 1020,720 880,770 C 580,820 280,740 0,780 Z"
+                    fill="url(#crimsonSilkGrad)"
+                  />
+
+                  {/* Tattered & Torn Pennant Trails on Right Edge */}
+                  <path
+                    className="svg-tattered-tail-1"
+                    d="M 1180,60 Q 1240,110 1190,170 Q 1260,230 1180,300 Z"
+                    fill="#580808"
+                  />
+                  <path
+                    className="svg-tattered-tail-2"
+                    d="M 1190,320 Q 1270,410 1190,500 Q 1250,580 1180,650 Z"
+                    fill="#450505"
+                  />
+                  <path
+                    className="svg-tattered-tail-3"
+                    d="M 1180,630 Q 1260,700 1170,760 Z"
+                    fill="#350303"
+                  />
+                </svg>
+
+                {/* Layer 2: Silk Ripple Shadows & Highlights */}
+                <div className="cloth-ripple-layer ripple-shade-1" />
+                <div className="cloth-ripple-layer ripple-shade-2" />
+                <div className="cloth-ripple-layer ripple-highlight-sheen" />
+
+                {/* Layer 3: Giant Radiating 8-Pointed Golden Astra Star */}
+                <div className="fullscreen-star-container">
+                  <div className="star-celestial-burst" />
+                  <svg viewBox="0 0 200 200" className="fullscreen-astra-star-svg">
+                    {/* Outer Radiant 8-Point Star */}
+                    <polygon
+                      points="100,5 116,74 195,100 116,126 100,195 84,126 5,100 84,74"
+                      fill="url(#goldStarShine)"
+                      filter="url(#starGlow)"
+                    />
+                    {/* Inner Diamond Facet Highlights */}
+                    <polygon
+                      points="100,25 111,79 175,100 111,121 100,175 89,121 25,100 89,79"
+                      fill="#fff8d6"
+                      opacity="0.9"
+                    />
+                    <polygon
+                      points="100,45 107,84 155,100 107,116 100,155 93,116 45,100 93,84"
+                      fill="#ffffff"
+                    />
+                  </svg>
+                </div>
+
+                {/* Banner Callout Inscription */}
+                <div className="banner-royal-inscription">
+                  <span className="inscription-realm">THE REALM OF ASTRA</span>
+                  <span className="inscription-conquest">HOIST THE BATTLE BANNER</span>
+                </div>
+              </div>
             </motion.div>
           </motion.div>
         )}
