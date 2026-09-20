@@ -269,10 +269,10 @@ export default function AstraAwakening({ onComplete, minDuration = 5500 }) {
   // 3-Beat Precision Synchronization for (RUN -> CONQUER -> RULE)
   useEffect(() => {
     const targetDuration = Math.max(minDuration, audioDurationMs);
-    // Dynamic beat timestamps mapped across the audio timeline
-    const beat1Time = targetDuration * 0.24; // Beat 1: RUN (~1.3s in 5.5s)
-    const beat2Time = targetDuration * 0.48; // Beat 2: CONQUER (~2.6s in 5.5s)
-    const beat3Time = targetDuration * 0.72; // Beat 3: RULE (~4.0s in 5.5s)
+    // Adjusted musical beat timestamps
+    const beat1Time = targetDuration * 0.22; // Beat 1: RUN (~1.2s in 5.5s)
+    const beat2Time = targetDuration * 0.40; // Beat 2: CONQUER (~2.2s in 5.5s)
+    const beat3Time = targetDuration * 0.58; // Beat 3: RULE (~3.2s in 5.5s - drops earlier to match audio hit)
 
     const beatInterval = setInterval(() => {
       const elapsed = Date.now() - startTimeRef.current;
@@ -287,10 +287,10 @@ export default function AstraAwakening({ onComplete, minDuration = 5500 }) {
         setActivePillar(1); // BEAT 2: CONQUER
         setStatusIndex(2); // "MAPPING KINGDOM DOMAINS..."
       } else {
-        setActivePillar(2); // BEAT 3: RULE
+        setActivePillar(2); // BEAT 3: RULE (ignites on 3rd beat hit)
         setStatusIndex(3); // "SUMMONING CONQUERORS..."
       }
-    }, 30);
+    }, 25);
 
     return () => clearInterval(beatInterval);
   }, [minDuration, audioDurationMs]);
