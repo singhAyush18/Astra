@@ -96,6 +96,9 @@ export default function AstraAwakening({ onComplete, minDuration = 5500 }) {
     // Initialize HTML5 Audio
     try {
       htmlAudio = new Audio('/sounds/Astra_loading_sound.aac');
+      htmlAudio.setAttribute('playsinline', 'true');
+      htmlAudio.setAttribute('webkit-playsinline', 'true');
+      htmlAudio.preload = 'auto';
       htmlAudio.volume = isMuted ? 0 : 0.85;
       htmlAudio.addEventListener('loadedmetadata', () => {
         if (htmlAudio.duration && htmlAudio.duration > 1 && !isNaN(htmlAudio.duration)) {
@@ -142,7 +145,6 @@ export default function AstraAwakening({ onComplete, minDuration = 5500 }) {
         const brassGain = audioCtx.createGain();
         brassOsc.type = 'sawtooth';
         brassOsc.frequency.setValueAtTime(110, audioCtx.currentTime);
-        // Low pass filter for warm cinematic feel
         const filter = audioCtx.createBiquadFilter();
         filter.type = 'lowpass';
         filter.frequency.setValueAtTime(280, audioCtx.currentTime);
@@ -171,35 +173,37 @@ export default function AstraAwakening({ onComplete, minDuration = 5500 }) {
 
     const activateAllSound = () => {
       if (isDisposed) return;
-      // 1. Play HTML5 audio file
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume().catch(() => {});
+      }
       if (htmlAudio) {
-        htmlAudio.currentTime = 0;
         htmlAudio.play().catch(() => {});
       }
-      // 2. Play Web Audio atmospheric soundtrack
-      startCinematicSynth();
+      if (synthNodes.length === 0) {
+        startCinematicSynth();
+      }
     };
 
-    // Try auto-play immediately
+    // Attempt instant autoplay
     activateAllSound();
 
-    // Guaranteed activation on first click or touch
-    const onUserInteract = () => {
+    // Universal unlock for mobile touch & gestures
+    const onMobileUnlock = () => {
       activateAllSound();
-      window.removeEventListener('click', onUserInteract);
-      window.removeEventListener('touchstart', onUserInteract);
-      window.removeEventListener('keydown', onUserInteract);
+      ['click', 'touchstart', 'touchend', 'pointerdown', 'keydown'].forEach((evt) => {
+        window.removeEventListener(evt, onMobileUnlock);
+      });
     };
 
-    window.addEventListener('click', onUserInteract);
-    window.addEventListener('touchstart', onUserInteract);
-    window.addEventListener('keydown', onUserInteract);
+    ['click', 'touchstart', 'touchend', 'pointerdown', 'keydown'].forEach((evt) => {
+      window.addEventListener(evt, onMobileUnlock, { passive: true });
+    });
 
     return () => {
       isDisposed = true;
-      window.removeEventListener('click', onUserInteract);
-      window.removeEventListener('touchstart', onUserInteract);
-      window.removeEventListener('keydown', onUserInteract);
+      ['click', 'touchstart', 'touchend', 'pointerdown', 'keydown'].forEach((evt) => {
+        window.removeEventListener(evt, onMobileUnlock);
+      });
       
       if (htmlAudio) {
         htmlAudio.pause();
@@ -221,72 +225,71 @@ export default function AstraAwakening({ onComplete, minDuration = 5500 }) {
     }
   }, [isMuted]);
 
-  // Floating Golden Embers
+  // Floating Golden Embers (Ultra-lightweight Mobile 60fps Loop)
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: true });
     let animId;
     let particles = [];
+    const isMobile = typeof window !== 'undefined' && (window.innerWidth < 768 || 'ontouchstart' in window);
+    const particleCount = isMobile ? 22 : 45;
 
     const handleResize = () => {
+      if (!canvas) return;
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
     };
     handleResize();
-    window.addEventListener('resize', handleResize);
+    window.addEventListener('resize', handleResize, { passive: true });
 
-    for (let i = 0; i < 65; i++) {
+    for (let i = 0; i < particleCount; i++) {
       particles.push({
         x: Math.random() * canvas.width,
         y: Math.random() * canvas.height,
-        size: Math.random() * 2 + 0.6,
-        speedY: Math.random() * 0.7 + 0.25,
-        speedX: (Math.random() - 0.5) * 0.4,
-        opacity: Math.random() * 0.85 + 0.15,
+        size: Math.random() * (isMobile ? 1.6 : 2.0) + 0.6,
+        speedY: Math.random() * 0.6 + 0.25,
+        speedX: (Math.random() - 0.5) * 0.3,
+        opacity: Math.random() * 0.8 + 0.2,
         twinkle: Math.random() * Math.PI * 2,
-        twinkleSpeed: Math.random() * 0.04 + 0.015,
-        isGold: Math.random() > 0.2,
+        twinkleSpeed: Math.random() * 0.035 + 0.015,
+        isGold: Math.random() > 0.25,
       });
     }
 
-    const render = () => {
+    let lastTime = performance.now();
+    const render = (now) => {
+      if (now - lastTime < 16) {
+        animId = requestAnimationFrame(render);
+        return;
+      }
+      lastTime = now;
+
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      particles.forEach((p) => {
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
         p.y -= p.speedY;
         p.x += p.speedX;
         p.twinkle += p.twinkleSpeed;
+
+        if (p.y < -10) p.y = canvas.height + 10;
+        if (p.x < -10) p.x = canvas.width + 10;
+        if (p.x > canvas.width + 10) p.x = -10;
+
         const currentAlpha = p.opacity * (0.6 + 0.4 * Math.sin(p.twinkle));
-
-        if (p.y < -10) {
-          p.y = canvas.height + 10;
-          p.x = Math.random() * canvas.width;
-        }
-        if (p.x < 0) p.x = canvas.width;
-        if (p.x > canvas.width) p.x = 0;
-
-        const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size * 3.5);
-        if (p.isGold) {
-          grad.addColorStop(0, `rgba(255, 230, 140, ${currentAlpha})`);
-          grad.addColorStop(0.5, `rgba(212, 175, 55, ${currentAlpha * 0.6})`);
-          grad.addColorStop(1, 'rgba(212, 175, 55, 0)');
-        } else {
-          grad.addColorStop(0, `rgba(255, 170, 70, ${currentAlpha * 0.8})`);
-          grad.addColorStop(0.5, `rgba(200, 100, 20, ${currentAlpha * 0.4})`);
-          grad.addColorStop(1, 'rgba(180, 70, 10, 0)');
-        }
-
-        ctx.fillStyle = grad;
         ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size * 2, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = p.isGold
+          ? `rgba(212, 175, 55, ${currentAlpha})`
+          : `rgba(255, 235, 170, ${currentAlpha * 0.85})`;
         ctx.fill();
-      });
+      }
 
       animId = requestAnimationFrame(render);
     };
 
-    render();
+    animId = requestAnimationFrame(render);
 
     return () => {
       cancelAnimationFrame(animId);
@@ -300,9 +303,16 @@ export default function AstraAwakening({ onComplete, minDuration = 5500 }) {
   const playPillarChime = (pillarIndex) => {
     if (isMuted) return;
     try {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (!AudioCtx) return;
-      const ctx = new AudioCtx();
+      let ctx = audioCtxRef.current;
+      if (!ctx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        ctx = new AudioCtx();
+        audioCtxRef.current = ctx;
+      }
+      if (ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+      }
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
 
@@ -312,15 +322,15 @@ export default function AstraAwakening({ onComplete, minDuration = 5500 }) {
 
       osc.type = 'triangle';
       osc.frequency.setValueAtTime(freq, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(freq * 1.35, ctx.currentTime + 0.3);
+      osc.frequency.exponentialRampToValueAtTime(freq * 1.35, ctx.currentTime + 0.28);
 
-      gain.gain.setValueAtTime(0.35, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.55);
+      gain.gain.setValueAtTime(0.32, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
 
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(masterGainRef.current || ctx.destination);
       osc.start();
-      osc.stop(ctx.currentTime + 0.55);
+      osc.stop(ctx.currentTime + 0.5);
     } catch {}
   };
 
