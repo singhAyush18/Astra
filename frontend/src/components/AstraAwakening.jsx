@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import logoImg from '../assets/logo.jpg';
+import warBannerImg from '../assets/war_banner.jpg';
 import heroBg from '../assets/hero_bg.jpg';
 import './AstraAwakening.css';
 
@@ -474,7 +475,7 @@ export default function AstraAwakening({ onComplete, minDuration = 5500 }) {
       <div className="awakening-celestial-glow" />
       <div className="awakening-vignette" />
 
-      {/* Royal War Banner Hoist Transition — Exact Artwork */}
+      {/* Standalone Crimson War Banner Hoist Transition (The Battle Flag from behind the 'A') */}
       <AnimatePresence>
         {isFlagHoistActive && (
           <motion.div
@@ -484,36 +485,52 @@ export default function AstraAwakening({ onComplete, minDuration = 5500 }) {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.7 }}
           >
-            {/* Ambient battle wind & sunburst radiance */}
+            {/* Ambient battle wind glow & golden light shaft */}
             <div className="banner-wind-glow" />
-            <div className="banner-sunburst-halo" />
+            <div className="banner-celestial-pillar" />
 
-            {/* The Royal War Banner Standard (Exact Artwork Medallion) */}
+            {/* Standalone Crimson War Banner on Spear */}
             <motion.div
-              className="war-banner-exact-frame"
-              initial={{ y: 260, scale: 0.65, opacity: 0, rotate: -6 }}
-              animate={{ y: 0, scale: 1.15, opacity: 1, rotate: 0 }}
-              exit={{ y: -90, scale: 1.6, opacity: 0, filter: 'blur(16px)' }}
-              transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1] }}
+              className="crimson-war-banner-container"
+              initial={{ y: 320, scale: 0.75, opacity: 0, rotate: -6 }}
+              animate={{
+                y: [320, -10, 0],
+                scale: [0.75, 1.05, 1],
+                opacity: 1,
+                rotate: [-6, 3, -1, 0],
+              }}
+              exit={{
+                y: -100,
+                scale: 1.35,
+                opacity: 0,
+                filter: 'blur(10px)',
+              }}
+              transition={{
+                duration: 1.6,
+                ease: [0.16, 1, 0.3, 1],
+              }}
             >
-              {/* Outer Golden Aura Ring */}
-              <div className="banner-outer-gold-ring" />
-              
-              {/* Central Exact War Banner & Crest Artwork */}
-              <div className="banner-artwork-card">
-                <img src={logoImg} alt="Astra War Banner" className="banner-exact-img" />
-                <div className="banner-sheen-sweep" />
-                <div className="banner-center-star-flare" />
+              <div className="war-banner-visual-wrapper">
+                <img
+                  src={warBannerImg}
+                  alt="Astra War Banner"
+                  className="war-banner-isolated-img"
+                />
+                {/* Dynamic golden wave shimmer on the silk */}
+                <div className="war-banner-silk-sheen" />
+                {/* Golden ambient aura */}
+                <div className="war-banner-gold-aura" />
               </div>
 
-              {/* Conquest Victory Label */}
+              {/* Majestic Subtitle under the banner */}
               <motion.div
-                className="banner-hoist-subtitle"
-                initial={{ opacity: 0, y: 15 }}
+                className="hoist-banner-title"
+                initial={{ opacity: 0, y: 18 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4, duration: 0.8 }}
+                transition={{ delay: 0.35, duration: 0.7 }}
               >
-                REALM CONQUERED • ENTERING KINGDOM
+                <div className="hoist-title-crest">✦ ASTRA ✦</div>
+                <div className="hoist-title-sub">REALM CONQUEST COMMENCES</div>
               </motion.div>
             </motion.div>
           </motion.div>
