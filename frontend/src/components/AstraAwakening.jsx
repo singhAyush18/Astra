@@ -266,34 +266,64 @@ export default function AstraAwakening({ onComplete, minDuration = 5500 }) {
     };
   }, []);
 
-  // 3-Beat Precision Synchronization for (RUN -> CONQUER -> RULE)
+  // Sound chime synthesizer triggered when progress reaches each pillar
+  const playedChimesRef = useRef({ 0: false, 1: false, 2: false });
+
+  const playPillarChime = (pillarIndex) => {
+    if (isMuted) return;
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      // RUN: 440Hz (A4), CONQUER: 554.37Hz (C#5), RULE: 659.25Hz (E5)
+      const freqs = [440, 554.37, 659.25];
+      const freq = freqs[pillarIndex] || 528;
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(freq * 1.35, ctx.currentTime + 0.3);
+
+      gain.gain.setValueAtTime(0.35, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.55);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.55);
+    } catch {}
+  };
+
+  // Synchronize Pillars & Sound Effects directly with Progress Bar loading reach
   useEffect(() => {
-    const targetDuration = Math.max(minDuration, audioDurationMs);
-    // Adjusted musical beat timestamps
-    const beat1Time = targetDuration * 0.22; // Beat 1: RUN (~1.2s in 5.5s)
-    const beat2Time = targetDuration * 0.40; // Beat 2: CONQUER (~2.2s in 5.5s)
-    const beat3Time = targetDuration * 0.58; // Beat 3: RULE (~3.2s in 5.5s - drops earlier to match audio hit)
-
-    const beatInterval = setInterval(() => {
-      const elapsed = Date.now() - startTimeRef.current;
-
-      if (elapsed < beat1Time) {
-        setActivePillar(-1); // Initial awakening phase
-        setStatusIndex(0); // "AWAKENING THE REALM..."
-      } else if (elapsed >= beat1Time && elapsed < beat2Time) {
-        setActivePillar(0); // BEAT 1: RUN
-        setStatusIndex(1); // "GATHERING STRIDE ENERGY..."
-      } else if (elapsed >= beat2Time && elapsed < beat3Time) {
-        setActivePillar(1); // BEAT 2: CONQUER
-        setStatusIndex(2); // "MAPPING KINGDOM DOMAINS..."
-      } else {
-        setActivePillar(2); // BEAT 3: RULE (ignites on 3rd beat hit)
-        setStatusIndex(3); // "SUMMONING CONQUERORS..."
+    if (progress < 20) {
+      setActivePillar(-1);
+      setStatusIndex(0); // "AWAKENING THE REALM..."
+    } else if (progress >= 20 && progress < 50) {
+      if (!playedChimesRef.current[0]) {
+        playedChimesRef.current[0] = true;
+        playPillarChime(0);
       }
-    }, 25);
-
-    return () => clearInterval(beatInterval);
-  }, [minDuration, audioDurationMs]);
+      setActivePillar(0); // Loading reaches RUN
+      setStatusIndex(1); // "GATHERING STRIDE ENERGY..."
+    } else if (progress >= 50 && progress < 80) {
+      if (!playedChimesRef.current[1]) {
+        playedChimesRef.current[1] = true;
+        playPillarChime(1);
+      }
+      setActivePillar(1); // Loading reaches CONQUER
+      setStatusIndex(2); // "MAPPING KINGDOM DOMAINS..."
+    } else {
+      if (!playedChimesRef.current[2]) {
+        playedChimesRef.current[2] = true;
+        playPillarChime(2);
+      }
+      setActivePillar(2); // Loading reaches RULE
+      setStatusIndex(3); // "SUMMONING CONQUERORS..."
+    }
+  }, [progress, isMuted]);
 
   // Show Skip button after 3.2s
   useEffect(() => {
@@ -529,12 +559,12 @@ export default function AstraAwakening({ onComplete, minDuration = 5500 }) {
         {/* 5. BOTTOM CINEMATIC SIGNATURE */}
         <div className="awakening-bottom-section">
           <div className="bottom-cursive-signature">
-            <div className="cursive-line">Run</div>
-            <div className="cursive-line">Conquer</div>
-            <div className="cursive-line cursive-rule">
-              Rule
-              <div className="cursive-underline" />
-            </div>
+            <span className="cursive-word">Run</span>
+            <span className="cursive-sep">•</span>
+            <span className="cursive-word">Conquer</span>
+            <span className="cursive-sep">•</span>
+            <span className="cursive-word">Rule</span>
+            <div className="cursive-underline" />
           </div>
         </div>
 
