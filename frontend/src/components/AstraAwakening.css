@@ -368,7 +368,23 @@
 
 .pillar-col-active {
   opacity: 1;
-  transform: scale(1.12);
+  transform: scale(1.18);
+  animation: pillarBeatImpact 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes pillarBeatImpact {
+  0% {
+    transform: scale(0.92);
+    opacity: 0.5;
+  }
+  45% {
+    transform: scale(1.36);
+    filter: drop-shadow(0 0 28px rgba(255, 235, 140, 1));
+  }
+  100% {
+    transform: scale(1.18);
+    filter: drop-shadow(0 0 16px rgba(212, 175, 55, 0.8));
+  }
 }
 
 .pillar-glyph {

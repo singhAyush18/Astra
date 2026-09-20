@@ -266,26 +266,34 @@ export default function AstraAwakening({ onComplete, minDuration = 5500 }) {
     };
   }, []);
 
-  // Pillar Cycling (RUN -> CONQUER -> RULE)
+  // 3-Beat Precision Synchronization for (RUN -> CONQUER -> RULE)
   useEffect(() => {
-    const pillarInterval = setInterval(() => {
-      setActivePillar((prev) => (prev + 1) % PILLARS.length);
-    }, 850);
-    return () => clearInterval(pillarInterval);
-  }, []);
+    const targetDuration = Math.max(minDuration, audioDurationMs);
+    // Dynamic beat timestamps mapped across the audio timeline
+    const beat1Time = targetDuration * 0.24; // Beat 1: RUN (~1.3s in 5.5s)
+    const beat2Time = targetDuration * 0.48; // Beat 2: CONQUER (~2.6s in 5.5s)
+    const beat3Time = targetDuration * 0.72; // Beat 3: RULE (~4.0s in 5.5s)
 
-  // Status Message Cycling
-  useEffect(() => {
-    const statusInterval = setInterval(() => {
-      setStatusIndex((prev) => {
-        if (prev < STATUS_MESSAGES.length - 2) {
-          return prev + 1;
-        }
-        return prev;
-      });
-    }, 1800);
-    return () => clearInterval(statusInterval);
-  }, []);
+    const beatInterval = setInterval(() => {
+      const elapsed = Date.now() - startTimeRef.current;
+
+      if (elapsed < beat1Time) {
+        setActivePillar(-1); // Initial awakening phase
+        setStatusIndex(0); // "AWAKENING THE REALM..."
+      } else if (elapsed >= beat1Time && elapsed < beat2Time) {
+        setActivePillar(0); // BEAT 1: RUN
+        setStatusIndex(1); // "GATHERING STRIDE ENERGY..."
+      } else if (elapsed >= beat2Time && elapsed < beat3Time) {
+        setActivePillar(1); // BEAT 2: CONQUER
+        setStatusIndex(2); // "MAPPING KINGDOM DOMAINS..."
+      } else {
+        setActivePillar(2); // BEAT 3: RULE
+        setStatusIndex(3); // "SUMMONING CONQUERORS..."
+      }
+    }, 30);
+
+    return () => clearInterval(beatInterval);
+  }, [minDuration, audioDurationMs]);
 
   // Show Skip button after 3.2s
   useEffect(() => {
