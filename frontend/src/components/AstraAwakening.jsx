@@ -51,7 +51,7 @@ export default function AstraAwakening({ onComplete, minDuration = 5500 }) {
   const [activePillar, setActivePillar] = useState(0);
   const [isBackendReady, setIsBackendReady] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
-  const [isGoldenSplashActive, setIsGoldenSplashActive] = useState(false);
+  const [isFlagHoistActive, setIsFlagHoistActive] = useState(false);
   const [showSkip, setShowSkip] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [audioDurationMs, setAudioDurationMs] = useState(minDuration);
@@ -429,19 +429,19 @@ export default function AstraAwakening({ onComplete, minDuration = 5500 }) {
       completedRef.current = true;
       setStatusIndex(STATUS_MESSAGES.length - 1);
       
-      // Step 1: Smoothly Fade Out Audio & Launch Full Golden Splash
+      // Step 1: Smoothly Fade Out Audio & Hoist the War Banner
       fadeOutAudio();
-      setIsGoldenSplashActive(true);
+      setIsFlagHoistActive(true);
 
-      // Step 2: Fade Golden Splash to unveil Kingdom page
+      // Step 2: Unveil Kingdom Page as the banner floats through
       setTimeout(() => {
         setIsExiting(true);
-      }, 600);
+      }, 750);
 
       // Step 3: Complete transition & clean unmount
       setTimeout(() => {
         if (onComplete) onComplete();
-      }, 1300);
+      }, 1450);
     }
   }, [progress, onComplete]);
 
@@ -451,13 +451,13 @@ export default function AstraAwakening({ onComplete, minDuration = 5500 }) {
     setProgress(100);
     setStatusIndex(STATUS_MESSAGES.length - 1);
     fadeOutAudio();
-    setIsGoldenSplashActive(true);
+    setIsFlagHoistActive(true);
     setTimeout(() => {
       setIsExiting(true);
-    }, 350);
+    }, 300);
     setTimeout(() => {
       if (onComplete) onComplete();
-    }, 750);
+    }, 700);
   };
 
   return (
@@ -474,19 +474,56 @@ export default function AstraAwakening({ onComplete, minDuration = 5500 }) {
       <div className="awakening-celestial-glow" />
       <div className="awakening-vignette" />
 
-      {/* Two-Stage Fullscreen Golden Splash Transition */}
+      {/* Royal War Banner Hoist Transition */}
       <AnimatePresence>
-        {isGoldenSplashActive && (
+        {isFlagHoistActive && (
           <motion.div
-            className="awakening-gold-splash-screen"
-            initial={{ opacity: 0, scale: 0.85 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.15 }}
-            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+            className="war-banner-hoist-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
           >
-            <div className="splash-sunburst-rays" />
-            <div className="splash-center-flare" />
-            <div className="splash-emblem-halo" />
+            {/* Ambient battle wind glow */}
+            <div className="banner-wind-glow" />
+
+            {/* Hoisting Royal War Standard */}
+            <motion.div
+              className="war-standard-wrapper"
+              initial={{ y: 240, scale: 0.7, opacity: 0, rotate: -8 }}
+              animate={{ y: 0, scale: 1.05, opacity: 1, rotate: 0 }}
+              exit={{ y: -80, scale: 1.5, opacity: 0, filter: 'blur(12px)' }}
+              transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
+            >
+              {/* Gilded Golden Spearhead Finial */}
+              <div className="banner-spearhead">
+                <div className="spear-blade" />
+                <div className="spear-crossguard" />
+                <div className="spear-sparkle" />
+              </div>
+
+              {/* Wooden Battle Staff */}
+              <div className="banner-pole" />
+
+              {/* Royal Crimson & Gold Silk Banner Cloth */}
+              <div className="banner-silk-cloth">
+                <div className="banner-cloth-wave" />
+                <div className="banner-gold-trim-top" />
+                <div className="banner-gold-trim-bottom" />
+                
+                {/* Astra Emblem on Banner */}
+                <div className="banner-crest-artwork">
+                  <div className="banner-crown-gold">👑</div>
+                  <div className="banner-letter-a">A</div>
+                  <div className="banner-star-radiance">✦</div>
+                  <div className="banner-realm-title">ASTRA</div>
+                  <div className="banner-realm-tag">STRIDE WARS</div>
+                </div>
+
+                {/* Silk Fringes / Tassels */}
+                <div className="banner-gold-fringes" />
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
