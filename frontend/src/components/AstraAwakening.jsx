@@ -433,15 +433,15 @@ export default function AstraAwakening({ onComplete, minDuration = 5500 }) {
       fadeOutAudio();
       setIsFlagHoistActive(true);
 
-      // Step 2: Unveil Kingdom Page as the banner floats through
+      // Step 2: Extended banner linger duration before unveiling Kingdom
       setTimeout(() => {
         setIsExiting(true);
-      }, 750);
+      }, 1900);
 
       // Step 3: Complete transition & clean unmount
       setTimeout(() => {
         if (onComplete) onComplete();
-      }, 1450);
+      }, 2700);
     }
   }, [progress, onComplete]);
 
@@ -454,10 +454,10 @@ export default function AstraAwakening({ onComplete, minDuration = 5500 }) {
     setIsFlagHoistActive(true);
     setTimeout(() => {
       setIsExiting(true);
-    }, 300);
+    }, 450);
     setTimeout(() => {
       if (onComplete) onComplete();
-    }, 700);
+    }, 900);
   };
 
   return (
@@ -474,7 +474,7 @@ export default function AstraAwakening({ onComplete, minDuration = 5500 }) {
       <div className="awakening-celestial-glow" />
       <div className="awakening-vignette" />
 
-      {/* Royal War Banner Hoist Transition */}
+      {/* Royal War Banner Hoist Transition — Exact Artwork */}
       <AnimatePresence>
         {isFlagHoistActive && (
           <motion.div
@@ -482,47 +482,39 @@ export default function AstraAwakening({ onComplete, minDuration = 5500 }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.7 }}
           >
-            {/* Ambient battle wind glow */}
+            {/* Ambient battle wind & sunburst radiance */}
             <div className="banner-wind-glow" />
+            <div className="banner-sunburst-halo" />
 
-            {/* Hoisting Royal War Standard */}
+            {/* The Royal War Banner Standard (Exact Artwork Medallion) */}
             <motion.div
-              className="war-standard-wrapper"
-              initial={{ y: 240, scale: 0.7, opacity: 0, rotate: -8 }}
-              animate={{ y: 0, scale: 1.05, opacity: 1, rotate: 0 }}
-              exit={{ y: -80, scale: 1.5, opacity: 0, filter: 'blur(12px)' }}
-              transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
+              className="war-banner-exact-frame"
+              initial={{ y: 260, scale: 0.65, opacity: 0, rotate: -6 }}
+              animate={{ y: 0, scale: 1.15, opacity: 1, rotate: 0 }}
+              exit={{ y: -90, scale: 1.6, opacity: 0, filter: 'blur(16px)' }}
+              transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1] }}
             >
-              {/* Gilded Golden Spearhead Finial */}
-              <div className="banner-spearhead">
-                <div className="spear-blade" />
-                <div className="spear-crossguard" />
-                <div className="spear-sparkle" />
+              {/* Outer Golden Aura Ring */}
+              <div className="banner-outer-gold-ring" />
+              
+              {/* Central Exact War Banner & Crest Artwork */}
+              <div className="banner-artwork-card">
+                <img src={logoImg} alt="Astra War Banner" className="banner-exact-img" />
+                <div className="banner-sheen-sweep" />
+                <div className="banner-center-star-flare" />
               </div>
 
-              {/* Wooden Battle Staff */}
-              <div className="banner-pole" />
-
-              {/* Royal Crimson & Gold Silk Banner Cloth */}
-              <div className="banner-silk-cloth">
-                <div className="banner-cloth-wave" />
-                <div className="banner-gold-trim-top" />
-                <div className="banner-gold-trim-bottom" />
-                
-                {/* Astra Emblem on Banner */}
-                <div className="banner-crest-artwork">
-                  <div className="banner-crown-gold">👑</div>
-                  <div className="banner-letter-a">A</div>
-                  <div className="banner-star-radiance">✦</div>
-                  <div className="banner-realm-title">ASTRA</div>
-                  <div className="banner-realm-tag">STRIDE WARS</div>
-                </div>
-
-                {/* Silk Fringes / Tassels */}
-                <div className="banner-gold-fringes" />
-              </div>
+              {/* Conquest Victory Label */}
+              <motion.div
+                className="banner-hoist-subtitle"
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4, duration: 0.8 }}
+              >
+                REALM CONQUERED • ENTERING KINGDOM
+              </motion.div>
             </motion.div>
           </motion.div>
         )}
