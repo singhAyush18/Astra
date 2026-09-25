@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Camera, User as UserIcon, Loader, Trash2, ArrowLeft, Volume2, VolumeX, Eye, EyeOff, ShieldCheck, Mail, Send, RotateCw } from "lucide-react";
+import { Camera, User as UserIcon, Loader, Trash2, ArrowLeft, Volume2, VolumeX, Eye, EyeOff, ShieldCheck, Mail, Send, RotateCw, Plus } from "lucide-react";
+import toast from "react-hot-toast";
 import Navbar from "../components/Navbar";
 import "./Settings.css";
 import { useAuth } from "../context/AuthContext";
@@ -66,27 +67,86 @@ function Settings() {
     return () => clearTimeout(timer);
   }, [countdown]);
 
+  const initialLoadedRef = useRef(false);
+
   useEffect(() => {
-    if (user) {
-      setUsername(user.username);
+    if (user && !initialLoadedRef.current) {
+      setUsername(user.username || "");
       setProfilePicture(user.profilePicture || null);
+      initialLoadedRef.current = true;
     }
   }, [user]);
 
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) { // 2MB limit
-        setError("Image size should be less than 2MB");
-        return;
-      }
-      
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfilePicture(reader.result);
-      };
-      reader.readAsDataURL(file);
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check if image by type or filename extension
+    const isImage = (file.type && file.type.startsWith('image/')) || 
+                    /\.(jpg|jpeg|png|webp|gif|bmp|heic|heif|svg)$/i.test(file.name || '');
+
+    if (!isImage) {
+      setError("Please select a valid image file (JPG, PNG, WebP, etc.)");
+      return;
     }
+
+    if (file.size > 20 * 1024 * 1024) { // 20MB upper limit before compression
+      setError("Image size is too large (must be under 20MB)");
+      return;
+    }
+
+    setError("");
+    setSuccess("");
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target.result;
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const maxDim = 512;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > maxDim) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            }
+          } else {
+            if (height > maxDim) {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Compress to JPEG 0.85 quality (~30-60KB) for instant fast uploading
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          setProfilePicture(compressedDataUrl);
+        } catch (compressionErr) {
+          // Fallback if canvas compression fails
+          setProfilePicture(dataUrl);
+        }
+      };
+      img.onerror = () => {
+        // Fallback directly to data URL if Image element decoding isn't supported
+        setProfilePicture(dataUrl);
+      };
+      img.src = dataUrl;
+    };
+    reader.onerror = () => {
+      setError("Failed to read image file. Please try again.");
+    };
+    reader.readAsDataURL(file);
+
+    // Reset input so reselecting same photo triggers onChange
+    e.target.value = '';
   };
 
   const handleSave = async (e) => {
@@ -106,16 +166,26 @@ function Settings() {
         return;
       }
       
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch (jsonErr) {
+        if (res.status === 413) {
+          setError("Image file is too large. Please choose a smaller image.");
+        } else {
+          setError("Server returned an invalid response. Please try again.");
+        }
+        return;
+      }
       
-      if (data.success) {
+      if (res.ok && data.success) {
         setSuccess("Profile updated successfully!");
         updateUser(data.user);
       } else {
         setError(data.message || "Failed to update profile");
       }
     } catch (err) {
-      setError("Network error. Please try again.");
+      setError("Network error. Please check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -226,10 +296,41 @@ function Settings() {
   };
 
   const handleRemovePicture = () => {
-    setProfilePicture(null);
+    toast.custom((t) => (
+      <div className={`remove-toast-confirm ${t.visible ? 'toast-enter' : 'toast-leave'}`}>
+        <p className="remove-toast-title">Remove profile picture?</p>
+        <div className="remove-toast-buttons">
+          <button
+            type="button"
+            className="toast-confirm-btn danger"
+            onClick={() => {
+              setProfilePicture(null);
+              toast.dismiss(t.id);
+              toast.success("Picture removed. Click 'SAVE CHANGES' to update.", { id: 'pic-removed' });
+            }}
+          >
+            Yes, Remove
+          </button>
+          <button
+            type="button"
+            className="toast-confirm-btn cancel"
+            onClick={() => toast.dismiss(t.id)}
+          >
+            No, Cancel
+          </button>
+        </div>
+      </div>
+    ), { id: 'confirm-remove-pic', duration: 6000 });
   };
 
   if (!user) return <div className="loading">Loading...</div>;
+
+  const openFilePicker = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+      fileInputRef.current.click();
+    }
+  };
 
   return (
     <div className="settings-container">
@@ -270,13 +371,14 @@ function Settings() {
                 <button 
                   type="button"
                   className="upload-btn" 
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={openFilePicker}
+                  title={profilePicture ? "Change Picture" : "Add Picture"}
                 >
                   <Camera size={16} />
                 </button>
                 <input 
                   type="file" 
-                  accept="image/png, image/jpeg, image/webp" 
+                  accept="image/*" 
                   ref={fileInputRef}
                   style={{ display: 'none' }}
                   onChange={handleFileChange}
@@ -287,9 +389,9 @@ function Settings() {
                 <button 
                   type="button" 
                   className="pic-btn upload-text-btn"
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={openFilePicker}
                 >
-                  Change Picture
+                  {profilePicture ? "Change Picture" : "Add Picture"}
                 </button>
                 {profilePicture && (
                   <button 

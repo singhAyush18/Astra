@@ -19,14 +19,39 @@ const agentRoutes = require("./routes/agentRoutes");
 const app = express();
 app.set('trust proxy', 1);
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(cookieParser());
 app.use(cors({
-    origin: [
-        'http://localhost:5173',
-        'http://localhost:5174',
-        process.env.FRONTEND_URL
-    ].filter(Boolean),
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps, curl, server-to-server)
+        if (!origin) return callback(null, true);
+
+        const allowedList = [
+            'http://localhost:5173',
+            'http://localhost:5174',
+            'http://localhost:3000',
+            process.env.FRONTEND_URL
+        ].filter(Boolean);
+
+        if (
+            allowedList.includes(origin) ||
+            /^http:\/\/localhost:\d+$/.test(origin) ||
+            /^http:\/\/127\.0\.0\.1:\d+$/.test(origin) ||
+            /^http:\/\/192\.168\.\d+\.\d+(:\d+)?$/.test(origin) ||
+            /^http:\/\/10\.\d+\.\d+\.\d+(:\d+)?$/.test(origin) ||
+            /^http:\/\/172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+(:\d+)?$/.test(origin)
+        ) {
+            return callback(null, true);
+        }
+
+        // In development, allow any local/network origin
+        if (process.env.NODE_ENV !== 'production') {
+            return callback(null, true);
+        }
+
+        return callback(new Error('Blocked by CORS policy'));
+    },
     credentials: true
 }));
 // Health check endpoint for fast wake-up / health checks

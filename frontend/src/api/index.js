@@ -12,6 +12,39 @@ const apiFetch = async (endpoint, options = {}) => {
     credentials: 'include', // Automatically send cookies
   };
   const response = await fetch(url, finalOptions);
+
+  // If unauthorized on a protected endpoint, notify application state
+  if (
+    response.status === 401 &&
+    !endpoint.includes('/api/v2/auth/login') &&
+    !endpoint.includes('/api/v2/auth/register') &&
+    !endpoint.includes('/api/v2/auth/verify-email') &&
+    !endpoint.includes('/api/v2/auth/forgot-password') &&
+    !endpoint.includes('/api/v2/auth/reset-password')
+  ) {
+    try {
+      const cloned = response.clone();
+      cloned.json().then((data) => {
+        window.dispatchEvent(
+          new CustomEvent('auth:unauthorized', {
+            detail: {
+              sessionExpired: data?.sessionExpired,
+              message: data?.message || 'Session expired. Please log in again.',
+            },
+          })
+        );
+      }).catch(() => {
+        window.dispatchEvent(
+          new CustomEvent('auth:unauthorized', {
+            detail: { message: 'Session expired. Please log in again.' },
+          })
+        );
+      });
+    } catch {
+      // ignore
+    }
+  }
+
   return response;
 };
 
@@ -33,6 +66,14 @@ export const authAPI = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     }),
+
+  logout: () =>
+    apiFetch('/api/v2/auth/logout', {
+      method: 'POST',
+    }),
+
+  getMe: () =>
+    apiFetch('/api/v2/auth/me'),
 
   register: (username, email, password) =>
     apiFetch('/api/v2/auth/register', {

@@ -86,6 +86,10 @@ const userSchema = new mongoose.Schema({
     passwordChangeOtpExpires: {
         type: Date,
         default: null
+    },
+    sessionId: {
+        type: String,
+        default: null
     }
 })
 module.exports = mongoose.model("User", userSchema);

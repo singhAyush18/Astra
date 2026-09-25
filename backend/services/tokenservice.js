@@ -11,16 +11,17 @@ const publicKey = process.env.PUBLIC_KEY
     ? process.env.PUBLIC_KEY.replace(/\\n/g, "\n")
     : fs.readFileSync(path.join(__dirname, "../keys/public.pem"), "utf8");
 
-function generateToken(user){
+function generateToken(user, sessionId) {
     return jwt.sign({
-        id : user.id,
-        username : user.username,
-        email : user.email
+        id: user._id ? user._id.toString() : user.id,
+        username: user.username,
+        email: user.email,
+        sessionId: sessionId || user.sessionId || null
     },
     privateKey,
     {
-        algorithm : "RS256",
-        expiresIn : "30d"
+        algorithm: "RS256",
+        expiresIn: "30d"
     }
 );
 }

@@ -6,6 +6,7 @@ const {
     register, 
     login, 
     logout, 
+    getMe,
     verifyEmail, 
     resendVerification, 
     updateProfile, 
@@ -18,6 +19,7 @@ const {
 router.post("/register", authLimiter, register);
 router.post("/login", authLimiter, login);
 router.post("/logout", auth, logout);
+router.get("/me", auth, getMe);
 router.get("/verify-email", verifyEmail);
 router.post("/resend-verification", authLimiter, resendVerification);
 router.put("/profile", auth, updateProfile);

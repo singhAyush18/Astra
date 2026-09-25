@@ -1,5 +1,6 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 const { generateToken } = require("../services/tokenservice");
 const { 
     sendVerificationEmail, 
@@ -174,10 +175,14 @@ const login = async (req, res) => {
         if (user.failedLoginAttempts > 0 || user.lockUntil) {
             user.failedLoginAttempts = 0;
             user.lockUntil = null;
-            await user.save();
         }
 
-        const token = generateToken(user);
+        // Generate unique single active sessionId
+        const sessionId = crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString("hex");
+        user.sessionId = sessionId;
+        await user.save();
+
+        const token = generateToken(user, sessionId);
 
         res.cookie('token', token, {
             httpOnly: true,
@@ -213,10 +218,14 @@ const login = async (req, res) => {
 };
 
 const logout = async (req, res) => {
-    // JWT is stateless — the client must discard the token.
-    // This endpoint exists so the frontend has a clean API call
-    // to confirm logout and perform any future server-side cleanup
-    // (e.g. token blacklisting, audit logging).
+    try {
+        if (req.user?.id) {
+            await User.findByIdAndUpdate(req.user.id, { sessionId: null });
+        }
+    } catch (err) {
+        console.error("Logout session update error:", err);
+    }
+
     res.clearCookie('token', {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -226,6 +235,41 @@ const logout = async (req, res) => {
         success: true,
         message: "Logged out successfully",
     });
+};
+
+const getMe = async (req, res) => {
+    try {
+        const userId = req.user?.id || req.user?._id;
+        if (!userId) {
+            return res.status(401).json({ success: false, message: "Unauthorized session" });
+        }
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        res.status(200).json({
+            success: true,
+            user: {
+                id: user._id,
+                _id: user._id,
+                username: user.username,
+                email: user.email,
+                level: user.level,
+                xp: user.xp,
+                currentStreak: user.currentStreak,
+                longestStreak: user.longestStreak,
+                profilePicture: user.profilePicture || null,
+            },
+        });
+    } catch (error) {
+        console.error("Get current user error:", error);
+        res.status(500).json({
+            success: false,
+            message: "Error fetching user data",
+        });
+    }
 };
 
 const verifyEmail = async (req, res) => {
@@ -321,7 +365,10 @@ const resendVerification = async (req, res) => {
 const updateProfile = async (req, res) => {
     try {
         const { username, profilePicture } = req.body;
-        const userId = req.user.id; // From auth middleware
+        const userId = req.user?.id || req.user?._id;
+        if (!userId) {
+            return res.status(401).json({ success: false, message: "Unauthorized session" });
+        }
 
         const user = await User.findById(userId);
         if (!user) {
@@ -329,27 +376,28 @@ const updateProfile = async (req, res) => {
         }
 
         // Handle Username update
-        if (username && username !== user.username) {
-            if (!usernameRegex.test(username)) {
+        if (username && username.trim() !== user.username) {
+            const cleanUsername = username.trim();
+            if (!usernameRegex.test(cleanUsername)) {
                 return res.status(400).json({
                     success: false,
                     message: "Username must be 3-20 characters (letters, numbers, underscores only)",
                 });
             }
 
-            const existingUser = await User.findOne({ username });
-            if (existingUser) {
+            const existingUser = await User.findOne({ username: cleanUsername });
+            if (existingUser && existingUser._id.toString() !== user._id.toString()) {
                 return res.status(409).json({
                     success: false,
                     message: "Username already taken",
                 });
             }
-            user.username = username;
+            user.username = cleanUsername;
         }
 
         // Handle Profile Picture update (including removal if passed as null/empty)
         if (profilePicture !== undefined) {
-            user.profilePicture = profilePicture;
+            user.profilePicture = profilePicture ? profilePicture : null;
         }
 
         await user.save();
@@ -367,7 +415,7 @@ const updateProfile = async (req, res) => {
                 xp: user.xp,
                 currentStreak: user.currentStreak,
                 longestStreak: user.longestStreak,
-                profilePicture: user.profilePicture,
+                profilePicture: user.profilePicture || null,
             },
         });
 
@@ -595,6 +643,7 @@ const changePassword = async (req, res) => {
         user.password = await bcrypt.hash(newPassword, 10);
         user.passwordChangeOtp = null;
         user.passwordChangeOtpExpires = null;
+        user.sessionId = crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString("hex");
         await user.save();
 
         res.status(200).json({
@@ -614,6 +663,7 @@ module.exports = {
     register, 
     login, 
     logout, 
+    getMe,
     verifyEmail, 
     resendVerification, 
     updateProfile,

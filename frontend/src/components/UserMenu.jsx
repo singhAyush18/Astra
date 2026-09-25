@@ -6,13 +6,13 @@ import { useAuth } from '../context/AuthContext';
 import './UserMenu.css';
 
 const UserMenu = ({ isOpen: controlledOpen, onToggle, onClose }) => {
+  const { user, logout } = useAuth();
+  const menuRef = useRef(null);
+  const navigate = useNavigate();
+
   const [internalOpen, setInternalOpen] = useState(false);
   const isControlled = controlledOpen !== undefined;
   const open = isControlled ? controlledOpen : internalOpen;
-  
-  const [userData, setUserData] = useState(null);
-  const menuRef = useRef(null);
-  const navigate = useNavigate();
 
   const setOpen = (val) => {
     if (isControlled) {
@@ -52,34 +52,15 @@ const UserMenu = ({ isOpen: controlledOpen, onToggle, onClose }) => {
     };
   }, [isControlled, onClose]);
 
-  // Load user data and listen for profile updates
-  useEffect(() => {
-    const loadUser = () => {
-      const stored = localStorage.getItem('user');
-      if (stored) {
-        try {
-          setUserData(JSON.parse(stored));
-        } catch {}
-      }
-    };
-    
-    loadUser();
-    
-    window.addEventListener('profileUpdated', loadUser);
-    return () => window.removeEventListener('profileUpdated', loadUser);
-  }, []);
-
-  const { logout } = useAuth();
-
   const handleLogout = () => {
     logout();
     setOpen(false);
     navigate('/');
   };
 
-  const username = userData?.username || 'User';
+  const username = user?.username || 'User';
   const initial = username.charAt(0).toUpperCase();
-  const profilePicture = userData?.profilePicture;
+  const profilePicture = user?.profilePicture;
 
   const handleTriggerClick = (e) => {
     e.stopPropagation();

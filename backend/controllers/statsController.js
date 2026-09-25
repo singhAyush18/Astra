@@ -143,7 +143,7 @@ const getGlobalLeaderboard = async (req, res) => {
 
         // Fetch all users sorted by XP
         const users = await User.find({})
-            .select("username level xp currentStreak longestStreak")
+            .select("username level xp currentStreak longestStreak profilePicture")
             .sort({ xp: -1 })
             .limit(50);
 
@@ -157,6 +157,7 @@ const getGlobalLeaderboard = async (req, res) => {
                 xp: user.xp,
                 currentStreak: user.currentStreak,
                 longestStreak: user.longestStreak,
+                profilePicture: user.profilePicture || null,
                 totalDistance: parseFloat((stats.totalDistance || 0).toFixed(2)),
                 totalRuns: stats.totalRuns || 0,
                 longestRun: parseFloat((stats.longestRun || 0).toFixed(2)),

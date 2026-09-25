@@ -488,3 +488,63 @@
   from { opacity: 0; transform: translateY(-6px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* ── Remove Picture Confirmation Toast ── */
+.remove-toast-confirm {
+  background: #14141e;
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  border-radius: 12px;
+  padding: 14px 18px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 15px rgba(255, 107, 107, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: #fff;
+  font-family: var(--font-ui, 'Inter', sans-serif);
+  max-width: 320px;
+}
+
+.remove-toast-title {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #f7e7a9;
+  text-align: center;
+}
+
+.remove-toast-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.toast-confirm-btn {
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: var(--font-ui, 'Inter', sans-serif);
+}
+
+.toast-confirm-btn.danger {
+  background: #ff4d4d;
+  color: #fff;
+}
+
+.toast-confirm-btn.danger:hover {
+  background: #ff3333;
+  box-shadow: 0 0 10px rgba(255, 77, 77, 0.5);
+}
+
+.toast-confirm-btn.cancel {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ddd;
+}
+
+.toast-confirm-btn.cancel:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
