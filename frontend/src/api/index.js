@@ -7,11 +7,24 @@ const BASE_URL = import.meta.env.VITE_API_URL || '';
 // ── Core fetch wrapper ──
 const apiFetch = async (endpoint, options = {}) => {
   const url = `${BASE_URL}${endpoint}`;
+  const storedToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  const authHeader = storedToken ? { Authorization: `Bearer ${storedToken}` } : {};
+
   const finalOptions = {
     ...options,
+    headers: {
+      ...authHeader,
+      ...(options.headers || {}),
+    },
     credentials: 'include', // Automatically send cookies
   };
   const response = await fetch(url, finalOptions);
+
+  // If server automatically refreshed the session token, update localStorage silently
+  const refreshedToken = response.headers.get('x-refreshed-token');
+  if (refreshedToken && typeof window !== 'undefined') {
+    localStorage.setItem('token', refreshedToken);
+  }
 
   // If unauthorized on a protected endpoint, notify application state
   if (
@@ -49,14 +62,22 @@ const apiFetch = async (endpoint, options = {}) => {
 };
 
 // ── Helper to build auth headers ──
-// Token is now sent via HttpOnly cookie, so we don't need Authorization header
-const authHeaders = (token, extra = {}) => ({
-  ...extra,
-});
+const authHeaders = (token, extra = {}) => {
+  const t = token || (typeof window !== 'undefined' ? localStorage.getItem('token') : null);
+  return {
+    ...(t ? { Authorization: `Bearer ${t}` } : {}),
+    ...extra,
+  };
+};
 
-const jsonAuthHeaders = (token) => ({
-  'Content-Type': 'application/json',
-});
+const jsonAuthHeaders = (token, extra = {}) => {
+  const t = token || (typeof window !== 'undefined' ? localStorage.getItem('token') : null);
+  return {
+    'Content-Type': 'application/json',
+    ...(t ? { Authorization: `Bearer ${t}` } : {}),
+    ...extra,
+  };
+};
 
 // ===== Auth APIs =====
 export const authAPI = {

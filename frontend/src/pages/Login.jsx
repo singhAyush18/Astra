@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Eye, EyeOff, Crown } from "lucide-react";
 import toast from "react-hot-toast";
@@ -14,10 +14,17 @@ function Login() {
   const [needsVerification, setNeedsVerification] = useState(false);
   const [resending, setResending] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (loading) return;
     setLoading(true);
     setNeedsVerification(false);
 
@@ -34,8 +41,8 @@ function Login() {
         return;
       }
 
-      login(data.user);
-      navigate("/dashboard");
+      login(data.user, data.token);
+      navigate("/dashboard", { replace: true });
     } catch (err) {
       console.error("Login fetch error:", err);
       toast.error("Something went wrong. Try again.");

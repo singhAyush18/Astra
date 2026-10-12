@@ -4,9 +4,12 @@ const User = require("../models/User");
 
 const getAllGrids = async (req, res) => {
     try {
-        const grids = await Grid.find({
+        const rawGrids = await Grid.find({
             status: "claimed"
         }).populate("ruler", "username");
+
+        // Filter out any orphaned claimed grids whose ruler was deleted
+        const grids = rawGrids.filter(grid => grid.ruler && grid.ruler._id);
 
         const gridIds = grids.map(grid => grid._id);
         const currentUserId = req.user?.id ? req.user.id.toString() : null;

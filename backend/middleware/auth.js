@@ -1,8 +1,10 @@
-const { verifyToken } = require("../services/tokenservice");
+const { verifyToken, generateToken } = require("../services/tokenservice");
 const User = require("../models/User");
 
 const auth = async (req, res, next) => {
-    const token = req.cookies?.token;
+    const authHeader = req.headers.authorization || req.headers.Authorization;
+    const headerToken = authHeader && authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : null;
+    const token = req.cookies?.token || headerToken;
 
     try {
         if (!token) {
@@ -22,7 +24,8 @@ const auth = async (req, res, next) => {
                 res.clearCookie("token", {
                     httpOnly: true,
                     secure: process.env.NODE_ENV === "production",
-                    sameSite: "lax"
+                    sameSite: "lax",
+                    path: "/"
                 });
                 return res.status(401).json({
                     success: false,
@@ -34,7 +37,8 @@ const auth = async (req, res, next) => {
                 res.clearCookie("token", {
                     httpOnly: true,
                     secure: process.env.NODE_ENV === "production",
-                    sameSite: "lax"
+                    sameSite: "lax",
+                    path: "/"
                 });
                 return res.status(403).json({
                     success: false,
@@ -50,13 +54,27 @@ const auth = async (req, res, next) => {
                 res.clearCookie("token", {
                     httpOnly: true,
                     secure: process.env.NODE_ENV === "production",
-                    sameSite: "lax"
+                    sameSite: "lax",
+                    path: "/"
                 });
                 return res.status(401).json({
                     success: false,
                     sessionExpired: true,
                     message: "You have been logged out because this account was logged into from another device."
                 });
+            }
+
+            // Rolling session check: if token has less than 7 days left, silently refresh
+            if (decoded.exp && (decoded.exp - Math.floor(Date.now() / 1000)) < 7 * 24 * 60 * 60) {
+                const refreshedToken = generateToken(userDoc, userDoc.sessionId);
+                res.cookie("token", refreshedToken, {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === "production",
+                    sameSite: "lax",
+                    path: "/",
+                    maxAge: 30 * 24 * 60 * 60 * 1000
+                });
+                res.setHeader("x-refreshed-token", refreshedToken);
             }
         }
 

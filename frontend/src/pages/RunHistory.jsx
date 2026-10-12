@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Scroll, MapPin, Clock, Gauge, Trash2, ChevronDown,
-  ChevronUp, Filter, Calendar, CheckCircle, XCircle, AlertCircle, Play,
+  ChevronUp, Filter, Calendar, CheckCircle, XCircle, AlertCircle, AlertTriangle, Play,
   Bot, Activity, HeartPulse, Compass, Sparkles, Loader
 } from "lucide-react";
 import toast from "react-hot-toast";
@@ -38,6 +38,7 @@ const formatDuration = (seconds) => {
 
 const statusConfig = {
   completed: { label: "Completed", icon: <CheckCircle size={14} />, className: "status-completed" },
+  flagged: { label: "Flagged (Anti-Cheat)", icon: <AlertTriangle size={14} />, className: "status-flagged" },
   active: { label: "Active", icon: <AlertCircle size={14} />, className: "status-active" },
   discarded: { label: "Discarded", icon: <XCircle size={14} />, className: "status-discarded" },
 };
@@ -155,11 +156,15 @@ function RunHistory() {
 
   const filteredRuns = filter === "all"
     ? runs
-    : runs.filter((r) => r.status === filter);
+    : runs.filter((r) => {
+        if (filter === "flagged") return r.status === "flagged" || Boolean(r.antiCheat?.isFlagged);
+        if (filter === "completed") return r.status === "completed" && !r.antiCheat?.isFlagged;
+        return r.status === filter;
+      });
 
-  const totalCompleted = runs.filter((r) => r.status === "completed").length;
+  const totalCompleted = runs.filter((r) => r.status === "completed" && !r.antiCheat?.isFlagged).length;
   const totalDistance = runs
-    .filter((r) => r.status === "completed")
+    .filter((r) => r.status === "completed" && !r.antiCheat?.isFlagged)
     .reduce((sum, r) => sum + r.distance, 0);
 
   if (loading) {
@@ -221,7 +226,7 @@ function RunHistory() {
           transition={{ duration: 0.5, delay: 0.25 }}
         >
           <Filter size={16} className="filter-icon" />
-          {["all", "completed", "active", "discarded"].map((f) => (
+          {["all", "completed", "flagged", "active", "discarded"].map((f) => (
             <button
               key={f}
               className={`filter-btn ${filter === f ? "active" : ""}`}
@@ -230,7 +235,12 @@ function RunHistory() {
               {f === "all" ? "All" : f.charAt(0).toUpperCase() + f.slice(1)}
               {f !== "all" && (
                 <span className="filter-count">
-                  {runs.filter((r) => f === "all" || r.status === f).length}
+                  {runs.filter((r) => {
+                    if (f === "all") return true;
+                    if (f === "flagged") return r.status === "flagged" || Boolean(r.antiCheat?.isFlagged);
+                    if (f === "completed") return r.status === "completed" && !r.antiCheat?.isFlagged;
+                    return r.status === f;
+                  }).length}
                 </span>
               )}
             </button>
@@ -261,7 +271,8 @@ function RunHistory() {
         <div className="runs-list">
           <AnimatePresence mode="popLayout">
             {filteredRuns.map((run, idx) => {
-              const status = statusConfig[run.status] || statusConfig.active;
+              const isRunFlagged = run.status === "flagged" || Boolean(run.antiCheat?.isFlagged);
+              const status = isRunFlagged ? statusConfig.flagged : (statusConfig[run.status] || statusConfig.active);
               const isExpanded = expandedRun === run._id;
               const isDeleting = deleteConfirm === run._id;
 
@@ -363,6 +374,28 @@ function RunHistory() {
                             <span className="detail-value">{run.path?.length || 0}</span>
                           </div>
                         </div>
+
+                        {/* Anti-Cheat Alert Banner if Flagged */}
+                        {(run.antiCheat?.isFlagged || run.status === 'flagged') && (
+                          <div className="history-anticheat-banner">
+                            <div className="history-anticheat-header">
+                              <AlertTriangle size={16} className="anticheat-alert-icon" />
+                              <span className="history-anticheat-title">Anti-Cheat Violation Flagged</span>
+                            </div>
+                            <p className="history-anticheat-desc">
+                              {(run.antiCheat?.reasons || []).join(' ') || 'Unrealistic movement velocity or vehicular assistance detected.'}
+                            </p>
+                            <div className="history-anticheat-badges">
+                              <span className="anticheat-badge red-badge">Territory Conquests Withheld</span>
+                              <span className="anticheat-badge orange-badge">XP Withheld</span>
+                              {run.antiCheat?.maxCalculatedSpeedKmh && (
+                                <span className="anticheat-badge cyan-badge">
+                                  Peak Velocity: {run.antiCheat.maxCalculatedSpeedKmh.toFixed(1)} km/h
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )}
 
                         {/* AI Coach Debrief Section if available */}
                         {run.coachDebrief && (

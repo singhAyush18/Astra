@@ -53,7 +53,8 @@ app.use(cors({
         // Allow any origin cleanly without throwing unhandled exceptions
         return callback(null, true);
     },
-    credentials: true
+    credentials: true,
+    exposedHeaders: ['x-refreshed-token']
 }));
 
 // Health check endpoint for fast wake-up / health checks

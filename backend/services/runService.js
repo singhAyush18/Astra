@@ -163,6 +163,8 @@ const completeRun = async (run, options = {}) => {
             motionScore: Number(sensorTelemetry.motionScore || 0),
             hasSensorData: Boolean(sensorTelemetry.hasSensorData),
             isMockFlagged: Boolean(sensorTelemetry.isMockFlagged),
+            isVehicleFlagged: Boolean(sensorTelemetry.isVehicleFlagged),
+            liveSpeedViolations: Number(sensorTelemetry.liveSpeedViolations || 0),
         };
     }
 
@@ -195,7 +197,7 @@ const completeRun = async (run, options = {}) => {
         sensorIntegrityScore: integrityResult.sensorIntegrityScore,
     };
 
-    run.status = "completed";
+    run.status = integrityResult.isFlagged ? "flagged" : "completed";
 
     let xpEarned = 0;
     let streakInfo = null;
@@ -241,7 +243,7 @@ const completeRun = async (run, options = {}) => {
     await run.save();
 
     return {
-        status: "completed",
+        status: run.status,
         run,
         user,
         xpEarned,

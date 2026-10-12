@@ -183,102 +183,200 @@ const createGridFlagIcon = (isMine, name = '') => {
 };
 
 
-// Auto-center map on initial load
-const MapAutoCenter = ({ territories }) => {
+// Haversine distance in kilometers
+const getDistanceKm = (lat1, lon1, lat2, lon2) => {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+};
+
+// User GPS Live Recon Dot Icon
+const createUserLocationIcon = () => {
+  return L.divIcon({
+    className: 'user-gps-marker-container',
+    html: `
+      <div class="user-gps-pulse-outer" title="Your Live Recon Position">
+        <div class="user-gps-pulse-ring"></div>
+        <div class="user-gps-core-dot"></div>
+      </div>
+    `,
+    iconSize: [26, 26],
+    iconAnchor: [13, 13],
+  });
+};
+
+// Group territories into regional battlefield clusters (< 60 km)
+const buildTerritoryClusters = (territories, currentUserId) => {
+  if (!territories || territories.length === 0) return [];
+
+  const validItems = territories.map(t => {
+    const bounds = getGridBounds(t.gridId);
+    const center = bounds ? getGridCenter(bounds) : null;
+    return {
+      territory: t,
+      bounds,
+      center,
+      isMine: t.rulerId === currentUserId,
+    };
+  }).filter(item => item.bounds && item.center);
+
+  const clusters = [];
+
+  validItems.forEach(item => {
+    let matchedCluster = null;
+    for (const c of clusters) {
+      const dist = getDistanceKm(item.center[0], item.center[1], c.center[0], c.center[1]);
+      if (dist <= 60) {
+        matchedCluster = c;
+        break;
+      }
+    }
+
+    if (matchedCluster) {
+      matchedCluster.items.push(item);
+      const lats = matchedCluster.items.map(i => i.center[0]);
+      const lngs = matchedCluster.items.map(i => i.center[1]);
+      matchedCluster.center = [
+        lats.reduce((a, b) => a + b, 0) / lats.length,
+        lngs.reduce((a, b) => a + b, 0) / lngs.length,
+      ];
+      const allLats = [];
+      const allLngs = [];
+      matchedCluster.items.forEach(i => {
+        allLats.push(i.bounds[0][0], i.bounds[1][0]);
+        allLngs.push(i.bounds[0][1], i.bounds[1][1]);
+      });
+      matchedCluster.bounds = [
+        [Math.min(...allLats), Math.min(...allLngs)],
+        [Math.max(...allLats), Math.max(...allLngs)],
+      ];
+      if (item.isMine) matchedCluster.mineCount += 1;
+      else matchedCluster.enemyCount += 1;
+    } else {
+      clusters.push({
+        id: `cluster-${clusters.length}`,
+        items: [item],
+        center: item.center,
+        bounds: item.bounds,
+        mineCount: item.isMine ? 1 : 0,
+        enemyCount: item.isMine ? 0 : 1,
+      });
+    }
+  });
+
+  return clusters.map(c => {
+    const [cLat, cLng] = c.center;
+    let name = 'Territory Sector';
+    if (cLat >= 28.0 && cLat <= 29.0 && cLng >= 76.5 && cLng <= 78.2) {
+      name = 'Greater Noida / NCR';
+    } else if (cLat >= 24.8 && cLat <= 26.2 && cLng >= 84.5 && cLng <= 87.5) {
+      name = 'Bihar / Patna';
+    } else {
+      const named = c.items.find(i => i.territory.name)?.territory.name;
+      name = named ? `${named} Sector` : `${cLat.toFixed(1)}°N, ${cLng.toFixed(1)}°E`;
+    }
+
+    return {
+      ...c,
+      name,
+    };
+  });
+};
+
+// Smart GPS-aware Battlefield Camera Initializer
+const MapAutoCenter = ({ clusters, userLocation, activeClusterId, setActiveClusterId }) => {
+  const map = useMap();
+  const hasInitializedRef = React.useRef(false);
+
+  useEffect(() => {
+    if (hasInitializedRef.current) return;
+    if (!clusters || clusters.length === 0) {
+      if (userLocation) {
+        map.setView(userLocation, 14);
+        hasInitializedRef.current = true;
+      }
+      return;
+    }
+
+    // 1. If GPS is available, find closest cluster containing user's territories
+    if (userLocation) {
+      let closestCluster = null;
+      let minDistance = Infinity;
+
+      clusters.forEach(c => {
+        const dist = getDistanceKm(userLocation[0], userLocation[1], c.center[0], c.center[1]);
+        if (c.mineCount > 0 && dist < minDistance) {
+          minDistance = dist;
+          closestCluster = c;
+        }
+      });
+
+      // If user is within regional proximity (<= 85 km) of their kingdom, frame that local warfront
+      if (closestCluster && minDistance <= 85) {
+        map.flyToBounds(closestCluster.bounds, { maxZoom: 14.2, padding: [65, 65], duration: 1.2 });
+        setActiveClusterId(closestCluster.id);
+        hasInitializedRef.current = true;
+        return;
+      }
+
+      // If user is far from all their territories (e.g. traveling in another city), focus live GPS position
+      if (minDistance > 85) {
+        map.setView(userLocation, 14);
+        hasInitializedRef.current = true;
+        return;
+      }
+    }
+
+    // 2. Fallback: focus on user's primary/densest territory cluster at tactical Zoom 14
+    const primaryCluster = clusters
+      .filter(c => c.mineCount > 0)
+      .sort((a, b) => b.mineCount - a.mineCount)[0] || clusters[0];
+
+    if (primaryCluster) {
+      map.flyToBounds(primaryCluster.bounds, { maxZoom: 14.2, padding: [65, 65], duration: 1.2 });
+      setActiveClusterId(primaryCluster.id);
+      hasInitializedRef.current = true;
+    }
+  }, [clusters, userLocation, map, setActiveClusterId]);
+
+  return null;
+};
+
+// Map Navigation Bridge (Allows external buttons to trigger Leaflet flyTo / flyToBounds)
+const MapNavigationBridge = ({ targetCommand, onCommandExecuted }) => {
   const map = useMap();
 
   useEffect(() => {
-    function fitToTerritories() {
-      if (territories && territories.length > 0) {
-        const allLats = [];
-        const allLngs = [];
-
-        territories.forEach(t => {
-          const bounds = getGridBounds(t.gridId);
-          if (bounds) {
-            allLats.push(bounds[0][0], bounds[1][0]);
-            allLngs.push(bounds[0][1], bounds[1][1]);
-          }
-        });
-
-        if (allLats.length > 0) {
-          map.fitBounds([
-            [Math.min(...allLats), Math.min(...allLngs)],
-            [Math.max(...allLats), Math.max(...allLngs)]
-          ], { padding: [50, 50], maxZoom: 15 });
-          return true;
-        }
-      }
-      return false;
+    if (!targetCommand) return;
+    if (targetCommand.type === 'bounds') {
+      map.flyToBounds(targetCommand.bounds, { maxZoom: 14.2, padding: [65, 65], duration: 1.1 });
+    } else if (targetCommand.type === 'point') {
+      map.flyTo(targetCommand.coords, targetCommand.zoom || 14.5, { duration: 1.0 });
     }
-
-    const bounded = fitToTerritories();
-
-    if (!bounded && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          map.setView([pos.coords.latitude, pos.coords.longitude], 14);
-        },
-        () => {},
-        { enableHighAccuracy: false, timeout: 5000 }
-      );
-    }
-  }, [territories, map]);
+    onCommandExecuted();
+  }, [targetCommand, map, onCommandExecuted]);
 
   return null;
 };
 
 // Interactive Recenter button inside the map
-const RecenterControl = ({ territories, centerCoords }) => {
-  const map = useMap();
-
-  const handleRecenter = (e) => {
-    e.stopPropagation();
-    e.preventDefault();
-
-    if (territories && territories.length > 0) {
-      const allLats = [];
-      const allLngs = [];
-
-      territories.forEach(t => {
-        const bounds = getGridBounds(t.gridId);
-        if (bounds) {
-          allLats.push(bounds[0][0], bounds[1][0]);
-          allLngs.push(bounds[0][1], bounds[1][1]);
-        }
-      });
-
-      if (allLats.length > 0) {
-        map.flyToBounds([
-          [Math.min(...allLats), Math.min(...allLngs)],
-          [Math.max(...allLats), Math.max(...allLngs)]
-        ], { padding: [50, 50], duration: 1.0 });
-        return;
-      }
-    }
-
-    if (centerCoords) {
-      map.flyTo(centerCoords, 13, { duration: 1.0 });
-    } else if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          map.flyTo([pos.coords.latitude, pos.coords.longitude], 14, { duration: 1.0 });
-        },
-        () => {
-          map.flyTo([28.6139, 77.2090], 13, { duration: 1.0 });
-        },
-        { enableHighAccuracy: false, timeout: 5000 }
-      );
-    }
-  };
-
+const RecenterControl = ({ userLocation, clusters, onTriggerRecenter }) => {
   return (
     <div className="map-recenter-btn-container">
       <button 
         type="button"
         className="map-recenter-btn"
-        onClick={handleRecenter}
-        title="Recenter Map Overview"
+        onClick={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          onTriggerRecenter();
+        }}
+        title="Recenter to Live Position or Frontline"
       >
         <span className="recenter-icon">🎯</span>
         <span className="recenter-text">Recenter</span>
@@ -395,11 +493,12 @@ const TerritoryGrid = ({ t, currentUserId, onRename }) => {
         <Popup>{popupContent}</Popup>
       </Rectangle>
 
-      {/* Flag marker at center of each grid with click-to-zoom */}
+      {/* Flag marker at center of each grid with click-to-zoom and Crown Z-Index Priority */}
       {center && (
         <Marker
           position={center}
           icon={flagIcon}
+          zIndexOffset={isMine ? 1200 : 200}
           eventHandlers={{
             click: handleZoomToTerritory,
           }}
@@ -414,14 +513,143 @@ const TerritoryGrid = ({ t, currentUserId, onRename }) => {
 const LiveGridMap = ({ territories, currentUserId, centerCoords, onRename }) => {
   const defaultCenter = [28.6139, 77.2090]; // Default to Delhi
   const [mapTheme, setMapTheme] = useState(() => localStorage.getItem('astra_map_theme') || 'satellite');
+  const [userLocation, setUserLocation] = useState(null);
+  const [activeClusterId, setActiveClusterId] = useState(null);
+  const [targetCommand, setTargetCommand] = useState(null);
+
+  // Group territories into regional battlefield clusters (< 60 km), sorted by user proximity
+  const clusters = useMemo(() => {
+    const list = buildTerritoryClusters(territories, currentUserId);
+    if (!userLocation) {
+      return [...list].sort((a, b) => b.mineCount - a.mineCount);
+    }
+    return [...list].sort((a, b) => {
+      const distA = getDistanceKm(userLocation[0], userLocation[1], a.center[0], a.center[1]);
+      const distB = getDistanceKm(userLocation[0], userLocation[1], b.center[0], b.center[1]);
+      return distA - distB;
+    });
+  }, [territories, currentUserId, userLocation]);
+
+  const userLocationIcon = useMemo(() => createUserLocationIcon(), []);
+
+  // Fetch real-time user GPS position on mount
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setUserLocation([pos.coords.latitude, pos.coords.longitude]);
+        },
+        () => {},
+        { enableHighAccuracy: true, timeout: 6000 }
+      );
+    }
+  }, []);
 
   const handleThemeChange = (theme) => {
     setMapTheme(theme);
     localStorage.setItem('astra_map_theme', theme);
   };
 
+  const handleFlyToCluster = (cluster) => {
+    setActiveClusterId(cluster.id);
+    setTargetCommand({
+      type: 'bounds',
+      bounds: cluster.bounds,
+    });
+  };
+
+  const handleFlyToWorld = () => {
+    setActiveClusterId('world');
+    if (territories && territories.length > 0) {
+      const allLats = [];
+      const allLngs = [];
+      territories.forEach(t => {
+        const bounds = getGridBounds(t.gridId);
+        if (bounds) {
+          allLats.push(bounds[0][0], bounds[1][0]);
+          allLngs.push(bounds[0][1], bounds[1][1]);
+        }
+      });
+      if (allLats.length > 0) {
+        setTargetCommand({
+          type: 'bounds',
+          bounds: [
+            [Math.min(...allLats), Math.min(...allLngs)],
+            [Math.max(...allLats), Math.max(...allLngs)],
+          ],
+        });
+      }
+    }
+  };
+
+  const handleTriggerRecenter = () => {
+    if (userLocation) {
+      setActiveClusterId('gps');
+      setTargetCommand({
+        type: 'point',
+        coords: userLocation,
+        zoom: 14.5,
+      });
+    } else if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const loc = [pos.coords.latitude, pos.coords.longitude];
+          setUserLocation(loc);
+          setActiveClusterId('gps');
+          setTargetCommand({
+            type: 'point',
+            coords: loc,
+            zoom: 14.5,
+          });
+        },
+        () => {
+          if (clusters.length > 0) {
+            handleFlyToCluster(clusters[0]);
+          }
+        }
+      );
+    } else if (clusters.length > 0) {
+      handleFlyToCluster(clusters[0]);
+    }
+  };
+
   return (
     <div className="live-grid-map-container">
+      {/* Floating Tactical Province Navigator Bar */}
+      {clusters.length > 0 && (
+        <div className="map-province-bar">
+          <span className="province-bar-label">PROVINCES:</span>
+          {clusters.map(cluster => {
+            const isLocal = userLocation && getDistanceKm(userLocation[0], userLocation[1], cluster.center[0], cluster.center[1]) <= 85;
+            return (
+              <button
+                key={cluster.id}
+                className={`province-pill-btn ${activeClusterId === cluster.id ? 'active' : ''}`}
+                onClick={() => handleFlyToCluster(cluster)}
+                title={`Focus on ${cluster.name} frontline`}
+              >
+                <span className="province-icon">👑</span>
+                <span className="province-name">{cluster.name}</span>
+                {isLocal && <span className="province-local-tag">NEAR YOU</span>}
+                <span className="province-badge">
+                  {cluster.mineCount > 0 && <span className="badge-mine">🚩 {cluster.mineCount}</span>}
+                  {cluster.enemyCount > 0 && <span className="badge-enemy">⚔️ {cluster.enemyCount}</span>}
+                </span>
+              </button>
+            );
+          })}
+
+          <button
+            className={`province-pill-btn world-btn ${activeClusterId === 'world' ? 'active' : ''}`}
+            onClick={handleFlyToWorld}
+            title="Inspect whole realm overview"
+          >
+            <span className="province-icon">🌐</span>
+            <span className="province-name">Realm Overview</span>
+          </button>
+        </div>
+      )}
+
       {/* Floating Map Theme Selector */}
       <div className="map-theme-toggle-bar">
         <button 
@@ -515,8 +743,40 @@ const LiveGridMap = ({ territories, currentUserId, centerCoords, onRename }) => 
           />
         )}
 
-        <MapAutoCenter territories={territories} />
-        <RecenterControl territories={territories} centerCoords={centerCoords} />
+        <MapAutoCenter
+          clusters={clusters}
+          userLocation={userLocation}
+          activeClusterId={activeClusterId}
+          setActiveClusterId={setActiveClusterId}
+        />
+
+        <MapNavigationBridge
+          targetCommand={targetCommand}
+          onCommandExecuted={() => setTargetCommand(null)}
+        />
+
+        <RecenterControl
+          userLocation={userLocation}
+          clusters={clusters}
+          onTriggerRecenter={handleTriggerRecenter}
+        />
+
+        {/* Live GPS Runner Marker */}
+        {userLocation && (
+          <Marker position={userLocation} icon={userLocationIcon} zIndexOffset={2000}>
+            <Popup>
+              <div className="territory-popup-content">
+                <div className="popup-header">
+                  <span className="popup-emoji">🏃</span>
+                  <h4>Your Live Recon Position</h4>
+                </div>
+                <div className="popup-details">
+                  <p>Ready to march. Run into bordering grids to establish conquest!</p>
+                </div>
+              </div>
+            </Popup>
+          </Marker>
+        )}
 
         {/* Render each separate grid cell with its own flag */}
         {territories.map((t, idx) => (

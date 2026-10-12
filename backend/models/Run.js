@@ -15,7 +15,7 @@ const runSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["active", "completed", "discarded"],
+    enum: ["active", "completed", "discarded", "flagged"],
     default: "active"
   },
   duration: {
@@ -67,7 +67,9 @@ const runSchema = new mongoose.Schema({
     avgCadence: { type: Number, default: 0 },
     motionScore: { type: Number, default: 0 },
     hasSensorData: { type: Boolean, default: false },
-    isMockFlagged: { type: Boolean, default: false }
+    isMockFlagged: { type: Boolean, default: false },
+    isVehicleFlagged: { type: Boolean, default: false },
+    liveSpeedViolations: { type: Number, default: 0 }
   },
   isSimulated: {
     type: Boolean,

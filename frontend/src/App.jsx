@@ -23,11 +23,20 @@ import AstraAwakening from "./components/AstraAwakening";
 import InstallPrompt from "./components/InstallPrompt";
 
 function App() {
-  const [isAwakened, setIsAwakened] = useState(false);
+  const [isAwakened, setIsAwakened] = useState(() => {
+    return typeof window !== 'undefined' && sessionStorage.getItem('astra_awakened') === 'true';
+  });
 
   return (
     <AuthProvider>
-      {!isAwakened && <AstraAwakening onComplete={() => setIsAwakened(true)} />}
+      {!isAwakened && (
+        <AstraAwakening
+          onComplete={() => {
+            sessionStorage.setItem('astra_awakened', 'true');
+            setIsAwakened(true);
+          }}
+        />
+      )}
       <InstallPrompt />
       <Toaster position="top-center" toastOptions={{
         style: {

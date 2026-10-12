@@ -143,6 +143,15 @@ function ActiveRun() {
   const hasMotionSensorRef = useRef(false);
   const isMockDetectedRef = useRef(false);
 
+  // Real-Time In-Run Anti-Cheat Telemetry
+  const [speedWarning, setSpeedWarning] = useState(null);
+  const consecutiveSpeedViolationsRef = useRef(0);
+  const speedViolationCountRef = useRef(0);
+  const isVehicleFlaggedRef = useRef(false);
+  const lastWarningSpeechTimeRef = useRef(0);
+  const speedWarningClearTimerRef = useRef(null);
+  const wakeUpGracePeriodUntilRef = useRef(0);
+
   const triggerSectorDiscovery = useCallback(async (gridId) => {
     try {
       const bounds = getGridBounds(gridId);
@@ -363,6 +372,8 @@ function ActiveRun() {
         if (document.visibilityState === 'visible') {
           syncDuration();
           backgroundKeepAlive.start();
+          // Give 6s grace window to absorb screen wake GPS leaps without false warnings
+          wakeUpGracePeriodUntilRef.current = Date.now() + 6000;
         }
       };
       document.addEventListener('visibilitychange', handleVisibilitySync);
@@ -417,15 +428,55 @@ function ActiveRun() {
     // GPS JITTER & TELEPORT FILTERS:
     // 1. Deadband threshold: Ignore micro-shifts under 4.5 meters (indoor jitter)
     // 2. Accuracy noise floor: Movement must exceed 35% of GPS accuracy radius
-    // 3. Teleport glitch: Instantaneous velocity across timeDelta > 15.0 m/s (~54 km/h)
+    // 3. Screen-wake tolerance: When phone wakes from sleep, running distance (up to 1200m) is preserved
     const instantSpeedMps = distMeters / timeDelta;
+    const instantSpeedKmh = instantSpeedMps * 3.6;
+    const isWithinWakeGrace = Date.now() < wakeUpGracePeriodUntilRef.current;
     const isNoise = distMeters < 4.5 || (accuracy && distMeters < accuracy * 0.35);
     const isStationary = gpsSpeed !== null && gpsSpeed !== undefined && gpsSpeed < 0.3 && distMeters < 8;
-    const isTeleportGlitch = instantSpeedMps > 15.0 && distMeters > 50;
+    const isTeleportGlitch = distMeters > 1200 || (!isWithinWakeGrace && instantSpeedMps > 20.0 && distMeters > 50);
 
     if (isNoise || isStationary || isTeleportGlitch) {
       // Runner is stationary or GPS is jittering indoors -> DO NOT accumulate distance
       return;
+    }
+
+    // LIVE ANTI-CHEAT VEHICLE SPEED MONITOR:
+    // Only monitor active continuous running speed; suppress warnings during screen-wake catchup
+    if (!isWithinWakeGrace && distMeters >= 15 && instantSpeedKmh > 21.6) {
+      consecutiveSpeedViolationsRef.current += 1;
+      speedViolationCountRef.current += 1;
+
+      if (consecutiveSpeedViolationsRef.current >= 3) {
+        isVehicleFlaggedRef.current = true;
+      }
+
+      setSpeedWarning({
+        speedKmh: instantSpeedKmh,
+        violations: consecutiveSpeedViolationsRef.current,
+      });
+
+      if (speedWarningClearTimerRef.current) {
+        clearTimeout(speedWarningClearTimerRef.current);
+      }
+
+      // Voice prompt & Haptic vibration (throttled to max once every 10s)
+      const now = Date.now();
+      if (now - lastWarningSpeechTimeRef.current > 10000) {
+        lastWarningSpeechTimeRef.current = now;
+        if (navigator.vibrate) navigator.vibrate([300, 150, 300]);
+        soundEffects.speakAnnouncement("Warning: Vehicle speed detected. Slow down to avoid a disqualification strike.");
+      }
+    } else if (instantSpeedKmh <= 18.5) {
+      if (consecutiveSpeedViolationsRef.current > 0) {
+        consecutiveSpeedViolationsRef.current = Math.max(0, consecutiveSpeedViolationsRef.current - 1);
+      }
+      if (consecutiveSpeedViolationsRef.current === 0 && !speedWarningClearTimerRef.current) {
+        speedWarningClearTimerRef.current = setTimeout(() => {
+          setSpeedWarning(null);
+          speedWarningClearTimerRef.current = null;
+        }, 3500);
+      }
     }
 
     // Valid movement confirmed!
@@ -628,6 +679,8 @@ function ActiveRun() {
           motionScore: motionSampleCountRef.current > 0 ? (motionEnergyAccumulatorRef.current / motionSampleCountRef.current) : 0,
           hasSensorData: hasMotionSensorRef.current,
           isMockFlagged: isMockDetectedRef.current,
+          isVehicleFlagged: isVehicleFlaggedRef.current,
+          liveSpeedViolations: speedViolationCountRef.current,
           isMobile: isMobileDevice,
         },
       });
@@ -688,6 +741,31 @@ function ActiveRun() {
           </button>
         </div>
       </div>
+
+      {/* Live Anti-Cheat Vehicle Speed Alert Banner */}
+      <AnimatePresence>
+        {speedWarning && (
+          <motion.div
+            className="active-run-speed-warning-banner"
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -15, scale: 0.95 }}
+            transition={{ type: 'spring', damping: 20, stiffness: 260 }}
+          >
+            <div className="warning-banner-icon-col">
+              <AlertTriangle size={24} className="warning-pulse-icon" />
+            </div>
+            <div className="warning-banner-info">
+              <div className="warning-banner-title">
+                ⚠️ VEHICLE SPEED DETECTED ({speedWarning.speedKmh.toFixed(1)} km/h)
+              </div>
+              <div className="warning-banner-sub">
+                Astra runs must be completed on foot! Slow down immediately to avoid disqualification.
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Live Smart Sector Discovery HUD Banner */}
       <AnimatePresence>

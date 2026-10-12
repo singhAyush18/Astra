@@ -188,7 +188,8 @@ const login = async (req, res) => {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             sameSite: 'lax',
-            maxAge: 24 * 60 * 60 * 1000
+            path: '/',
+            maxAge: 30 * 24 * 60 * 60 * 1000
         });
 
         await syncUserStreak(user);
@@ -196,6 +197,7 @@ const login = async (req, res) => {
         res.status(200).json({
             success: true,
             message: "Login successful",
+            token,
             user: {
                 id: user._id,
                 _id: user._id,
@@ -229,7 +231,8 @@ const logout = async (req, res) => {
     res.clearCookie('token', {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax'
+        sameSite: 'lax',
+        path: '/'
     });
     res.status(200).json({
         success: true,
@@ -249,6 +252,24 @@ const getMe = async (req, res) => {
             return res.status(404).json({ success: false, message: "User not found" });
         }
 
+        // Rolling session check: if token has less than 7 days left, silently refresh
+        let refreshedToken = null;
+        const exp = req.user?.exp;
+        if (exp) {
+            const timeUntilExpiry = exp - Math.floor(Date.now() / 1000);
+            const SEVEN_DAYS_SECONDS = 7 * 24 * 60 * 60;
+            if (timeUntilExpiry < SEVEN_DAYS_SECONDS) {
+                refreshedToken = generateToken(user, user.sessionId);
+                res.cookie('token', refreshedToken, {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === "production",
+                    sameSite: 'lax',
+                    path: '/',
+                    maxAge: 30 * 24 * 60 * 60 * 1000
+                });
+            }
+        }
+
         res.status(200).json({
             success: true,
             user: {
@@ -262,6 +283,7 @@ const getMe = async (req, res) => {
                 longestStreak: user.longestStreak,
                 profilePicture: user.profilePicture || null,
             },
+            ...(refreshedToken ? { token: refreshedToken } : {}),
         });
     } catch (error) {
         console.error("Get current user error:", error);
