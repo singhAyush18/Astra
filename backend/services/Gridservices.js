@@ -1,5 +1,9 @@
 const Grid = require("../models/Grid");
 const GridInfluence = require("../models/Gridinfluence");
+const {
+    notifyTerritoryAttacked,
+    notifyTerritoryUsurped
+} = require("./notificationService");
 
 const GRID_SIZE_METERS = 1000;
 const CLAIM_THRESHOLD = 500;
@@ -39,6 +43,8 @@ const addInfluenceToGrid = async (
         });
     }
 
+    const previousRuler = grid.ruler ? grid.ruler.toString() : null;
+
     let influenceRecord = await GridInfluence.findOne({
         gridId: grid._id,
         userId
@@ -62,6 +68,22 @@ const addInfluenceToGrid = async (
 
     // Check if ownership should change and track conquest status
     const conquestResult = await updateGridRuler(gridId);
+
+    // Notifications:
+    if (conquestResult.conquestType === "usurp" && conquestResult.previousRuler) {
+        notifyTerritoryUsurped({
+            grid: conquestResult.grid || grid,
+            previousRulerId: conquestResult.previousRuler,
+            newRulerUser: userId
+        }).catch((err) => console.error("Error dispatching usurp notification:", err));
+    } else if (previousRuler && previousRuler !== userId.toString()) {
+        notifyTerritoryAttacked({
+            grid,
+            rulerId: previousRuler,
+            rivalUser: userId,
+            xpEarned: xp
+        }).catch((err) => console.error("Error dispatching attack notification:", err));
+    }
 
     return { influenceRecord, conquestResult };
 };

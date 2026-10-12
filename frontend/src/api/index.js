@@ -269,3 +269,30 @@ export const clanAPI = {
       headers: authHeaders(token),
     }),
 };
+
+// ===== Notification APIs =====
+export const notificationsAPI = {
+  getAll: (token, { unreadOnly = false, page = 1, limit = 30 } = {}) =>
+    apiFetch(`/api/v2/notifications?unreadOnly=${unreadOnly}&page=${page}&limit=${limit}`, {
+      headers: authHeaders(token),
+    }),
+
+  markAsRead: (token, id) =>
+    apiFetch(`/api/v2/notifications/${id}/read`, {
+      method: 'PUT',
+      headers: authHeaders(token),
+    }),
+
+  markAllAsRead: (token) =>
+    apiFetch('/api/v2/notifications/mark-all-read', {
+      method: 'PUT',
+      headers: authHeaders(token),
+    }),
+
+  delete: (token, id) =>
+    apiFetch(`/api/v2/notifications/${id}`, {
+      method: 'DELETE',
+      headers: authHeaders(token),
+    }),
+};
+

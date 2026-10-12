@@ -7,6 +7,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import StreakFlame from './StreakFlame';
 import UserMenu from './UserMenu';
+import NotificationBell from './NotificationBell';
 import { useAuth } from '../context/AuthContext';
 import './Navbar.css';
 
@@ -105,6 +106,7 @@ const Navbar = ({ streak }) => {
           {/* Right Section */}
           <div className="navbar-right">
             {isAuthenticated && <StreakFlame streak={effectiveStreak} />}
+            {isAuthenticated && <NotificationBell />}
             
             {isAuthenticated && (
               <UserMenu 

@@ -15,6 +15,8 @@ const authRoutes = require("./routes/authRoutes");
 const territoryRoutes = require("./routes/territoryRoutes");
 const clanRoutes = require("./routes/clanRoutes");
 const agentRoutes = require("./routes/agentRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
+const { checkAbsenceAndStreakDanger } = require("./services/notificationService");
 
 const app = express();
 app.set('trust proxy', 1);
@@ -73,6 +75,7 @@ app.use("/api/v2/stats", statsRoutes);
 app.use("/api/v2/territories", territoryRoutes);
 app.use("/api/v2/clans", clanRoutes);
 app.use("/api/v2/agents", agentRoutes);
+app.use("/api/v2/notifications", notificationRoutes);
 
 // Serve frontend in production if built dist exists, otherwise render backend status
 const frontendDistPath = path.join(__dirname, "../frontend/dist");
@@ -108,6 +111,20 @@ const startServer = async () => {
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`Server running on ${PORT}`);
         });
+
+        // Background Absence & Streak Danger Notification Scheduler
+        // Run initial check after 20 seconds, then once every hour
+        setTimeout(() => {
+            checkAbsenceAndStreakDanger().catch((err) =>
+                console.error("Initial absence/streak check error:", err)
+            );
+        }, 20000);
+
+        setInterval(() => {
+            checkAbsenceAndStreakDanger().catch((err) =>
+                console.error("Scheduled absence/streak check error:", err)
+            );
+        }, 60 * 60 * 1000);
     } catch (error) {
         console.error("Failed to connect DB:", error);
         process.exit(1);
