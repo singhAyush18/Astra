@@ -3,16 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Play, Square, MapPin, Clock, Gauge, Loader, Pause, Volume2, VolumeX, 
-  Gamepad2, Navigation, Compass, FastForward, RotateCcw, Crosshair, AlertTriangle, Eye,
-  Crown, Swords
+  Compass, AlertTriangle,
+  Crown, Swords, Lock, Unlock, Zap
 } from 'lucide-react';
-import { MapContainer, TileLayer, Polyline, Marker, Rectangle, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Polyline, Marker, Rectangle, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import './ActiveRun.css';
 import { useAuth } from '../context/AuthContext';
 import { runsAPI, territoryAPI } from '../api';
 import { soundEffects } from '../utils/soundEffects';
 import { backgroundKeepAlive } from '../utils/backgroundKeepAlive';
+import { LiveKinematicsEngine } from '../utils/liveKinematicsEngine';
 
 const GRID_SIZE_METERS = 1000;
 const METERS_PER_DEGREE_LAT = 111320;
@@ -65,27 +66,6 @@ const createGoogleMapsArrowIcon = (heading = 0) => L.divIcon({
   iconAnchor: [18, 18],
 });
 
-// Bearing calculation in degrees between two coordinate pairs
-const calculateBearing = (lat1, lon1, lat2, lon2) => {
-  const dLon = (lon2 - lon1) * (Math.PI / 180);
-  const y = Math.sin(dLon) * Math.cos(lat2 * (Math.PI / 180));
-  const x =
-    Math.cos(lat1 * (Math.PI / 180)) * Math.sin(lat2 * (Math.PI / 180)) -
-    Math.sin(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.cos(dLon);
-  const brng = (Math.atan2(y, x) * 180) / Math.PI;
-  return (brng + 360) % 360;
-};
-
-const waypointIcon = L.divIcon({
-  className: 'waypoint-custom-marker',
-  html: `
-    <div class="waypoint-pulse-aura"></div>
-    <div style="background: #00e5ff; border: 2px solid #fff; width: 14px; height: 14px; border-radius: 50%; box-shadow: 0 0 12px #00e5ff;"></div>
-  `,
-  iconSize: [14, 14],
-  iconAnchor: [7, 7],
-});
-
 function MapRecenter({ coords }) {
   const map = useMap();
   useEffect(() => {
@@ -93,17 +73,6 @@ function MapRecenter({ coords }) {
       map.panTo([coords.lat, coords.lng], { animate: true });
     }
   }, [coords, map]);
-  return null;
-}
-
-function MapClickHandler({ onMapClick, isSimActive }) {
-  useMapEvents({
-    click(e) {
-      if (isSimActive && onMapClick) {
-        onMapClick({ lat: e.latlng.lat, lng: e.latlng.lng });
-      }
-    },
-  });
   return null;
 }
 
@@ -126,10 +95,10 @@ function ActiveRun() {
   const visitedGridsRef = useRef(new Set());
   const distanceRef = useRef(0);
   const elapsedRef = useRef(0);
-  const lastMoveTimeRef = useRef(Date.now());
+  const lastMoveTimeRef = useRef(0);
   const lastCoordsRef = useRef(null);
   const navigate = useNavigate();
-  const { user, handleUnauthorized } = useAuth();
+  const { user } = useAuth();
   const [sectorBanner, setSectorBanner] = useState(null);
   const [currentSector, setCurrentSector] = useState(null);
   const sectorCacheRef = useRef({});
@@ -143,14 +112,78 @@ function ActiveRun() {
   const hasMotionSensorRef = useRef(false);
   const isMockDetectedRef = useRef(false);
 
-  // Real-Time In-Run Anti-Cheat Telemetry
   const [speedWarning, setSpeedWarning] = useState(null);
-  const consecutiveSpeedViolationsRef = useRef(0);
   const speedViolationCountRef = useRef(0);
   const isVehicleFlaggedRef = useRef(false);
-  const lastWarningSpeechTimeRef = useRef(0);
   const speedWarningClearTimerRef = useRef(null);
   const wakeUpGracePeriodUntilRef = useRef(0);
+  const kinematicsEngineRef = useRef(new LiveKinematicsEngine());
+
+  // AMOLED Pocket Lock Mode State & Tactile Hold-to-Unlock Engine
+  const [isPocketLocked, setIsPocketLocked] = useState(false);
+  const [unlockProgress, setUnlockProgress] = useState(0);
+  const unlockHoldTimerRef = useRef(null);
+  const unlockHoldStartRef = useRef(0);
+  const isPocketActive = status === 'running' && isPocketLocked;
+
+  // Cleanup hold timer if run transitions out of 'running'
+  useEffect(() => {
+    if (status !== 'running') {
+      if (unlockHoldTimerRef.current) {
+        clearInterval(unlockHoldTimerRef.current);
+        unlockHoldTimerRef.current = null;
+      }
+    }
+  }, [status]);
+
+  const HOLD_DURATION_MS = 1200; // 1.2s smooth tactile hold
+
+  const handleHoldStart = useCallback((e) => {
+    if (e && e.cancelable && e.type.startsWith('touch')) {
+      e.stopPropagation();
+    }
+    if (navigator.vibrate) {
+      navigator.vibrate(35);
+    }
+    unlockHoldStartRef.current = Date.now();
+    setUnlockProgress(0);
+
+    if (unlockHoldTimerRef.current) {
+      clearInterval(unlockHoldTimerRef.current);
+    }
+
+    unlockHoldTimerRef.current = setInterval(() => {
+      const elapsedMs = Date.now() - unlockHoldStartRef.current;
+      const progress = Math.min(100, (elapsedMs / HOLD_DURATION_MS) * 100);
+      setUnlockProgress(progress);
+
+      if (progress >= 100) {
+        clearInterval(unlockHoldTimerRef.current);
+        unlockHoldTimerRef.current = null;
+        if (navigator.vibrate) {
+          navigator.vibrate([50, 30, 80]);
+        }
+        setIsPocketLocked(false);
+        setUnlockProgress(0);
+      }
+    }, 20);
+  }, []);
+
+  const handleHoldEnd = useCallback(() => {
+    if (unlockHoldTimerRef.current) {
+      clearInterval(unlockHoldTimerRef.current);
+      unlockHoldTimerRef.current = null;
+    }
+    setUnlockProgress(0);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (unlockHoldTimerRef.current) {
+        clearInterval(unlockHoldTimerRef.current);
+      }
+    };
+  }, []);
 
   const triggerSectorDiscovery = useCallback(async (gridId) => {
     try {
@@ -261,15 +294,16 @@ function ActiveRun() {
   // Get initial GPS position
   useEffect(() => {
     if (!navigator.geolocation) {
-      // Fallback default coordinates (e.g. Central Delhi / Imperial City)
-      const fallback = { lat: 28.6139, lng: 77.2090 };
-      setCoords(fallback);
-      setPath([[fallback.lat, fallback.lng]]);
-      setGpsReady(true);
-      const initialGrid = `R${Math.floor((fallback.lat * 111320) / 1000)}-C${Math.floor((fallback.lng * (111320 * Math.cos(fallback.lat * Math.PI / 180))) / 1000)}`;
-      visitedGridsRef.current.add(initialGrid);
-      triggerSectorDiscovery(initialGrid);
-      return;
+      const fallbackTimer = setTimeout(() => {
+        const fallback = { lat: 28.6139, lng: 77.2090 };
+        setCoords(fallback);
+        setPath([[fallback.lat, fallback.lng]]);
+        setGpsReady(true);
+        const initialGrid = `R${Math.floor((fallback.lat * 111320) / 1000)}-C${Math.floor((fallback.lng * (111320 * Math.cos(fallback.lat * Math.PI / 180))) / 1000)}`;
+        visitedGridsRef.current.add(initialGrid);
+        triggerSectorDiscovery(initialGrid);
+      }, 0);
+      return () => clearTimeout(fallbackTimer);
     }
 
     navigator.geolocation.getCurrentPosition(
@@ -374,6 +408,7 @@ function ActiveRun() {
           backgroundKeepAlive.start();
           // Give 6s grace window to absorb screen wake GPS leaps without false warnings
           wakeUpGracePeriodUntilRef.current = Date.now() + 6000;
+          kinematicsEngineRef.current?.notifyScreenWake?.();
         }
       };
       document.addEventListener('visibilitychange', handleVisibilitySync);
@@ -388,129 +423,93 @@ function ActiveRun() {
     }
   }, [status, calculateActiveDuration]);
 
-  // Haversine formula to calculate distance between two lat/lng points in km
-  const calculateDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371; // Radius of the earth in km
-    const dLat = (lat2 - lat1) * (Math.PI / 180);
-    const dLon = (lon2 - lon1) * (Math.PI / 180);
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
-      Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
 
-  // Move runner to a new coordinate and update telemetry with GPS Jitter & Deadband filtering
+  // Move runner to a new coordinate and update telemetry via Decoupled Kinematics Engine
   const advanceRunnerLocation = useCallback((newLat, newLng, accuracy = 10, gpsSpeed = null) => {
-    // Always update current coords for smooth marker rendering
+    // 1. Always update current coords for smooth marker rendering
     setCoords({ lat: newLat, lng: newLng });
 
-    if (!lastCoordsRef.current) {
+    // 2. Compute current running cadence approximation from pedometer steps (SPM)
+    const activeSecs = calculateActiveDuration();
+    const currentCadence = activeSecs > 5
+      ? Math.round((stepCountRef.current / (activeSecs / 60)))
+      : 0;
+
+    // 3. Delegate telemetry & anti-cheat kinematics processing
+    const result = kinematicsEngineRef.current.processLocation({
+      lat: newLat,
+      lng: newLng,
+      accuracy,
+      gpsSpeed,
+      currentCadence,
+    });
+
+    if (!result.accepted) {
+      return;
+    }
+
+    if (result.isAnchor) {
+      // Baseline fix established (on initial start, after pause, or screen wake)
       lastCoordsRef.current = { lat: newLat, lng: newLng };
-      lastMoveTimeRef.current = Date.now();
-      setPath([[newLat, newLng]]);
+      setPath(prev => (prev.length === 0 ? [[newLat, newLng]] : prev));
       const initialGrid = `R${Math.floor((newLat * 111320) / 1000)}-C${Math.floor((newLng * (111320 * Math.cos(newLat * Math.PI / 180))) / 1000)}`;
-      visitedGridsRef.current.add(initialGrid);
-      triggerSectorDiscovery(initialGrid);
+      if (!visitedGridsRef.current.has(initialGrid)) {
+        visitedGridsRef.current.add(initialGrid);
+        triggerSectorDiscovery(initialGrid);
+      }
       return;
     }
 
-    const distDelta = calculateDistance(
-      lastCoordsRef.current.lat,
-      lastCoordsRef.current.lng,
-      newLat,
-      newLng
-    );
-    const distMeters = distDelta * 1000;
-    const timeDelta = Math.max(1, (Date.now() - lastMoveTimeRef.current) / 1000);
-
-    // GPS JITTER & TELEPORT FILTERS:
-    // 1. Deadband threshold: Ignore micro-shifts under 4.5 meters (indoor jitter)
-    // 2. Accuracy noise floor: Movement must exceed 35% of GPS accuracy radius
-    // 3. Screen-wake tolerance: When phone wakes from sleep, running distance (up to 1200m) is preserved
-    const instantSpeedMps = distMeters / timeDelta;
-    const instantSpeedKmh = instantSpeedMps * 3.6;
-    const isWithinWakeGrace = Date.now() < wakeUpGracePeriodUntilRef.current;
-    const isNoise = distMeters < 4.5 || (accuracy && distMeters < accuracy * 0.35);
-    const isStationary = gpsSpeed !== null && gpsSpeed !== undefined && gpsSpeed < 0.3 && distMeters < 8;
-    const isTeleportGlitch = distMeters > 1200 || (!isWithinWakeGrace && instantSpeedMps > 20.0 && distMeters > 50);
-
-    if (isNoise || isStationary || isTeleportGlitch) {
-      // Runner is stationary or GPS is jittering indoors -> DO NOT accumulate distance
-      return;
+    // 4. Valid movement confirmed! Update heading
+    if (result.bearing !== null && !isNaN(result.bearing)) {
+      setHeading(result.bearing);
     }
 
-    // LIVE ANTI-CHEAT VEHICLE SPEED MONITOR:
-    // Only monitor active continuous running speed; suppress warnings during screen-wake catchup
-    if (!isWithinWakeGrace && distMeters >= 15 && instantSpeedKmh > 21.6) {
-      consecutiveSpeedViolationsRef.current += 1;
-      speedViolationCountRef.current += 1;
-
-      if (consecutiveSpeedViolationsRef.current >= 3) {
-        isVehicleFlaggedRef.current = true;
-      }
-
-      setSpeedWarning({
-        speedKmh: instantSpeedKmh,
-        violations: consecutiveSpeedViolationsRef.current,
-      });
-
-      if (speedWarningClearTimerRef.current) {
-        clearTimeout(speedWarningClearTimerRef.current);
-      }
-
-      // Voice prompt & Haptic vibration (throttled to max once every 10s)
-      const now = Date.now();
-      if (now - lastWarningSpeechTimeRef.current > 10000) {
-        lastWarningSpeechTimeRef.current = now;
-        if (navigator.vibrate) navigator.vibrate([300, 150, 300]);
-        soundEffects.speakAnnouncement("Warning: Vehicle speed detected. Slow down to avoid a disqualification strike.");
-      }
-    } else if (instantSpeedKmh <= 18.5) {
-      if (consecutiveSpeedViolationsRef.current > 0) {
-        consecutiveSpeedViolationsRef.current = Math.max(0, consecutiveSpeedViolationsRef.current - 1);
-      }
-      if (consecutiveSpeedViolationsRef.current === 0 && !speedWarningClearTimerRef.current) {
-        speedWarningClearTimerRef.current = setTimeout(() => {
-          setSpeedWarning(null);
-          speedWarningClearTimerRef.current = null;
-        }, 3500);
-      }
-    }
-
-    // Valid movement confirmed!
-    const newBearing = calculateBearing(
-      lastCoordsRef.current.lat,
-      lastCoordsRef.current.lng,
-      newLat,
-      newLng
-    );
-    setHeading(newBearing);
-
-    const newDistance = distanceRef.current + distDelta;
-    
-    // Pace calculation (min/km)
-    if (timeDelta > 0 && distDelta > 0) {
-      const paceMin = (timeDelta / 60) / distDelta;
-      let mins = Math.floor(paceMin);
-      let secs = Math.round((paceMin - mins) * 60);
-      if (secs === 60) { mins++; secs = 0; }
-
-      if (mins > 45 || mins < 1) {
-        setCurrentPace('--:--');
-      } else {
-        setCurrentPace(`${mins}:${secs.toString().padStart(2, '0')}`);
-      }
-    }
-
+    // 5. Update cumulative distance & pace
+    const newDistance = distanceRef.current + result.distDeltaKm;
     distanceRef.current = newDistance;
-    lastMoveTimeRef.current = Date.now();
-    lastCoordsRef.current = { lat: newLat, lng: newLng };
     setDistance(newDistance);
+    lastCoordsRef.current = { lat: newLat, lng: newLng };
+
+    const formattedPace = LiveKinematicsEngine.formatPace(result.timeDeltaSec, result.distDeltaKm);
+    if (formattedPace !== '--:--') {
+      setCurrentPace(formattedPace);
+    }
+
     setPath(prev => [...prev, [newLat, newLng]]);
 
-    // Live sector boundary tracking & discovery
+    // 6. Synchronize Anti-Cheat telemetry flags
+    isVehicleFlaggedRef.current = result.isVehicleFlagged;
+    speedViolationCountRef.current = result.lifetimeViolations;
+
+    // 7. Live Anti-Cheat Warning handling (Sustained multi-point velocity only)
+    if (result.warning) {
+      if (result.warning.active) {
+        setSpeedWarning({
+          speedKmh: result.warning.speedKmh,
+          violations: result.warning.violations,
+        });
+
+        if (speedWarningClearTimerRef.current) {
+          clearTimeout(speedWarningClearTimerRef.current);
+          speedWarningClearTimerRef.current = null;
+        }
+
+        if (result.warning.shouldSpeak) {
+          if (navigator.vibrate) navigator.vibrate([300, 150, 300]);
+          soundEffects.speakAnnouncement("Warning: Vehicle speed detected. Slow down to avoid a disqualification strike.");
+        }
+      } else if (result.warning.active === false) {
+        if (!speedWarningClearTimerRef.current) {
+          speedWarningClearTimerRef.current = setTimeout(() => {
+            setSpeedWarning(null);
+            speedWarningClearTimerRef.current = null;
+          }, 3500);
+        }
+      }
+    }
+
+    // 8. Live sector boundary tracking & discovery
     const currentGrid = `R${Math.floor((newLat * 111320) / 1000)}-C${Math.floor((newLng * (111320 * Math.cos(newLat * Math.PI / 180))) / 1000)}`;
     if (!visitedGridsRef.current.has(currentGrid)) {
       visitedGridsRef.current.add(currentGrid);
@@ -525,7 +524,7 @@ function ActiveRun() {
         timestamp: new Date().toISOString()
       }).catch(() => {});
     }
-  }, [runId]);
+  }, [runId, calculateActiveDuration, triggerSectorDiscovery]);
 
   // Real GPS tracking while running
   useEffect(() => {
@@ -603,8 +602,10 @@ function ActiveRun() {
             setCoords(lastPath);
             lastCoordsRef.current = lastPath;
             setPath(resRun.path.map(p => [p.lat, p.lng]));
+            kinematicsEngineRef.current.start(lastPath);
           } else {
             lastCoordsRef.current = coords;
+            kinematicsEngineRef.current.start(coords);
           }
           
           setStatus('running');
@@ -627,6 +628,7 @@ function ActiveRun() {
           distanceRef.current = 0;
           lastMoveTimeRef.current = Date.now();
           lastCoordsRef.current = coords;
+          kinematicsEngineRef.current.start(coords);
           stepCountRef.current = 0;
           motionEnergyAccumulatorRef.current = 0;
           motionSampleCountRef.current = 0;
@@ -641,12 +643,15 @@ function ActiveRun() {
       }
     } catch {
       setError('Network error. Check your connection.');
+    } finally {
+      setIsStarting(false);
     }
   };
 
   const handlePause = () => {
     setStatus('paused');
     pauseStartTimeRef.current = Date.now();
+    kinematicsEngineRef.current.pause();
     if (runId && coords) {
       runsAPI.updateLocation(null, runId, { lat: coords.lat, lng: coords.lng, duration: elapsedRef.current, timestamp: new Date().toISOString() }).catch(() => {});
     }
@@ -659,6 +664,7 @@ function ActiveRun() {
     }
     setStatus('running');
     setIsAutoPaused(false);
+    kinematicsEngineRef.current.resume();
     lastMoveTimeRef.current = Date.now();
   };
 
@@ -718,7 +724,7 @@ function ActiveRun() {
 
           {status === 'running' && (
             <div className="awake-lock-badge" title="Screen Wake Lock & Background Tracking Protected">
-              <Eye size={13} />
+              <Zap size={13} className="awake-zap-icon" fill="currentColor" />
               <span>Awake Lock</span>
               <span className="awake-dot" />
             </div>
@@ -914,73 +920,113 @@ function ActiveRun() {
       {/* Action buttons */}
       <div className="run-actions">
         {status === 'ready' && (
-          <motion.button
-            className="run-start-btn"
-            onClick={handleStart}
-            disabled={!gpsReady}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-          >
-            {gpsReady ? (
-              <>
-                <Play size={24} fill="currentColor" />
-                <span>START</span>
-              </>
-            ) : (
-              <>
-                <Loader size={24} className="spin" />
-                <span>GPS...</span>
-              </>
-            )}
-          </motion.button>
+          <>
+            <motion.button
+              className="run-start-btn"
+              onClick={handleStart}
+              disabled={!gpsReady || isStarting}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+            >
+              {isStarting ? (
+                <>
+                  <Loader size={24} className="spin" />
+                  <span>STARTING...</span>
+                </>
+              ) : gpsReady ? (
+                <>
+                  <Play size={24} fill="currentColor" />
+                  <span>START</span>
+                </>
+              ) : (
+                <>
+                  <Loader size={24} className="spin" />
+                  <span>GPS...</span>
+                </>
+              )}
+            </motion.button>
+
+            {/* Screen Awake Lock Indicator directly below START button with Lightning Symbol */}
+            <div className="run-screen-awake-card" title="Screen Wake Lock keeps GPS tracking active in background">
+              <div className="awake-lock-pill">
+                <Zap size={15} className="awake-zap-icon" fill="currentColor" />
+                <span>SCREEN AWAKE LOCK ACTIVE</span>
+                <span className="awake-dot" />
+              </div>
+              <span className="awake-lock-sub">Hardware GPS tracking guarded • Zero sleep drop</span>
+            </div>
+          </>
         )}
 
         {(status === 'running' || status === 'paused') && (
-          <div className="run-actions-row">
-            {status === 'paused' || isAutoPaused ? (
+          <>
+            <div className="run-actions-row">
+              {status === 'paused' || isAutoPaused ? (
+                <motion.button
+                  className="run-pause-btn"
+                  onClick={handleResume}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Play size={20} fill="currentColor" />
+                  <span>RESUME</span>
+                </motion.button>
+              ) : (
+                <motion.button
+                  className="run-pause-btn"
+                  onClick={handlePause}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Pause size={20} fill="currentColor" />
+                  <span>PAUSE</span>
+                </motion.button>
+              )}
+
               <motion.button
-                className="run-pause-btn"
-                onClick={handleResume}
+                className="run-stop-btn"
+                onClick={handleStop}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 initial={{ opacity: 0, scale: 0.5 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.3 }}
               >
-                <Play size={20} fill="currentColor" />
-                <span>RESUME</span>
+                <Square size={20} fill="currentColor" />
+                <span>STOP</span>
               </motion.button>
-            ) : (
+            </div>
+
+            {/* Screen Awake Lock / AMOLED Pocket Lock Button directly below action buttons with Lightning Symbol */}
+            {status === 'running' && (
               <motion.button
-                className="run-pause-btn"
-                onClick={handlePause}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3 }}
+                type="button"
+                className="run-screen-awake-btn"
+                onClick={() => {
+                  setIsPocketLocked(true);
+                  if (navigator.vibrate) navigator.vibrate(40);
+                }}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                title="Lock display for pocket running (AMOLED power saver & touch rejection)"
               >
-                <Pause size={20} fill="currentColor" />
-                <span>PAUSE</span>
+                <Zap size={16} className="awake-zap-icon" fill="currentColor" />
+                <span>AMOLED POCKET LOCK</span>
+                <span className="awake-dot" />
               </motion.button>
             )}
-
-            <motion.button
-              className="run-stop-btn"
-              onClick={handleStop}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              initial={{ opacity: 0, scale: 0.5 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3 }}
-            >
-              <Square size={20} fill="currentColor" />
-              <span>STOP</span>
-            </motion.button>
-          </div>
+          </>
         )}
 
         {status === 'ending' && (
@@ -990,6 +1036,99 @@ function ActiveRun() {
           </div>
         )}
       </div>
+
+      {/* Pocket AMOLED Lock Mode Overlay */}
+      <AnimatePresence>
+        {isPocketActive && (
+          <motion.div
+            className="pocket-amoled-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onContextMenu={(e) => e.preventDefault()}
+          >
+            {/* Minimalist faint OLED Header */}
+            <div className="pocket-oled-header">
+              <div className="pocket-oled-status">
+                <Zap size={14} className="awake-zap-icon" fill="currentColor" />
+                <span>AMOLED POCKET LOCK • TRACKING LIVE</span>
+              </div>
+              <div className="pocket-oled-battery-hint">OLED Power Saver Active</div>
+            </div>
+
+            {/* Central OLED Running Stats (Zero backlight battery drain) */}
+            <div className="pocket-oled-body">
+              <div className="pocket-oled-hero-stat">
+                <span className="pocket-oled-dist">{distance.toFixed(2)}</span>
+                <span className="pocket-oled-unit">km</span>
+              </div>
+
+              <div className="pocket-oled-grid">
+                <div className="pocket-oled-metric">
+                  <span className="pocket-oled-label">TIME</span>
+                  <span className="pocket-oled-val">{formatTime(elapsed)}</span>
+                </div>
+                <div className="pocket-oled-divider" />
+                <div className="pocket-oled-metric">
+                  <span className="pocket-oled-label">PACE</span>
+                  <span className="pocket-oled-val">{currentPace} <small>/km</small></span>
+                </div>
+              </div>
+            </div>
+
+            {/* Hold to Unlock Circular Tactile Control */}
+            <div className="pocket-oled-footer">
+              <div
+                className={`pocket-hold-trigger ${unlockProgress > 0 ? 'holding' : ''}`}
+                onMouseDown={handleHoldStart}
+                onMouseUp={handleHoldEnd}
+                onMouseLeave={handleHoldEnd}
+                onTouchStart={handleHoldStart}
+                onTouchEnd={handleHoldEnd}
+                onTouchCancel={handleHoldEnd}
+                role="button"
+                tabIndex={0}
+                aria-label="Press and hold to unlock"
+              >
+                <svg className="pocket-ring-svg" viewBox="0 0 90 90">
+                  <circle
+                    className="pocket-ring-bg"
+                    cx="45"
+                    cy="45"
+                    r="38"
+                  />
+                  <circle
+                    className="pocket-ring-progress"
+                    cx="45"
+                    cy="45"
+                    r="38"
+                    style={{
+                      strokeDasharray: 238.76,
+                      strokeDashoffset: 238.76 - (238.76 * unlockProgress) / 100,
+                    }}
+                  />
+                </svg>
+
+                <div className="pocket-lock-icon-inner">
+                  {unlockProgress >= 100 ? (
+                    <Unlock size={26} className="unlocked-icon" />
+                  ) : (
+                    <Lock size={26} className="locked-icon" />
+                  )}
+                </div>
+              </div>
+
+              <div className="pocket-hold-label">
+                {unlockProgress > 0 ? 'KEEP HOLDING...' : 'HOLD TO UNLOCK'}
+              </div>
+              <div className="pocket-hold-sub">
+                Prevents accidental pocket touches
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

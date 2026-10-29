@@ -147,6 +147,8 @@ class BackgroundKeepAliveManager {
           album: 'Realm Conquest',
         });
         navigator.mediaSession.playbackState = 'playing';
+        navigator.mediaSession.setActionHandler('play', () => {});
+        navigator.mediaSession.setActionHandler('pause', () => {});
       } catch (err) {
         console.warn('MediaSession metadata warning:', err);
       }

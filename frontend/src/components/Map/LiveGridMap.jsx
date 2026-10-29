@@ -183,17 +183,6 @@ const createGridFlagIcon = (isMine, name = '') => {
 };
 
 
-// Haversine distance in kilometers
-const getDistanceKm = (lat1, lon1, lat2, lon2) => {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
-};
 
 // User GPS Live Recon Dot Icon
 const createUserLocationIcon = () => {
@@ -210,139 +199,38 @@ const createUserLocationIcon = () => {
   });
 };
 
-// Group territories into regional battlefield clusters (< 60 km)
-const buildTerritoryClusters = (territories, currentUserId) => {
-  if (!territories || territories.length === 0) return [];
-
-  const validItems = territories.map(t => {
-    const bounds = getGridBounds(t.gridId);
-    const center = bounds ? getGridCenter(bounds) : null;
-    return {
-      territory: t,
-      bounds,
-      center,
-      isMine: t.rulerId === currentUserId,
-    };
-  }).filter(item => item.bounds && item.center);
-
-  const clusters = [];
-
-  validItems.forEach(item => {
-    let matchedCluster = null;
-    for (const c of clusters) {
-      const dist = getDistanceKm(item.center[0], item.center[1], c.center[0], c.center[1]);
-      if (dist <= 60) {
-        matchedCluster = c;
-        break;
-      }
-    }
-
-    if (matchedCluster) {
-      matchedCluster.items.push(item);
-      const lats = matchedCluster.items.map(i => i.center[0]);
-      const lngs = matchedCluster.items.map(i => i.center[1]);
-      matchedCluster.center = [
-        lats.reduce((a, b) => a + b, 0) / lats.length,
-        lngs.reduce((a, b) => a + b, 0) / lngs.length,
-      ];
-      const allLats = [];
-      const allLngs = [];
-      matchedCluster.items.forEach(i => {
-        allLats.push(i.bounds[0][0], i.bounds[1][0]);
-        allLngs.push(i.bounds[0][1], i.bounds[1][1]);
-      });
-      matchedCluster.bounds = [
-        [Math.min(...allLats), Math.min(...allLngs)],
-        [Math.max(...allLats), Math.max(...allLngs)],
-      ];
-      if (item.isMine) matchedCluster.mineCount += 1;
-      else matchedCluster.enemyCount += 1;
-    } else {
-      clusters.push({
-        id: `cluster-${clusters.length}`,
-        items: [item],
-        center: item.center,
-        bounds: item.bounds,
-        mineCount: item.isMine ? 1 : 0,
-        enemyCount: item.isMine ? 0 : 1,
-      });
-    }
-  });
-
-  return clusters.map(c => {
-    const [cLat, cLng] = c.center;
-    let name = 'Territory Sector';
-    if (cLat >= 28.0 && cLat <= 29.0 && cLng >= 76.5 && cLng <= 78.2) {
-      name = 'Greater Noida / NCR';
-    } else if (cLat >= 24.8 && cLat <= 26.2 && cLng >= 84.5 && cLng <= 87.5) {
-      name = 'Bihar / Patna';
-    } else {
-      const named = c.items.find(i => i.territory.name)?.territory.name;
-      name = named ? `${named} Sector` : `${cLat.toFixed(1)}°N, ${cLng.toFixed(1)}°E`;
-    }
-
-    return {
-      ...c,
-      name,
-    };
-  });
-};
-
-// Smart GPS-aware Battlefield Camera Initializer
-const MapAutoCenter = ({ clusters, userLocation, activeClusterId, setActiveClusterId }) => {
+// Smart GPS-aware Battlefield Camera: Always focuses on the user's real-time position
+const MapUserFocus = ({ userLocation, centerCoords, territories, currentUserId }) => {
   const map = useMap();
-  const hasInitializedRef = React.useRef(false);
+  const hasFocusedUserRef = React.useRef(false);
 
+  // When live GPS is acquired, immediately fly directly to user's location
   useEffect(() => {
-    if (hasInitializedRef.current) return;
-    if (!clusters || clusters.length === 0) {
-      if (userLocation) {
-        map.setView(userLocation, 14);
-        hasInitializedRef.current = true;
-      }
+    if (userLocation && !hasFocusedUserRef.current) {
+      map.flyTo(userLocation, 15, { animate: true, duration: 1.2 });
+      hasFocusedUserRef.current = true;
+    }
+  }, [userLocation, map]);
+
+  // Fallback before GPS arrives or if geolocation permission is denied
+  useEffect(() => {
+    if (userLocation || hasFocusedUserRef.current) return;
+
+    if (centerCoords) {
+      map.setView(centerCoords, 14);
       return;
     }
 
-    // 1. If GPS is available, find closest cluster containing user's territories
-    if (userLocation) {
-      let closestCluster = null;
-      let minDistance = Infinity;
-
-      clusters.forEach(c => {
-        const dist = getDistanceKm(userLocation[0], userLocation[1], c.center[0], c.center[1]);
-        if (c.mineCount > 0 && dist < minDistance) {
-          minDistance = dist;
-          closestCluster = c;
-        }
-      });
-
-      // If user is within regional proximity (<= 85 km) of their kingdom, frame that local warfront
-      if (closestCluster && minDistance <= 85) {
-        map.flyToBounds(closestCluster.bounds, { maxZoom: 14.2, padding: [65, 65], duration: 1.2 });
-        setActiveClusterId(closestCluster.id);
-        hasInitializedRef.current = true;
-        return;
-      }
-
-      // If user is far from all their territories (e.g. traveling in another city), focus live GPS position
-      if (minDistance > 85) {
-        map.setView(userLocation, 14);
-        hasInitializedRef.current = true;
-        return;
+    const myTerritories = territories?.filter(t => t.rulerId === currentUserId) || [];
+    const target = myTerritories[0] || territories?.[0];
+    if (target) {
+      const bounds = getGridBounds(target.gridId);
+      const center = getGridCenter(bounds);
+      if (center) {
+        map.setView(center, 14);
       }
     }
-
-    // 2. Fallback: focus on user's primary/densest territory cluster at tactical Zoom 14
-    const primaryCluster = clusters
-      .filter(c => c.mineCount > 0)
-      .sort((a, b) => b.mineCount - a.mineCount)[0] || clusters[0];
-
-    if (primaryCluster) {
-      map.flyToBounds(primaryCluster.bounds, { maxZoom: 14.2, padding: [65, 65], duration: 1.2 });
-      setActiveClusterId(primaryCluster.id);
-      hasInitializedRef.current = true;
-    }
-  }, [clusters, userLocation, map, setActiveClusterId]);
+  }, [centerCoords, territories, currentUserId, map, userLocation]);
 
   return null;
 };
@@ -365,7 +253,7 @@ const MapNavigationBridge = ({ targetCommand, onCommandExecuted }) => {
 };
 
 // Interactive Recenter button inside the map
-const RecenterControl = ({ userLocation, clusters, onTriggerRecenter }) => {
+const RecenterControl = ({ onTriggerRecenter }) => {
   return (
     <div className="map-recenter-btn-container">
       <button 
@@ -376,7 +264,7 @@ const RecenterControl = ({ userLocation, clusters, onTriggerRecenter }) => {
           e.preventDefault();
           onTriggerRecenter();
         }}
-        title="Recenter to Live Position or Frontline"
+        title="Recenter to Your Live Position"
       >
         <span className="recenter-icon">🎯</span>
         <span className="recenter-text">Recenter</span>
@@ -388,11 +276,10 @@ const RecenterControl = ({ userLocation, clusters, onTriggerRecenter }) => {
 // Single Separate Territory Grid Cell Component
 const TerritoryGrid = ({ t, currentUserId, onRename }) => {
   const map = useMap();
-  const bounds = getGridBounds(t.gridId);
-  if (!bounds) return null;
-
   const isMine = t.rulerId === currentUserId;
-  const center = getGridCenter(bounds);
+  const flagIcon = useMemo(() => createGridFlagIcon(isMine, t.name), [isMine, t.name]);
+  const bounds = getGridBounds(t.gridId);
+  const center = bounds ? getGridCenter(bounds) : null;
 
   const handleZoomToTerritory = () => {
     if (center) {
@@ -400,7 +287,7 @@ const TerritoryGrid = ({ t, currentUserId, onRename }) => {
     }
   };
 
-  const flagIcon = useMemo(() => createGridFlagIcon(isMine, t.name), [isMine, t.name]);
+  if (!bounds) return null;
 
   const rulerInfluence = t.rulerInfluence || t.influence || 0;
   const userInfluence = t.userInfluence || 0;
@@ -512,37 +399,42 @@ const TerritoryGrid = ({ t, currentUserId, onRename }) => {
 
 const LiveGridMap = ({ territories, currentUserId, centerCoords, onRename }) => {
   const defaultCenter = [28.6139, 77.2090]; // Default to Delhi
-  const [mapTheme, setMapTheme] = useState(() => localStorage.getItem('astra_map_theme') || 'satellite');
+  const [mapTheme, setMapTheme] = useState(() => {
+    const saved = localStorage.getItem('astra_map_theme');
+    return (saved === 'satellite' || saved === 'slate') ? saved : 'satellite';
+  });
   const [userLocation, setUserLocation] = useState(null);
-  const [activeClusterId, setActiveClusterId] = useState(null);
   const [targetCommand, setTargetCommand] = useState(null);
-
-  // Group territories into regional battlefield clusters (< 60 km), sorted by user proximity
-  const clusters = useMemo(() => {
-    const list = buildTerritoryClusters(territories, currentUserId);
-    if (!userLocation) {
-      return [...list].sort((a, b) => b.mineCount - a.mineCount);
-    }
-    return [...list].sort((a, b) => {
-      const distA = getDistanceKm(userLocation[0], userLocation[1], a.center[0], a.center[1]);
-      const distB = getDistanceKm(userLocation[0], userLocation[1], b.center[0], b.center[1]);
-      return distA - distB;
-    });
-  }, [territories, currentUserId, userLocation]);
 
   const userLocationIcon = useMemo(() => createUserLocationIcon(), []);
 
-  // Fetch real-time user GPS position on mount
+  // Fetch real-time user GPS position on mount and keep updated
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setUserLocation([pos.coords.latitude, pos.coords.longitude]);
-        },
-        () => {},
-        { enableHighAccuracy: true, timeout: 6000 }
-      );
-    }
+    if (!navigator.geolocation) return;
+
+    // Fast initial fix
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserLocation([pos.coords.latitude, pos.coords.longitude]);
+      },
+      (err) => {
+        console.warn('Geolocation initial fix failed:', err.message);
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
+    );
+
+    // Continuous watch for movement
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        setUserLocation([pos.coords.latitude, pos.coords.longitude]);
+      },
+      () => {},
+      { enableHighAccuracy: true, maximumAge: 10000 }
+    );
+
+    return () => {
+      navigator.geolocation.clearWatch(watchId);
+    };
   }, []);
 
   const handleThemeChange = (theme) => {
@@ -550,105 +442,34 @@ const LiveGridMap = ({ territories, currentUserId, centerCoords, onRename }) => 
     localStorage.setItem('astra_map_theme', theme);
   };
 
-  const handleFlyToCluster = (cluster) => {
-    setActiveClusterId(cluster.id);
-    setTargetCommand({
-      type: 'bounds',
-      bounds: cluster.bounds,
-    });
-  };
-
-  const handleFlyToWorld = () => {
-    setActiveClusterId('world');
-    if (territories && territories.length > 0) {
-      const allLats = [];
-      const allLngs = [];
-      territories.forEach(t => {
-        const bounds = getGridBounds(t.gridId);
-        if (bounds) {
-          allLats.push(bounds[0][0], bounds[1][0]);
-          allLngs.push(bounds[0][1], bounds[1][1]);
-        }
-      });
-      if (allLats.length > 0) {
-        setTargetCommand({
-          type: 'bounds',
-          bounds: [
-            [Math.min(...allLats), Math.min(...allLngs)],
-            [Math.max(...allLats), Math.max(...allLngs)],
-          ],
-        });
-      }
-    }
-  };
-
   const handleTriggerRecenter = () => {
     if (userLocation) {
-      setActiveClusterId('gps');
       setTargetCommand({
         type: 'point',
         coords: userLocation,
-        zoom: 14.5,
+        zoom: 15.5,
       });
     } else if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           const loc = [pos.coords.latitude, pos.coords.longitude];
           setUserLocation(loc);
-          setActiveClusterId('gps');
           setTargetCommand({
             type: 'point',
             coords: loc,
-            zoom: 14.5,
+            zoom: 15.5,
           });
         },
         () => {
-          if (clusters.length > 0) {
-            handleFlyToCluster(clusters[0]);
-          }
-        }
+          alert('Unable to get your live location. Please check browser location permissions.');
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
       );
-    } else if (clusters.length > 0) {
-      handleFlyToCluster(clusters[0]);
     }
   };
 
   return (
     <div className="live-grid-map-container">
-      {/* Floating Tactical Province Navigator Bar */}
-      {clusters.length > 0 && (
-        <div className="map-province-bar">
-          <span className="province-bar-label">PROVINCES:</span>
-          {clusters.map(cluster => {
-            const isLocal = userLocation && getDistanceKm(userLocation[0], userLocation[1], cluster.center[0], cluster.center[1]) <= 85;
-            return (
-              <button
-                key={cluster.id}
-                className={`province-pill-btn ${activeClusterId === cluster.id ? 'active' : ''}`}
-                onClick={() => handleFlyToCluster(cluster)}
-                title={`Focus on ${cluster.name} frontline`}
-              >
-                <span className="province-icon">👑</span>
-                <span className="province-name">{cluster.name}</span>
-                {isLocal && <span className="province-local-tag">NEAR YOU</span>}
-                <span className="province-badge">
-                  {cluster.mineCount > 0 && <span className="badge-mine">🚩 {cluster.mineCount}</span>}
-                  {cluster.enemyCount > 0 && <span className="badge-enemy">⚔️ {cluster.enemyCount}</span>}
-                </span>
-              </button>
-            );
-          })}
-
-          <button
-            className={`province-pill-btn world-btn ${activeClusterId === 'world' ? 'active' : ''}`}
-            onClick={handleFlyToWorld}
-            title="Inspect whole realm overview"
-          >
-            <span className="province-icon">🌐</span>
-            <span className="province-name">Realm Overview</span>
-          </button>
-        </div>
-      )}
 
       {/* Floating Map Theme Selector */}
       <div className="map-theme-toggle-bar">
@@ -660,23 +481,9 @@ const LiveGridMap = ({ territories, currentUserId, centerCoords, onRename }) => 
           🛰️ Satellite
         </button>
         <button 
-          className={`theme-toggle-btn ${mapTheme === 'cyber' ? 'active' : ''}`}
-          onClick={() => handleThemeChange('cyber')}
-          title="Cyberpunk Pitch-Black Dark"
-        >
-          ⚡ Cyber
-        </button>
-        <button 
-          className={`theme-toggle-btn ${mapTheme === 'topo' ? 'active' : ''}`}
-          onClick={() => handleThemeChange('topo')}
-          title="Tactical Topographic Elevation"
-        >
-          🏔️ Topo
-        </button>
-        <button 
-          className={`theme-toggle-btn ${mapTheme === 'midnight' ? 'active' : ''}`}
-          onClick={() => handleThemeChange('midnight')}
-          title="Midnight Slate Canvas"
+          className={`theme-toggle-btn ${mapTheme === 'slate' ? 'active' : ''}`}
+          onClick={() => handleThemeChange('slate')}
+          title="Dark Slate Canvas"
         >
           🌑 Slate
         </button>
@@ -715,39 +522,20 @@ const LiveGridMap = ({ territories, currentUserId, centerCoords, onRename }) => 
           </React.Fragment>
         )}
 
-        {mapTheme === 'cyber' && (
+        {mapTheme === 'slate' && (
           <TileLayer
-            key="theme-cyber"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            className="cyber-map-tiles"
-            maxZoom={19}
-          />
-        )}
-
-        {mapTheme === 'topo' && (
-          <TileLayer
-            key="theme-topo"
-            attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
-            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
-            maxZoom={19}
-          />
-        )}
-
-        {mapTheme === 'midnight' && (
-          <TileLayer
-            key="theme-midnight"
+            key="theme-slate"
             attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
             url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
             maxZoom={19}
           />
         )}
 
-        <MapAutoCenter
-          clusters={clusters}
+        <MapUserFocus
           userLocation={userLocation}
-          activeClusterId={activeClusterId}
-          setActiveClusterId={setActiveClusterId}
+          centerCoords={centerCoords}
+          territories={territories}
+          currentUserId={currentUserId}
         />
 
         <MapNavigationBridge
@@ -756,8 +544,6 @@ const LiveGridMap = ({ territories, currentUserId, centerCoords, onRename }) => 
         />
 
         <RecenterControl
-          userLocation={userLocation}
-          clusters={clusters}
           onTriggerRecenter={handleTriggerRecenter}
         />
 
