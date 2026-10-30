@@ -4,10 +4,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Scroll, MapPin, Clock, Gauge, Trash2, ChevronDown,
   ChevronUp, Filter, Calendar, CheckCircle, XCircle, AlertCircle, AlertTriangle, Play,
-  Bot, Activity, HeartPulse, Compass, Sparkles, Loader
+  Bot, Activity, HeartPulse, Compass, Sparkles, Loader, Share2
 } from "lucide-react";
 import toast from "react-hot-toast";
 import Navbar from "../components/Navbar";
+import ShareConquestModal from "../components/ShareConquestModal";
 import "./RunHistory.css";
 import { useAuth } from "../context/AuthContext";
 import { runsAPI, statsAPI } from "../api";
@@ -53,6 +54,7 @@ function RunHistory() {
   const [deleting, setDeleting] = useState(false);
   const [generatingDebriefId, setGeneratingDebriefId] = useState(null);
   const [streak, setStreak] = useState(0);
+  const [selectedShareRun, setSelectedShareRun] = useState(null);
   const navigate = useNavigate();
 
   const { user, handleUnauthorized } = useAuth();
@@ -83,10 +85,12 @@ function RunHistory() {
     }
   };
 
-  const fetchRuns = () => {
+  const fetchRuns = (showLoading = true) => {
     if (!user) return;
 
-    setLoading(true);
+    if (showLoading) {
+      setTimeout(() => setLoading(true), 0);
+    }
     runsAPI.getAll(null)
       .then((res) => {
         if (res.status === 401) {
@@ -111,7 +115,7 @@ function RunHistory() {
   };
 
   useEffect(() => {
-    fetchRuns();
+    fetchRuns(false);
 
     // Fetch streak for navbar flame
     if (user) {
@@ -122,7 +126,8 @@ function RunHistory() {
         })
         .catch(() => {});
     }
-  }, [navigate]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const handleDelete = async (runId) => {
     setDeleting(true);
@@ -426,6 +431,20 @@ function RunHistory() {
 
                         {/* Actions */}
                         <div className="run-actions" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+                          {run.status === 'completed' && (
+                            <button
+                              type="button"
+                              className="history-share-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedShareRun(run);
+                              }}
+                              title="Create & share Instagram/Strava story"
+                            >
+                              <Share2 size={14} />
+                              <span>Share Story</span>
+                            </button>
+                          )}
                           {run.status === 'completed' && !run.coachDebrief && (
                             <button
                               className="ai-analyze-btn"
@@ -506,6 +525,15 @@ function RunHistory() {
           </AnimatePresence>
         </div>
       </main>
+
+      {selectedShareRun && (
+        <ShareConquestModal
+          isOpen={Boolean(selectedShareRun)}
+          onClose={() => setSelectedShareRun(null)}
+          summaryData={{ run: selectedShareRun }}
+          user={user}
+        />
+      )}
     </div>
   );
 }

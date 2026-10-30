@@ -450,6 +450,86 @@
   padding: 0 var(--space-lg) var(--space-lg);
   display: flex;
   align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.history-share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  border: 1px solid rgba(255, 215, 0, 0.45);
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.16) 0%, rgba(212, 175, 55, 0.05) 100%);
+  color: #ffd700;
+  font-family: var(--font-ui);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35), inset 0 0 12px rgba(255, 215, 0, 0.06);
+}
+
+.history-share-btn:hover {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.28) 0%, rgba(212, 175, 55, 0.12) 100%);
+  border-color: rgba(255, 215, 0, 0.8);
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 18px rgba(255, 215, 0, 0.25), inset 0 0 16px rgba(255, 215, 0, 0.12);
+}
+
+.history-share-btn:active {
+  transform: translateY(0);
+}
+
+.history-share-btn svg {
+  color: #ffd700;
+  transition: transform 0.2s ease;
+}
+
+.history-share-btn:hover svg {
+  transform: scale(1.1);
+  color: #ffffff;
+}
+
+.ai-analyze-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  border: 1px solid rgba(0, 229, 255, 0.35);
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.12) 0%, rgba(0, 229, 255, 0.03) 100%);
+  color: #00e5ff;
+  font-family: var(--font-ui);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.ai-analyze-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.22) 0%, rgba(0, 229, 255, 0.08) 100%);
+  border-color: rgba(0, 229, 255, 0.6);
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 229, 255, 0.2);
+}
+
+.ai-analyze-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ai-analyze-btn .spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .delete-btn {
