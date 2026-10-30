@@ -41,144 +41,135 @@ const getGridCenter = (bounds) => {
   ];
 };
 
-// Create custom Flag marker icon for individual grid cells
-// Self-owned: Crimson red flag with 8-pointed golden compass star (exact match to screenshot)
-// Enemy: Pitch-black flag with white skull & crossbones
-const createGridFlagIcon = (isMine, name = '') => {
-  const iconId = isMine ? 'mine' : 'enemy';
+// Create custom Castle marker icon for individual grid cells
+// Self-owned: Imperial Golden Citadel with glowing gatehouse and Royal Compass Star
+// Enemy / Warlord: Faction-tinted Dark Stone Fortress with glowing arcane portcullis & faction insignia
+const createGridCastleIcon = (isMine, name = '', botPersona = null) => {
+  const factionId = botPersona?.faction || (isMine ? 'mine' : 'enemy');
+  const enemyColor = botPersona?.color || '#ff3366';
+  const iconId = `castle-${isMine ? 'mine' : 'enemy'}-${factionId}-${Math.abs((name || '').length)}`;
+
+  // Colors & Gradients
+  const wallStroke = isMine ? '#ffd700' : (botPersona ? enemyColor : '#ff3366');
+  const gateGlowColor = isMine 
+    ? '#ffd700' 
+    : (botPersona?.faction === 'obsidian' ? '#ff1744' 
+      : (botPersona?.faction === 'zephyr' ? '#00f2fe' 
+      : (botPersona?.faction === 'iron_dominion' ? '#c084fc' : '#ff4d4d')));
+  
+  const keepRoofFill = isMine 
+    ? `url(#playerRoofGrad-${iconId})` 
+    : (botPersona ? enemyColor : '#7f1d1d');
 
   return L.divIcon({
-    className: 'grid-flag-icon-container',
+    className: 'grid-castle-icon-container',
     html: `
-      <div class="grid-flag-wrapper ${isMine ? 'flag-mine' : 'flag-enemy'}" title="${name || (isMine ? 'Your Territory' : 'Enemy Territory')}">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 44" width="38" height="38" class="grid-flag-svg">
+      <div class="grid-castle-wrapper ${isMine ? 'castle-mine' : 'castle-enemy'}" title="${name || (isMine ? 'Your Citadel' : (botPersona ? `${botPersona.title} Stronghold` : 'Enemy Fortress'))}">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="42" height="42" class="grid-castle-svg">
           <defs>
-            <linearGradient id="poleMetalGrad-${iconId}" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stop-color="#181215" />
-              <stop offset="45%" stop-color="#4a3b40" />
-              <stop offset="70%" stop-color="#2a2024" />
-              <stop offset="100%" stop-color="#120c0f" />
+            <linearGradient id="wallGrad-${iconId}" x1="0" y1="0" x2="1" y2="1">
+              ${isMine ? `
+                <stop offset="0%" stop-color="#ffe259" />
+                <stop offset="40%" stop-color="#ffa751" />
+                <stop offset="100%" stop-color="#8a5300" />
+              ` : `
+                <stop offset="0%" stop-color="#2a2e39" />
+                <stop offset="50%" stop-color="#181c24" />
+                <stop offset="100%" stop-color="#0b0e14" />
+              `}
             </linearGradient>
 
-            <radialGradient id="finialGrad-${iconId}" cx="35%" cy="30%" r="70%">
-              <stop offset="0%" stop-color="#5a484e" />
-              <stop offset="50%" stop-color="#281e22" />
-              <stop offset="100%" stop-color="#100a0d" />
+            <linearGradient id="keepGrad-${iconId}" x1="0" y1="0" x2="0" y2="1">
+              ${isMine ? `
+                <stop offset="0%" stop-color="#fff099" />
+                <stop offset="45%" stop-color="#ffd700" />
+                <stop offset="100%" stop-color="#996515" />
+              ` : `
+                <stop offset="0%" stop-color="#363b48" />
+                <stop offset="50%" stop-color="#1f232b" />
+                <stop offset="100%" stop-color="#101217" />
+              `}
+            </linearGradient>
+
+            <linearGradient id="playerRoofGrad-${iconId}" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#940000" />
+              <stop offset="50%" stop-color="#dc2626" />
+              <stop offset="100%" stop-color="#5a0000" />
+            </linearGradient>
+
+            <radialGradient id="gateGlow-${iconId}" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#ffffff" />
+              <stop offset="50%" stop-color="${gateGlowColor}" />
+              <stop offset="100%" stop-color="${isMine ? '#8a5300' : '#050505'}" />
             </radialGradient>
 
-            <linearGradient id="redFlagGrad-${iconId}" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stop-color="#940000" />
-              <stop offset="40%" stop-color="#780000" />
-              <stop offset="100%" stop-color="#4d0000" />
-            </linearGradient>
-
-            <linearGradient id="blackFlagGrad-${iconId}" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stop-color="#2c2c2c" />
-              <stop offset="45%" stop-color="#181818" />
-              <stop offset="100%" stop-color="#080808" />
-            </linearGradient>
-
-            <filter id="flagShadow-${iconId}" x="-20%" y="-20%" width="140%" height="140%">
-              <feDropShadow dx="1.2" dy="2" stdDeviation="1.5" flood-color="rgba(0,0,0,0.7)" />
+            <filter id="castleShadow-${iconId}" x="-25%" y="-25%" width="150%" height="150%">
+              <feDropShadow dx="0" dy="2" stdDeviation="2.2" flood-color="rgba(0,0,0,0.85)" />
             </filter>
           </defs>
 
           <!-- Ground Base Shadow -->
-          <ellipse cx="11" cy="41" rx="6" ry="2.2" fill="rgba(0,0,0,0.55)" />
+          <ellipse cx="24" cy="45" rx="19" ry="3.2" fill="rgba(0,0,0,0.65)" />
 
-          <!-- Flagpole Foot Cap -->
-          <ellipse cx="11" cy="39.5" rx="2.5" ry="1.4" fill="#1c1618" stroke="#3d3034" stroke-width="0.5" />
+          <g filter="url(#castleShadow-${iconId})">
+            <!-- Foundation Stone Plinth -->
+            <polygon points="5,44 43,44 41,41 7,41" fill="${isMine ? '#422800' : '#11141a'}" stroke="${wallStroke}" stroke-width="0.6" />
 
-          <!-- Flagpole Shaft -->
-          <rect x="9.8" y="7" width="2.4" height="33" rx="1.2" fill="url(#poleMetalGrad-${iconId})" />
+            <!-- Left Bastion Tower -->
+            <rect x="6" y="16" width="9" height="25" rx="1" fill="url(#wallGrad-${iconId})" stroke="${wallStroke}" stroke-width="0.65" />
+            <!-- Left Battlements -->
+            <polygon points="5,16 5,11 8,11 8,13 10,13 10,11 13,11 13,13 16,13 16,16" fill="url(#wallGrad-${iconId})" stroke="${wallStroke}" stroke-width="0.65" />
+            <!-- Left Arrow Slit Windows -->
+            <line x1="10.5" y1="20" x2="10.5" y2="25" stroke="${gateGlowColor}" stroke-width="1.3" stroke-linecap="round" />
+            <line x1="10.5" y1="29" x2="10.5" y2="34" stroke="${gateGlowColor}" stroke-width="1.3" stroke-linecap="round" />
 
-          <!-- Pole Top Finial Sphere -->
-          <circle cx="11" cy="6.5" r="2.8" fill="url(#finialGrad-${iconId})" stroke="#1a1215" stroke-width="0.5" />
-          <circle cx="10.2" cy="5.7" r="0.8" fill="rgba(255,255,255,0.4)" />
+            <!-- Right Bastion Tower -->
+            <rect x="33" y="16" width="9" height="25" rx="1" fill="url(#wallGrad-${iconId})" stroke="${wallStroke}" stroke-width="0.65" />
+            <!-- Right Battlements -->
+            <polygon points="32,16 32,11 35,11 35,13 37,13 37,11 40,11 40,13 43,13 43,16" fill="url(#wallGrad-${iconId})" stroke="${wallStroke}" stroke-width="0.65" />
+            <!-- Right Arrow Slit Windows -->
+            <line x1="37.5" y1="20" x2="37.5" y2="25" stroke="${gateGlowColor}" stroke-width="1.3" stroke-linecap="round" />
+            <line x1="37.5" y1="29" x2="37.5" y2="34" stroke="${gateGlowColor}" stroke-width="1.3" stroke-linecap="round" />
 
-          <!-- Swallowtail Flag Cloth -->
-          <path 
-            d="M 12 9 L 38 10 L 31 20.5 L 38 31 L 12 30 Z" 
-            fill="${isMine ? `url(#redFlagGrad-${iconId})` : `url(#blackFlagGrad-${iconId})`}" 
-            stroke="${isMine ? '#d4af37' : '#4f4f4f'}" 
-            stroke-width="0.85"
-            filter="url(#flagShadow-${iconId})"
-          />
+            <!-- Curtain Wall connecting towers -->
+            <rect x="14" y="24" width="20" height="17" fill="url(#wallGrad-${iconId})" stroke="${wallStroke}" stroke-width="0.6" />
 
-          ${isMine ? `
-            <!-- 8-Pointed Golden Compass Star (Exact match to screenshot) -->
-            <g class="flag-gold-star-sigil">
-              <!-- Cardinal North Point -->
-              <polygon points="23.5,20 22,20 23.5,11" fill="#ffe98a" />
-              <polygon points="23.5,20 23.5,11 25,20" fill="#b8860b" />
+            <!-- Central Keep (Taller Donjon) -->
+            <rect x="16" y="10" width="16" height="21" rx="1" fill="url(#keepGrad-${iconId})" stroke="${wallStroke}" stroke-width="0.75" />
+            <!-- Central Keep Crenellations -->
+            <polygon points="15,10 15,5.5 18,5.5 18,7.5 21,7.5 21,5.5 27,5.5 27,7.5 30,7.5 30,5.5 33,5.5 33,10" fill="url(#keepGrad-${iconId})" stroke="${wallStroke}" stroke-width="0.75" />
 
-              <!-- Cardinal South Point -->
-              <polygon points="23.5,20 22,20 23.5,29" fill="#b8860b" />
-              <polygon points="23.5,20 23.5,29 25,20" fill="#ffe98a" />
+            <!-- Grand Central Spire / Spikes -->
+            <polygon points="21,5.5 24,0.5 27,5.5" fill="${keepRoofFill}" stroke="${wallStroke}" stroke-width="0.6" />
 
-              <!-- Cardinal East Point -->
-              <polygon points="23.5,20 23.5,18.6 32,20" fill="#ffe98a" />
-              <polygon points="23.5,20 32,20 23.5,21.4" fill="#b8860b" />
+            ${isMine ? `
+              <!-- Imperial Crown Star Sigil -->
+              <circle cx="24" cy="0.5" r="1.5" fill="#ffffff" stroke="#ffd700" stroke-width="0.6" />
+              <!-- Rose Window -->
+              <circle cx="24" cy="14" r="2.2" fill="#3a2200" stroke="#ffd700" stroke-width="0.7" />
+              <circle cx="24" cy="14" r="1.2" fill="#fffbcf" />
+            ` : `
+              <!-- Faction Emblem on Keep -->
+              <circle cx="24" cy="14" r="2.4" fill="#0b0e14" stroke="${wallStroke}" stroke-width="0.7" />
+              <circle cx="24" cy="14" r="1.3" fill="${gateGlowColor}" />
+            `}
 
-              <!-- Cardinal West Point -->
-              <polygon points="23.5,20 15,20 23.5,18.6" fill="#b8860b" />
-              <polygon points="23.5,20 23.5,21.4 15,20" fill="#ffe98a" />
+            <!-- Arched Gatehouse Entrance -->
+            <path d="M 19 41 L 19 28 C 19 24.5, 29 24.5, 29 28 L 29 41 Z" fill="url(#gateGlow-${iconId})" stroke="${wallStroke}" stroke-width="0.8" />
 
-              <!-- Diagonal NW Point -->
-              <polygon points="23.5,20 18,14.5 23.5,17.8" fill="#fff3a8" />
-              <polygon points="23.5,20 21.2,20 18,14.5" fill="#9e7308" />
-
-              <!-- Diagonal NE Point -->
-              <polygon points="23.5,20 29,14.5 25.8,20" fill="#fff3a8" />
-              <polygon points="23.5,20 23.5,17.8 29,14.5" fill="#9e7308" />
-
-              <!-- Diagonal SE Point -->
-              <polygon points="23.5,20 29,25.5 23.5,22.2" fill="#fff3a8" />
-              <polygon points="23.5,20 25.8,20 29,25.5" fill="#9e7308" />
-
-              <!-- Diagonal SW Point -->
-              <polygon points="23.5,20 18,25.5 21.2,20" fill="#fff3a8" />
-              <polygon points="23.5,20 23.5,22.2 18,25.5" fill="#9e7308" />
-
-              <!-- Center Gold Spark Jewel -->
-              <circle cx="23.5" cy="20" r="1.1" fill="#ffffff" />
-            </g>
-          ` : `
-            <!-- Skull & Crossbones Emblem for Enemy Black Flag -->
-            <g class="flag-enemy-skull-sigil">
-              <!-- Crossed Bones -->
-              <!-- Top-Left to Bottom-Right -->
-              <line x1="16.5" y1="13.5" x2="30.5" y2="26.5" stroke="#e0ded8" stroke-width="1.6" stroke-linecap="round" />
-              <circle cx="16.5" cy="13.5" r="1.2" fill="#e0ded8" />
-              <circle cx="30.5" cy="26.5" r="1.2" fill="#e0ded8" />
-
-              <!-- Bottom-Left to Top-Right -->
-              <line x1="16.5" y1="26.5" x2="30.5" y2="13.5" stroke="#e0ded8" stroke-width="1.6" stroke-linecap="round" />
-              <circle cx="16.5" cy="26.5" r="1.2" fill="#e0ded8" />
-              <circle cx="30.5" cy="13.5" r="1.2" fill="#e0ded8" />
-
-              <!-- Skull Cranium Head -->
-              <path d="M 19 17 C 19 13.5, 28 13.5, 28 17 C 28 19.3, 26.8 20.8, 26.2 22.3 L 20.8 22.3 C 20.2 20.8, 19 19.3, 19 17 Z" fill="#f5f3ee" stroke="#ded9cf" stroke-width="0.3" />
-
-              <!-- Skull Teeth / Jaw -->
-              <path d="M 21.2 22.3 L 25.8 22.3 L 25.3 25.2 L 21.7 25.2 Z" fill="#f5f3ee" stroke="#ded9cf" stroke-width="0.3" />
-              <line x1="22.7" y1="23" x2="22.7" y2="25.2" stroke="#121212" stroke-width="0.55"/>
-              <line x1="24.3" y1="23" x2="24.3" y2="25.2" stroke="#121212" stroke-width="0.55"/>
-
-              <!-- Eye Sockets -->
-              <ellipse cx="21.5" cy="17.6" rx="1.4" ry="1.7" fill="#121212" />
-              <ellipse cx="25.5" cy="17.6" rx="1.4" ry="1.7" fill="#121212" />
-
-              <!-- Nose Cavity -->
-              <polygon points="23.5,19.2 22.7,20.8 24.3,20.8" fill="#121212" />
-            </g>
-          `}
+            <!-- Heavy Iron Portcullis Grate -->
+            <line x1="21.5" y1="26" x2="21.5" y2="41" stroke="${isMine ? '#3d2500' : '#080a0e'}" stroke-width="0.8" />
+            <line x1="24" y1="25" x2="24" y2="41" stroke="${isMine ? '#3d2500' : '#080a0e'}" stroke-width="0.8" />
+            <line x1="26.5" y1="26" x2="26.5" y2="41" stroke="${isMine ? '#3d2500' : '#080a0e'}" stroke-width="0.8" />
+            <line x1="19" y1="32" x2="29" y2="32" stroke="${isMine ? '#3d2500' : '#080a0e'}" stroke-width="0.8" />
+            <line x1="19" y1="36" x2="29" y2="36" stroke="${isMine ? '#3d2500' : '#080a0e'}" stroke-width="0.8" />
+          </g>
         </svg>
       </div>
     `,
-    iconSize: [38, 38],
-    iconAnchor: [11, 39],
-    popupAnchor: [0, -36]
+    iconSize: [42, 42],
+    iconAnchor: [21, 41],
+    popupAnchor: [0, -38]
   });
 };
 
@@ -274,10 +265,10 @@ const RecenterControl = ({ onTriggerRecenter }) => {
 };
 
 // Single Separate Territory Grid Cell Component
-const TerritoryGrid = ({ t, currentUserId, onRename }) => {
+const TerritoryGrid = ({ t, currentUserId, onRename, onUpdateFaction }) => {
   const map = useMap();
   const isMine = t.rulerId === currentUserId;
-  const flagIcon = useMemo(() => createGridFlagIcon(isMine, t.name), [isMine, t.name]);
+  const castleIcon = useMemo(() => createGridCastleIcon(isMine, t.name, t.botPersona), [isMine, t.name, t.botPersona]);
   const bounds = getGridBounds(t.gridId);
   const center = bounds ? getGridCenter(bounds) : null;
 
@@ -298,12 +289,31 @@ const TerritoryGrid = ({ t, currentUserId, onRename }) => {
   const popupContent = (
     <div className="territory-popup-content">
       <div className="popup-header">
-        <span className="popup-emoji">{isMine ? '🚩' : '🏴‍☠️'}</span>
-        <h4>{t.name || (isMine ? 'Your Territory' : 'Enemy Territory')}</h4>
+        <span className="popup-emoji">{isMine ? '🏰' : (t.botPersona?.avatar || '🏯')}</span>
+        <h4>{t.name || (isMine ? 'Your Citadel' : 'Rival Stronghold')}</h4>
       </div>
       <div className="popup-details">
         <p><strong>Grid:</strong> {t.gridId}</p>
-        <p><strong>Ruler:</strong> {t.rulerName || 'Unknown'}</p>
+        <p>
+          <strong>Ruler:</strong> {t.rulerName || 'Unknown'}
+        </p>
+        <p>
+          <strong>Faction:</strong>{' '}
+          <span style={{ color: isMine ? '#ffd700' : (t.botPersona?.color || '#38bdf8'), fontWeight: 'bold' }}>
+            {t.rulerFaction || (t.botPersona?.title ? `${t.botPersona.title} (${(t.botPersona.faction || '').toUpperCase()})` : 'Imperial Vanguard')}
+          </span>
+        </p>
+        {(t.rulerMotto || t.botPersona?.taunt) && (
+          <p 
+            className="popup-realm-motto" 
+            style={{ 
+              borderLeftColor: isMine ? '#ffd700' : (t.botPersona?.color || '#38bdf8'),
+              color: isMine ? '#fef08a' : '#e2e8f0'
+            }}
+          >
+            "{t.rulerMotto || t.botPersona?.taunt}"
+          </p>
+        )}
         <p><strong>Claimed:</strong> {new Date(t.claimedAt).toLocaleDateString('en-US', {
           month: 'short', day: 'numeric', year: 'numeric'
         })}</p>
@@ -356,6 +366,19 @@ const TerritoryGrid = ({ t, currentUserId, onRename }) => {
             ✏️ Rename Territory
           </button>
         )}
+
+        {isMine && onUpdateFaction && (
+          <button 
+            className="rename-btn"
+            style={{ marginTop: '6px' }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onUpdateFaction();
+            }}
+          >
+            ⚔️ Set Realm Faction & Motto
+          </button>
+        )}
       </div>
     </div>
   );
@@ -369,10 +392,10 @@ const TerritoryGrid = ({ t, currentUserId, onRename }) => {
           click: handleZoomToTerritory,
         }}
         pathOptions={{
-          color: isMine ? '#ffd700' : '#ff3366',
+          color: isMine ? '#ffd700' : (t.botPersona?.color || '#ff3366'),
           weight: isMine ? 2.5 : 1.8,
-          fillColor: isMine ? '#ffd700' : '#ff3366',
-          fillOpacity: isMine ? 0.3 : 0.18,
+          fillColor: isMine ? '#ffd700' : (t.botPersona?.color || '#ff3366'),
+          fillOpacity: isMine ? 0.3 : 0.22,
           dashArray: isMine ? null : '6 4',
           className: isMine ? 'neon-kingdom-grid' : 'neon-rival-grid',
         }}
@@ -380,11 +403,11 @@ const TerritoryGrid = ({ t, currentUserId, onRename }) => {
         <Popup>{popupContent}</Popup>
       </Rectangle>
 
-      {/* Flag marker at center of each grid with click-to-zoom and Crown Z-Index Priority */}
+      {/* Castle marker at center of each grid with click-to-zoom and Crown Z-Index Priority */}
       {center && (
         <Marker
           position={center}
-          icon={flagIcon}
+          icon={castleIcon}
           zIndexOffset={isMine ? 1200 : 200}
           eventHandlers={{
             click: handleZoomToTerritory,
@@ -397,11 +420,11 @@ const TerritoryGrid = ({ t, currentUserId, onRename }) => {
   );
 };
 
-const LiveGridMap = ({ territories, currentUserId, centerCoords, onRename }) => {
+const LiveGridMap = ({ territories, currentUserId, centerCoords, onRename, onUpdateFaction }) => {
   const defaultCenter = [28.6139, 77.2090]; // Default to Delhi
   const [mapTheme, setMapTheme] = useState(() => {
     const saved = localStorage.getItem('astra_map_theme');
-    return (saved === 'satellite' || saved === 'slate') ? saved : 'satellite';
+    return (saved === 'satellite' || saved === 'slate') ? saved : 'slate';
   });
   const [userLocation, setUserLocation] = useState(null);
   const [targetCommand, setTargetCommand] = useState(null);
@@ -474,18 +497,18 @@ const LiveGridMap = ({ territories, currentUserId, centerCoords, onRename }) => 
       {/* Floating Map Theme Selector */}
       <div className="map-theme-toggle-bar">
         <button 
+          className={`theme-toggle-btn ${mapTheme === 'slate' ? 'active' : ''}`}
+          onClick={() => handleThemeChange('slate')}
+          title="Dark Slate Tactical Canvas (Default)"
+        >
+          🌑 Slate
+        </button>
+        <button 
           className={`theme-toggle-btn ${mapTheme === 'satellite' ? 'active' : ''}`}
           onClick={() => handleThemeChange('satellite')}
           title="Real Satellite Aerial Recon"
         >
           🛰️ Satellite
-        </button>
-        <button 
-          className={`theme-toggle-btn ${mapTheme === 'slate' ? 'active' : ''}`}
-          onClick={() => handleThemeChange('slate')}
-          title="Dark Slate Canvas"
-        >
-          🌑 Slate
         </button>
       </div>
 
@@ -564,13 +587,14 @@ const LiveGridMap = ({ territories, currentUserId, centerCoords, onRename }) => 
           </Marker>
         )}
 
-        {/* Render each separate grid cell with its own flag */}
+        {/* Render each separate grid cell with its own castle */}
         {territories.map((t, idx) => (
           <TerritoryGrid
             key={`${t.gridId}-${idx}`}
             t={t}
             currentUserId={currentUserId}
             onRename={onRename}
+            onUpdateFaction={onUpdateFaction}
           />
         ))}
       </MapContainer>
@@ -579,11 +603,15 @@ const LiveGridMap = ({ territories, currentUserId, centerCoords, onRename }) => 
       <div className="map-legend">
         <div className="legend-item">
           <span className="legend-swatch mine"></span>
-          <span>🚩 Your Kingdom (Royal Red)</span>
+          <span>🏰 Your Citadel (Royal Gold)</span>
         </div>
         <div className="legend-item">
           <span className="legend-swatch enemy"></span>
-          <span>🏴‍☠️ Enemy Territory (Black Skull)</span>
+          <span>🏯 Rival Stronghold (Obsidian / Zephyr / Dominion)</span>
+        </div>
+        <div className="legend-item">
+          <span className="legend-swatch wildland"></span>
+          <span>🌲 Unclaimed Wildlands</span>
         </div>
       </div>
     </div>

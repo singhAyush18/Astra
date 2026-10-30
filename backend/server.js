@@ -99,6 +99,7 @@ if (fs.existsSync(indexHtmlPath)) {
 }
 
 const { syncGridCodes, syncAllGridRulers } = require("./services/Gridservices");
+const { initPhantomWarlords } = require("./services/phantomService");
 
 const PORT = process.env.PORT || 5000;
 
@@ -107,6 +108,7 @@ const startServer = async () => {
         await connectDB(); // Wait for DB connection
         await syncGridCodes(); // Backfill readable grid codes
         await syncAllGridRulers(); // Retroactively claim all grids >= threshold
+        await initPhantomWarlords(); // Ensure AI Phantom Warlords exist
 
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`Server running on ${PORT}`);

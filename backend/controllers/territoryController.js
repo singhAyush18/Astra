@@ -1,12 +1,22 @@
 const Grid = require("../models/Grid");
 const GridInfluence = require("../models/Gridinfluence");
 const User = require("../models/User");
+const { seedPhantomTerritories } = require("../services/phantomService");
 
 const getAllGrids = async (req, res) => {
     try {
+        const { lat, lng } = req.query;
+        if (lat && lng) {
+            const parsedLat = parseFloat(lat);
+            const parsedLng = parseFloat(lng);
+            if (!isNaN(parsedLat) && !isNaN(parsedLng)) {
+                await seedPhantomTerritories(parsedLat, parsedLng, 3);
+            }
+        }
+
         const rawGrids = await Grid.find({
             status: "claimed"
-        }).populate("ruler", "username");
+        }).populate("ruler", "username isBot botPersona faction motto");
 
         // Filter out any orphaned claimed grids whose ruler was deleted
         const grids = rawGrids.filter(grid => grid.ruler && grid.ruler._id);
@@ -34,12 +44,24 @@ const getAllGrids = async (req, res) => {
             const rulerInfluence = rulerIdStr ? (influenceMap[`${gIdStr}_${rulerIdStr}`] || 0) : 0;
             const userInfluence = currentUserId ? (influenceMap[`${gIdStr}_${currentUserId}`] || 0) : 0;
 
+            const rulerFaction = (grid.ruler?.isBot && grid.ruler?.botPersona?.faction)
+                ? grid.ruler.botPersona.faction.replace(/_/g, ' ').toUpperCase()
+                : (grid.ruler?.faction || 'Imperial Vanguard');
+
+            const rulerMotto = (grid.ruler?.isBot && grid.ruler?.botPersona?.taunt)
+                ? grid.ruler.botPersona.taunt
+                : (grid.ruler?.motto || 'Glory to the swift and fearless.');
+
             return {
                 gridId: grid.gridId,
                 name: grid.name || null,
                 status: grid.status,
                 rulerId: grid.ruler?._id || null,
                 rulerName: grid.ruler?.username || null,
+                rulerFaction,
+                rulerMotto,
+                isBot: Boolean(grid.ruler?.isBot),
+                botPersona: grid.ruler?.botPersona || null,
                 rulerInfluence,
                 userInfluence,
                 claimedAt: grid.claimedAt
@@ -70,7 +92,7 @@ const getGridDetails = async (req, res) => {
 
         const grid = await Grid.findOne({
             gridId
-        }).populate("ruler", "username");
+        }).populate("ruler", "username isBot botPersona faction motto");
 
         if (!grid) {
             return res.status(200).json({
@@ -90,7 +112,7 @@ const getGridDetails = async (req, res) => {
         const leaderboard = await GridInfluence.find({
             gridId: grid._id
         })
-            .populate("userId", "username")
+            .populate("userId", "username isBot botPersona faction")
             .sort({ influence: -1 });
 
         res.status(200).json({
@@ -103,7 +125,15 @@ const getGridDetails = async (req, res) => {
                 ruler: grid.ruler
                     ? {
                         id: grid.ruler._id,
-                        username: grid.ruler.username
+                        username: grid.ruler.username,
+                        faction: (grid.ruler.isBot && grid.ruler.botPersona?.faction)
+                            ? grid.ruler.botPersona.faction.replace(/_/g, ' ').toUpperCase()
+                            : (grid.ruler.faction || 'Imperial Vanguard'),
+                        motto: (grid.ruler.isBot && grid.ruler.botPersona?.taunt)
+                            ? grid.ruler.botPersona.taunt
+                            : (grid.ruler.motto || 'Glory to the swift and fearless.'),
+                        isBot: Boolean(grid.ruler.isBot),
+                        botPersona: grid.ruler.botPersona || null
                     }
                     : null,
                 claimedAt: grid.claimedAt,
@@ -125,7 +155,7 @@ const getMyTerritories = async (req, res) => {
         const currentUserId = req.user.id;
         const grids = await Grid.find({
             ruler: currentUserId
-        }).populate("ruler", "username");
+        }).populate("ruler", "username faction motto isBot botPersona");
 
         const gridIds = grids.map(grid => grid._id);
         const influenceRecords = await GridInfluence.find({
@@ -142,12 +172,24 @@ const getMyTerritories = async (req, res) => {
 
         const formattedGrids = grids.map(grid => {
             const myInfluence = influenceMap[grid._id.toString()] || 0;
+            const rulerFaction = (grid.ruler?.isBot && grid.ruler?.botPersona?.faction)
+                ? grid.ruler.botPersona.faction.replace(/_/g, ' ').toUpperCase()
+                : (grid.ruler?.faction || 'Imperial Vanguard');
+
+            const rulerMotto = (grid.ruler?.isBot && grid.ruler?.botPersona?.taunt)
+                ? grid.ruler.botPersona.taunt
+                : (grid.ruler?.motto || 'Glory to the swift and fearless.');
+
             return {
                 gridId: grid.gridId,
                 name: grid.name || null,
                 status: grid.status,
                 rulerId: grid.ruler?._id || null,
                 rulerName: grid.ruler?.username || null,
+                rulerFaction,
+                rulerMotto,
+                isBot: Boolean(grid.ruler?.isBot),
+                botPersona: grid.ruler?.botPersona || null,
                 rulerInfluence: myInfluence,
                 userInfluence: myInfluence,
                 claimedAt: grid.claimedAt
@@ -233,7 +275,7 @@ const getMyActiveConquests = async (req, res) => {
         })
         .populate({
             path: "gridId",
-            populate: { path: "ruler", select: "username" }
+            populate: { path: "ruler", select: "username isBot botPersona" }
         })
         .sort({ influence: -1 });
 
@@ -292,7 +334,9 @@ const getMyActiveConquests = async (req, res) => {
                 totalDistance: Number((inf.totalDistance || 0).toFixed(2)),
                 totalRuns: inf.totalRuns || 1,
                 status: gridDoc?.status || "unclaimed",
-                currentRuler: (gridDoc?.ruler?.username) || "Unclaimed Wildland"
+                currentRuler: (gridDoc?.ruler?.username) || "Unclaimed Wildland",
+                isBot: Boolean(gridDoc?.ruler?.isBot),
+                botPersona: gridDoc?.ruler?.botPersona || null
             };
         }));
 

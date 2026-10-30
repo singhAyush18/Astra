@@ -238,19 +238,24 @@ function ActiveRun() {
         speechText = `Patrolling your realm, ${sectorDisplayName}. Sector is under your sovereignty.`;
         soundEffects.playTerritoryClaimed();
       } else if (rulerUsername) {
+        const isBot = Boolean(gridData?.ruler?.isBot);
+        const botPersona = gridData?.ruler?.botPersona;
+        const factionLabel = botPersona?.faction ? botPersona.faction.replace(/_/g, ' ').toUpperCase() : 'RIVAL';
+        const leaderTitle = botPersona?.title ? `${botPersona.title} ${rulerUsername.replace(/_/g, ' ')}` : rulerUsername;
+
         sectorType = 'rival';
         banner = {
           type: 'rival',
-          badge: '⚔️ RIVAL DOMAIN',
+          badge: isBot ? `⚔️ ${factionLabel} DOMAIN` : '⚔️ RIVAL DOMAIN',
           name: territoryName,
           title: territoryName 
-            ? `Entering Rival Territory: ${territoryName} (${gridId})` 
-            : `Entering Rival Territory: ${gridId}`,
-          subtitle: `Ruled by ${rulerUsername} • ${pointsNeeded} pts to usurp`,
+            ? `Entering Enemy Sector: ${territoryName} (${gridId})` 
+            : `Entering Enemy Sector: ${gridId}`,
+          subtitle: `Occupied by ${leaderTitle} • ${pointsNeeded} pts to usurp`,
           gridId,
           displayTag: sectorLabel,
         };
-        speechText = `Entering ${sectorDisplayName}, ruled by the great ${rulerUsername}. You need ${pointsNeeded} points to usurp ${rulerUsername}.`;
+        speechText = `Entering ${sectorDisplayName}, ruled by ${rulerUsername}. You need ${pointsNeeded} points to usurp ${rulerUsername}.`;
         soundEffects.playTerritoryUsurped();
       } else {
         sectorType = 'wildland';
@@ -820,23 +825,33 @@ function ActiveRun() {
             dragging={false}
             style={{ width: '100%', height: '100%', minHeight: '270px', borderRadius: '16px' }}
           >
-            <TileLayer
-              attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
-              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-              maxZoom={19}
-            />
-            <TileLayer
-              attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
-              url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
-              maxZoom={19}
-              opacity={0.9}
-            />
-            <TileLayer
-              attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
-              url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}"
-              maxZoom={19}
-              opacity={0.85}
-            />
+            {localStorage.getItem('astra_map_theme') === 'satellite' ? (
+              <>
+                <TileLayer
+                  attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
+                  url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                  maxZoom={19}
+                />
+                <TileLayer
+                  attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
+                  url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+                  maxZoom={19}
+                  opacity={0.9}
+                />
+                <TileLayer
+                  attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
+                  url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}"
+                  maxZoom={19}
+                  opacity={0.85}
+                />
+              </>
+            ) : (
+              <TileLayer
+                attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
+                url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+                maxZoom={19}
+              />
+            )}
             {/* Live Sector Fog and Boundaries */}
             {currentSector?.bounds && (
               <Rectangle

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Camera, User as UserIcon, Loader, Trash2, ArrowLeft, Volume2, VolumeX, Eye, EyeOff, ShieldCheck, Mail, Send, RotateCw, Plus } from "lucide-react";
+import { Camera, User as UserIcon, Loader, Trash2, ArrowLeft, Volume2, VolumeX, Eye, EyeOff, ShieldCheck, Send, RotateCw } from "lucide-react";
 import toast from "react-hot-toast";
 import Navbar from "../components/Navbar";
 import "./Settings.css";
@@ -129,7 +129,7 @@ function Settings() {
           // Compress to JPEG 0.85 quality (~30-60KB) for instant fast uploading
           const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
           setProfilePicture(compressedDataUrl);
-        } catch (compressionErr) {
+        } catch {
           // Fallback if canvas compression fails
           setProfilePicture(dataUrl);
         }
@@ -169,7 +169,7 @@ function Settings() {
       let data;
       try {
         data = await res.json();
-      } catch (jsonErr) {
+      } catch {
         if (res.status === 413) {
           setError("Image file is too large. Please choose a smaller image.");
         } else {
@@ -184,7 +184,7 @@ function Settings() {
       } else {
         setError(data.message || "Failed to update profile");
       }
-    } catch (err) {
+    } catch {
       setError("Network error. Please check your connection and try again.");
     } finally {
       setLoading(false);
@@ -237,7 +237,7 @@ function Settings() {
       } else {
         setPwdError(data.message || "Failed to send verification code");
       }
-    } catch (err) {
+    } catch {
       setPwdError("Network error. Please try again.");
     } finally {
       setOtpLoading(false);
@@ -288,7 +288,7 @@ function Settings() {
       } else {
         setPwdError(data.message || "Failed to change password");
       }
-    } catch (err) {
+    } catch {
       setPwdError("Network error. Please try again.");
     } finally {
       setPwdLoading(false);

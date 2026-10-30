@@ -90,6 +90,48 @@ const userSchema = new mongoose.Schema({
     sessionId: {
         type: String,
         default: null
+    },
+    faction: {
+        type: String,
+        default: 'Imperial Vanguard',
+        maxlength: 30,
+        trim: true
+    },
+    motto: {
+        type: String,
+        default: 'Glory to the swift and fearless.',
+        maxlength: 60,
+        trim: true
+    },
+    isBot: {
+        type: Boolean,
+        default: false
+    },
+    botPersona: {
+        faction: {
+            type: String,
+            default: null
+        },
+        title: {
+            type: String,
+            default: null
+        },
+        avatar: {
+            type: String,
+            default: null
+        },
+        color: {
+            type: String,
+            default: null
+        },
+        paceCategory: {
+            type: String,
+            default: null
+        },
+        taunt: {
+            type: String,
+            default: null
+        }
     }
 })
 module.exports = mongoose.model("User", userSchema);

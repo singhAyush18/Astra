@@ -131,6 +131,13 @@ const login = async (req, res) => {
             });
         }
 
+        if (user.isBot) {
+            return res.status(403).json({
+                success: false,
+                message: "Phantom bot accounts cannot be accessed directly.",
+            });
+        }
+
         // Check if account is temporarily locked due to failed login attempts
         if (user.lockUntil && user.lockUntil > new Date()) {
             const minutesLeft = Math.max(1, Math.ceil((user.lockUntil - new Date()) / (60 * 1000)));
@@ -208,6 +215,8 @@ const login = async (req, res) => {
                 currentStreak: user.currentStreak,
                 longestStreak: user.longestStreak,
                 profilePicture: user.profilePicture,
+                faction: user.faction || 'Imperial Vanguard',
+                motto: user.motto || 'Glory to the swift and fearless.',
             },
         });
     } catch (error) {
@@ -282,6 +291,8 @@ const getMe = async (req, res) => {
                 currentStreak: user.currentStreak,
                 longestStreak: user.longestStreak,
                 profilePicture: user.profilePicture || null,
+                faction: user.faction || 'Imperial Vanguard',
+                motto: user.motto || 'Glory to the swift and fearless.',
             },
             ...(refreshedToken ? { token: refreshedToken } : {}),
         });
@@ -422,6 +433,21 @@ const updateProfile = async (req, res) => {
             user.profilePicture = profilePicture ? profilePicture : null;
         }
 
+        // Handle Faction update
+        const { faction, motto } = req.body;
+        if (faction !== undefined) {
+            user.faction = typeof faction === 'string' && faction.trim() 
+                ? faction.trim().slice(0, 30) 
+                : 'Imperial Vanguard';
+        }
+
+        // Handle Motto update
+        if (motto !== undefined) {
+            user.motto = typeof motto === 'string' && motto.trim()
+                ? motto.trim().slice(0, 60)
+                : 'Glory to the swift and fearless.';
+        }
+
         await user.save();
         await syncUserStreak(user);
 
@@ -438,6 +464,8 @@ const updateProfile = async (req, res) => {
                 currentStreak: user.currentStreak,
                 longestStreak: user.longestStreak,
                 profilePicture: user.profilePicture || null,
+                faction: user.faction || 'Imperial Vanguard',
+                motto: user.motto || 'Glory to the swift and fearless.',
             },
         });
 

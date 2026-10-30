@@ -34,6 +34,109 @@
   margin-bottom: var(--space-sm);
 }
 
+/* ── Empire Faction Banner Card ── */
+.user-faction-banner-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: linear-gradient(135deg, rgba(28, 24, 16, 0.9) 0%, rgba(18, 18, 42, 0.92) 100%);
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(212, 175, 55, 0.15);
+  backdrop-filter: blur(12px);
+  padding: 10px 20px;
+  border-radius: 30px;
+  margin-top: 14px;
+  max-width: 520px;
+  width: 92%;
+  transition: all 0.25s ease;
+}
+
+.user-faction-banner-card:hover {
+  border-color: rgba(212, 175, 55, 0.75);
+  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.6), 0 0 25px rgba(212, 175, 55, 0.25);
+  transform: translateY(-1px);
+}
+
+.faction-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.faction-crown-icon {
+  font-size: 1.5rem;
+  filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.6));
+}
+
+.faction-info {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.faction-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #a89f88;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+}
+
+.faction-name-display {
+  font-family: 'Cinzel', serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #ffd700;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+  letter-spacing: 0.03em;
+}
+
+.faction-motto-display {
+  font-family: 'Cinzel', serif;
+  font-style: italic;
+  font-size: 0.78rem;
+  color: #cbd5e1;
+  opacity: 0.9;
+  margin-top: 2px;
+  line-height: 1.3;
+  letter-spacing: 0.02em;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.faction-edit-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(212, 175, 55, 0.15);
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  color: #ffd700;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+}
+
+.faction-edit-action-btn:hover {
+  background: rgba(212, 175, 55, 0.3);
+  border-color: #ffd700;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.25);
+}
+
+.faction-edit-action-btn:active {
+  transform: translateY(0);
+}
+
 .territory-controls {
   display: flex;
   flex-wrap: wrap;
@@ -349,4 +452,289 @@
   .territory-map-wrapper {
     min-height: auto;
   }
+
+  .user-faction-banner-card {
+    border-radius: 20px;
+    padding: 10px 14px;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .faction-name-display {
+    font-size: 0.95rem;
+  }
+
+  .faction-motto-display {
+    font-size: 0.72rem;
+  }
+
+  .realm-modal-card {
+    padding: 18px;
+    border-radius: 16px;
+  }
+}
+
+/* ── Realm Banner Declaration Modal ── */
+.realm-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.78);
+  backdrop-filter: blur(8px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.realm-modal-card {
+  background: linear-gradient(145deg, #16162a 0%, #0d0d1e 100%);
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(212, 175, 55, 0.2);
+  border-radius: 20px;
+  width: 100%;
+  max-width: 540px;
+  padding: 24px;
+  color: #f1f5f9;
+  position: relative;
+  overflow: hidden;
+}
+
+.realm-modal-close-btn {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.realm-modal-close-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  transform: rotate(90deg);
+}
+
+.realm-modal-header {
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.realm-modal-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.realm-modal-title-row h3 {
+  font-family: 'Cinzel', serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ffd700;
+  margin: 0;
+  letter-spacing: 0.03em;
+}
+
+.realm-modal-subtitle {
+  font-size: 0.82rem;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.45;
+}
+
+/* ── Live Preview Card inside Modal ── */
+.realm-preview-box {
+  background: rgba(10, 10, 24, 0.7);
+  border: 1px dashed rgba(212, 175, 55, 0.35);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.realm-preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.realm-preview-tag {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #d4af37;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.realm-preview-count {
+  font-size: 0.7rem;
+  color: #64748b;
+}
+
+.realm-preview-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.realm-preview-faction {
+  font-family: 'Cinzel', serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #ffd700;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+}
+
+.realm-preview-motto {
+  font-family: 'Cinzel', serif;
+  font-style: italic;
+  font-size: 0.85rem;
+  color: #cbd5e1;
+  padding-left: 8px;
+  border-left: 2px solid #ffd700;
+  margin-top: 2px;
+}
+
+.realm-form-group {
+  margin-bottom: 18px;
+  text-align: left;
+}
+
+.realm-form-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.realm-form-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  letter-spacing: 0.02em;
+}
+
+.realm-char-count {
+  font-size: 0.7rem;
+  color: #64748b;
+  font-family: 'Inter', sans-serif;
+}
+
+.realm-form-input {
+  width: 100%;
+  background: rgba(10, 10, 24, 0.8);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  border-radius: 10px;
+  padding: 10px 14px;
+  color: #ffffff;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.realm-form-input:focus {
+  outline: none;
+  border-color: #ffd700;
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.25);
+  background: rgba(15, 15, 35, 0.9);
+}
+
+.realm-presets-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.realm-preset-chip {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  font-size: 0.72rem;
+  padding: 4px 10px;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: 'Inter', sans-serif;
+}
+
+.realm-preset-chip:hover {
+  background: rgba(212, 175, 55, 0.15);
+  border-color: rgba(212, 175, 55, 0.4);
+  color: #ffd700;
+}
+
+.realm-preset-chip.active {
+  background: rgba(212, 175, 55, 0.25);
+  border-color: #ffd700;
+  color: #ffd700;
+  font-weight: 600;
+}
+
+.realm-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.realm-btn-cancel {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+  padding: 9px 18px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.realm-btn-cancel:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #f1f5f9;
+}
+
+.realm-btn-submit {
+  background: linear-gradient(135deg, #d4af37 0%, #b8860b 100%);
+  border: none;
+  color: #0b0b14;
+  padding: 9px 22px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.35);
+  transition: all 0.2s ease;
+}
+
+.realm-btn-submit:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(212, 175, 55, 0.5);
+  filter: brightness(1.1);
+}
+
+.realm-btn-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }

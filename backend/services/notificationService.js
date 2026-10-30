@@ -36,7 +36,7 @@ async function notifyTerritoryAttacked({ grid, rulerId, rivalUser, xpEarned }) {
         }
 
         const ruler = await User.findById(rulerId);
-        if (!ruler) return;
+        if (!ruler || ruler.isBot) return;
 
         const territoryName = grid.name || `Sector ${grid.gridId}`;
         const rivalName = rivalUser.username || "A rival runner";
@@ -94,7 +94,7 @@ async function notifyTerritoryUsurped({ grid, previousRulerId, newRulerUser }) {
         if (previousRulerId.toString() === rival._id.toString()) return;
 
         const previousRuler = await User.findById(previousRulerId);
-        if (!previousRuler) return;
+        if (!previousRuler || previousRuler.isBot) return;
 
         const territoryName = grid.name || `Sector ${grid.gridId}`;
         const rivalName = rival.username || "A rival warlord";

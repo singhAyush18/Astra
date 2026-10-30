@@ -103,11 +103,11 @@ export const authAPI = {
       body: JSON.stringify({ username, email, password }),
     }),
 
-  updateProfile: (token, { username, profilePicture }) =>
+  updateProfile: (token, { username, profilePicture, faction, motto }) =>
     apiFetch('/api/v2/auth/profile', {
       method: 'PUT',
       headers: jsonAuthHeaders(token),
-      body: JSON.stringify({ username, profilePicture }),
+      body: JSON.stringify({ username, profilePicture, faction, motto }),
     }),
 
   verifyEmail: (token) =>
@@ -221,10 +221,12 @@ export const statsAPI = {
 
 // ===== Territory APIs =====
 export const territoryAPI = {
-  getAll: (token) =>
-    apiFetch('/api/v2/territories', {
+  getAll: (token, params = null) => {
+    const query = params?.lat && params?.lng ? `?lat=${params.lat}&lng=${params.lng}` : '';
+    return apiFetch(`/api/v2/territories${query}`, {
       headers: authHeaders(token),
-    }),
+    });
+  },
 
   getMine: (token) =>
     apiFetch('/api/v2/territories/my', {
