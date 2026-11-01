@@ -13,6 +13,7 @@ const { syncUserStreak } = require("./gamificationController");
 // Validation helpers
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+const hashToken = (token) => crypto.createHash('sha256').update(token.trim()).digest('hex');
 const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,128}$/;
 
 const register = async (req, res) => {
@@ -502,7 +503,7 @@ const forgotPassword = async (req, res) => {
         }
 
         const resetToken = generateVerificationToken();
-        user.resetPasswordToken = resetToken;
+        user.resetPasswordToken = hashToken(resetToken);
         user.resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
         await user.save();
 
@@ -540,8 +541,12 @@ const resetPassword = async (req, res) => {
         }
 
         const cleanToken = token.trim();
+        const hashedToken = hashToken(cleanToken);
         const user = await User.findOne({
-            resetPasswordToken: cleanToken,
+            $or: [
+                { resetPasswordToken: hashedToken },
+                { resetPasswordToken: cleanToken }
+            ],
             resetPasswordExpires: { $gt: new Date() },
         });
 
@@ -564,6 +569,9 @@ const resetPassword = async (req, res) => {
         user.password = hashedPassword;
         user.resetPasswordToken = null;
         user.resetPasswordExpires = null;
+        user.passwordChangeOtp = null;
+        user.passwordChangeOtpExpires = null;
+        user.passwordChangeOtpAttempts = 0;
         // Invalidate all existing sessions on other devices
         user.sessionId = crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString("hex");
         await user.save();
@@ -577,6 +585,52 @@ const resetPassword = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Error resetting password",
+        });
+    }
+};
+
+
+const verifyResetToken = async (req, res) => {
+    try {
+        const { token } = req.query;
+
+        if (!token || !token.trim()) {
+            return res.status(400).json({
+                success: false,
+                valid: false,
+                message: "Reset token is required",
+            });
+        }
+
+        const cleanToken = token.trim();
+        const hashedToken = hashToken(cleanToken);
+        const user = await User.findOne({
+            $or: [
+                { resetPasswordToken: hashedToken },
+                { resetPasswordToken: cleanToken }
+            ],
+            resetPasswordExpires: { $gt: new Date() },
+        });
+
+        if (!user) {
+            return res.status(400).json({
+                success: false,
+                valid: false,
+                message: "This password reset link is invalid or has already been used.",
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            valid: true,
+            message: "Token is valid",
+        });
+    } catch (error) {
+        console.error("Verify reset token error:", error);
+        res.status(500).json({
+            success: false,
+            valid: false,
+            message: "Error verifying reset token",
         });
     }
 };
@@ -720,6 +774,8 @@ const changePassword = async (req, res) => {
         user.passwordChangeOtp = null;
         user.passwordChangeOtpExpires = null;
         user.passwordChangeOtpAttempts = 0;
+        user.resetPasswordToken = null;
+        user.resetPasswordExpires = null;
         
         // Rotate sessionId to kick out other devices
         const newSessionId = crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString("hex");
@@ -759,6 +815,7 @@ module.exports = {
     updateProfile,
     forgotPassword,
     resetPassword,
+    verifyResetToken,
     requestPasswordChangeOtp,
     changePassword,
 };

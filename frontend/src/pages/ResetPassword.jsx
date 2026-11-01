@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
-import { Eye, EyeOff, Crown } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import toast from "react-hot-toast";
 import { authAPI } from "../api";
 import "./Login.css";
@@ -10,12 +10,54 @@ function ResetPassword() {
   const token = searchParams.get("token")?.trim();
   const navigate = useNavigate();
 
+  const [isValidating, setIsValidating] = useState(Boolean(token));
+  const [isTokenValid, setIsTokenValid] = useState(false);
+  const [tokenError, setTokenError] = useState("");
+
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Production-grade token pre-validation: check validity immediately on page mount!
+  useEffect(() => {
+    if (!token) {
+      setIsValidating(false);
+      setIsTokenValid(false);
+      setTokenError("Missing password reset token. Please request a new link.");
+      return;
+    }
+
+    let isMounted = true;
+    authAPI
+      .verifyResetToken(token)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!isMounted) return;
+        if (data.valid) {
+          setIsTokenValid(true);
+        } else {
+          setIsTokenValid(false);
+          setTokenError(
+            data.message || "This password reset link is invalid or has already been used."
+          );
+        }
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setIsTokenValid(false);
+        setTokenError("Failed to verify reset link. Please check your internet connection.");
+      })
+      .finally(() => {
+        if (isMounted) setIsValidating(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [token]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -62,7 +104,37 @@ function ResetPassword() {
     }
   };
 
-  if (!token) {
+  // State 1: Validating token on load
+  if (isValidating) {
+    return (
+      <div className="auth-container">
+        <div className="auth-card" style={{ textAlign: "center", padding: "40px 24px" }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+            <img 
+              src="/logo.jpg" 
+              alt="Astra Logo" 
+              style={{ 
+                width: '64px', 
+                height: '64px', 
+                borderRadius: '50%', 
+                border: '2px solid rgba(212, 175, 55, 0.6)', 
+                boxShadow: '0 0 20px rgba(212, 175, 55, 0.4)',
+                objectFit: 'cover'
+              }} 
+            />
+          </div>
+          <h1 className="logo">ASTRA</h1>
+          <p className="subtitle" style={{ color: "#d4af37" }}>Verifying Realm Token...</p>
+          <p style={{ color: "#8a8170", fontSize: "0.9rem", marginTop: "12px" }}>
+            Checking the cryptographic authenticity of your reset link.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // State 2: Invalid, already used, or expired link
+  if (!token || !isTokenValid) {
     return (
       <div className="auth-container">
         <div className="auth-card">
@@ -82,20 +154,35 @@ function ResetPassword() {
           </div>
 
           <h1 className="logo">ASTRA</h1>
-          <p className="subtitle">Invalid Reset Link</p>
-          <p className="auth-error" style={{ marginBottom: "20px" }}>
-            This password reset link is invalid or has expired.
+          <p className="subtitle" style={{ color: "#ff6b6b" }}>Link Expired or Already Used</p>
+          <p className="auth-error" style={{ marginBottom: "20px", textAlign: "center" }}>
+            {tokenError || "This password reset link is invalid or has already been used. Reset links can only be used once."}
           </p>
-          <div style={{ textAlign: "center" }}>
-            <Link to="/forgot-password" style={{ color: "#d4af37", textDecoration: "none", fontWeight: "bold" }}>
+          <div style={{ textAlign: "center", marginTop: "24px" }}>
+            <Link 
+              to="/forgot-password" 
+              style={{ 
+                display: "inline-block",
+                background: "linear-gradient(135deg, #d4af37, #aa820a)",
+                color: "#0a0a1a",
+                fontWeight: "bold",
+                padding: "12px 24px",
+                borderRadius: "8px",
+                textDecoration: "none"
+              }}
+            >
               Request a New Reset Link
             </Link>
           </div>
+          <p className="auth-footer" style={{ marginTop: "20px" }}>
+            <Link to="/login">Return to Sign In</Link>
+          </p>
         </div>
       </div>
     );
   }
 
+  // State 3: Valid token -> Render password reset form
   return (
     <div className="auth-container">
       <div className="auth-card">

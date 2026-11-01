@@ -125,6 +125,8 @@ export const authAPI = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
     }),
+  verifyResetToken: (token) =>
+    apiFetch(`/api/v2/auth/verify-reset-token?token=${encodeURIComponent(token)}`),
   resetPassword: (token, newPassword) =>
     apiFetch('/api/v2/auth/reset-password', {
       method: 'POST',

@@ -11,7 +11,8 @@ const {
     resendVerification, 
     updateProfile, 
     forgotPassword, 
-    resetPassword, 
+    resetPassword,
+    verifyResetToken, 
     requestPasswordChangeOtp,
     changePassword 
 } = require("../controllers/authController");
@@ -27,6 +28,7 @@ router.put("/profile", auth, updateProfile);
 // Password management
 router.post("/forgot-password", authLimiter, forgotPassword);
 router.post("/reset-password", authLimiter, resetPassword);
+router.get("/verify-reset-token", authLimiter, verifyResetToken);
 router.post("/change-password/request-otp", auth, authLimiter, requestPasswordChangeOtp);
 router.put("/change-password", auth, authLimiter, changePassword);
 
