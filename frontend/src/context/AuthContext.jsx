@@ -29,6 +29,15 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     setUser(null);
 
+        const isAuthPage = ['/login', '/signup', '/forgot-password', '/reset-password', '/verify-email'].some(
+      path => typeof window !== 'undefined' && window.location.pathname.startsWith(path)
+    );
+
+    // Suppress toasts on login/auth pages when user simply hasn't logged in yet
+    if (isAuthPage && (reason === 'Please log in to continue.' || reason === 'No token provided')) {
+      return;
+    }
+
     if (reason) {
       toast.error(reason, { id: 'auth-session-toast', duration: 5000 });
     } else {
@@ -58,7 +67,7 @@ export const AuthProvider = ({ children }) => {
         if (Date.now() - lastLoginTimeRef.current < 10000) return;
         const data = await res.json().catch(() => ({}));
         handleUnauthorized(
-          data.message || 'You have been logged out because this account was logged into from another device.'
+          (data.message && data.message !== 'No token provided') ? data.message : 'Please log in to continue.'
         );
       } else if (res.ok) {
         const data = await res.json().catch(() => ({}));

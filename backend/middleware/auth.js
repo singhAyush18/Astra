@@ -9,7 +9,8 @@ const auth = async (req, res, next) => {
     try {
         if (!token) {
             return res.status(401).json({
-                message: "No token provided"
+                success: false,
+                message: "Please log in to continue."
             });
         }
 

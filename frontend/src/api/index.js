@@ -42,7 +42,7 @@ const apiFetch = async (endpoint, options = {}) => {
           new CustomEvent('auth:unauthorized', {
             detail: {
               sessionExpired: data?.sessionExpired,
-              message: data?.message || 'Session expired. Please log in again.',
+              message: (data?.message && data.message !== 'No token provided') ? data.message : 'Please log in to continue.',
             },
           })
         );
