@@ -222,7 +222,11 @@ export const statsAPI = {
 // ===== Territory APIs =====
 export const territoryAPI = {
   getAll: (token, params = null) => {
-    const query = params?.lat && params?.lng ? `?lat=${params.lat}&lng=${params.lng}` : '';
+    const lat = params?.lat !== undefined ? params.lat : params?.latitude;
+    const lng = params?.lng !== undefined ? params.lng : params?.longitude;
+    const query = (lat !== undefined && lng !== undefined)
+      ? `?lat=${lat}&lng=${lng}`
+      : '';
     return apiFetch(`/api/v2/territories${query}`, {
       headers: authHeaders(token),
     });

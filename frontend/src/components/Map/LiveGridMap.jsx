@@ -195,21 +195,26 @@ const MapUserFocus = ({ userLocation, centerCoords, territories, currentUserId }
   const map = useMap();
   const hasFocusedUserRef = React.useRef(false);
 
-  // When live GPS is acquired, immediately fly directly to user's location
+  // When live GPS is acquired, immediately fly directly to user's location with tactical panoramic zoom
   useEffect(() => {
     if (userLocation && !hasFocusedUserRef.current) {
-      map.flyTo(userLocation, 15, { animate: true, duration: 1.2 });
+      map.flyTo(userLocation, 14.2, { animate: true, duration: 1.2 });
       hasFocusedUserRef.current = true;
     }
   }, [userLocation, map]);
 
-  // Fallback before GPS arrives or if geolocation permission is denied
+  // Fallback before GPS arrives or if geolocation permission is delayed
   useEffect(() => {
     if (userLocation || hasFocusedUserRef.current) return;
 
     if (centerCoords) {
-      map.setView(centerCoords, 14);
-      return;
+      const coords = Array.isArray(centerCoords)
+        ? centerCoords
+        : [centerCoords.lat || centerCoords.latitude, centerCoords.lng || centerCoords.longitude];
+      if (coords[0] && coords[1]) {
+        map.setView(coords, 14.2);
+        return;
+      }
     }
 
     const myTerritories = territories?.filter(t => t.rulerId === currentUserId) || [];
@@ -218,7 +223,7 @@ const MapUserFocus = ({ userLocation, centerCoords, territories, currentUserId }
       const bounds = getGridBounds(target.gridId);
       const center = getGridCenter(bounds);
       if (center) {
-        map.setView(center, 14);
+        map.setView(center, 14.2);
       }
     }
   }, [centerCoords, territories, currentUserId, map, userLocation]);
@@ -420,8 +425,10 @@ const TerritoryGrid = ({ t, currentUserId, onRename, onUpdateFaction }) => {
   );
 };
 
-const LiveGridMap = ({ territories, currentUserId, centerCoords, onRename, onUpdateFaction }) => {
-  const defaultCenter = [28.6139, 77.2090]; // Default to Delhi
+const LiveGridMap = ({ territories, currentUserId, centerCoords, onRename, onUpdateFaction, onLocationUpdate }) => {
+  const defaultCenter = centerCoords 
+    ? (Array.isArray(centerCoords) ? centerCoords : [centerCoords.lat || centerCoords.latitude, centerCoords.lng || centerCoords.longitude])
+    : [28.6139, 77.2090];
   const [mapTheme, setMapTheme] = useState(() => {
     const saved = localStorage.getItem('astra_map_theme');
     return (saved === 'satellite' || saved === 'slate') ? saved : 'slate';
@@ -438,18 +445,26 @@ const LiveGridMap = ({ territories, currentUserId, centerCoords, onRename, onUpd
     // Fast initial fix
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setUserLocation([pos.coords.latitude, pos.coords.longitude]);
+        const coords = [pos.coords.latitude, pos.coords.longitude];
+        setUserLocation(coords);
+        if (onLocationUpdate) {
+          onLocationUpdate({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        }
       },
       (err) => {
         console.warn('Geolocation initial fix failed:', err.message);
       },
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
     );
 
     // Continuous watch for movement
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
-        setUserLocation([pos.coords.latitude, pos.coords.longitude]);
+        const coords = [pos.coords.latitude, pos.coords.longitude];
+        setUserLocation(coords);
+        if (onLocationUpdate) {
+          onLocationUpdate({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        }
       },
       () => {},
       { enableHighAccuracy: true, maximumAge: 10000 }
@@ -458,7 +473,7 @@ const LiveGridMap = ({ territories, currentUserId, centerCoords, onRename, onUpd
     return () => {
       navigator.geolocation.clearWatch(watchId);
     };
-  }, []);
+  }, [onLocationUpdate]);
 
   const handleThemeChange = (theme) => {
     setMapTheme(theme);

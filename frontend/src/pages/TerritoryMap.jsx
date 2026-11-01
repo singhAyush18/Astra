@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Map, MapPin, Castle, Search, ShieldAlert, Edit3, X, Sparkles, Crown } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -24,49 +24,89 @@ function TerritoryMap() {
   
   const { user, updateUser, handleUnauthorized } = useAuth();
 
+  const [userCoords, setUserCoords] = useState(null);
+  const lastFetchedCoordsRef = useRef(null);
+  const isFetchingRef = useRef(false);
+
+  const loadTerritories = useCallback((coords = null) => {
+    if (coords?.lat && coords?.lng) {
+      lastFetchedCoordsRef.current = coords;
+      setUserCoords(coords);
+    }
+
+    isFetchingRef.current = true;
+    const fetchGlobal = territoryAPI.getAll(null, coords)
+      .then(res => {
+        if (res.status === 401) throw new Error('unauthorized');
+        return res.json();
+      });
+
+    const fetchMine = territoryAPI.getMine(null)
+      .then(res => {
+        if (res.status === 401) throw new Error('unauthorized');
+        return res.json();
+      });
+
+    Promise.all([fetchGlobal, fetchMine])
+      .then(([globalData, mineData]) => {
+        if (globalData?.success) setTerritories(globalData.data.territories);
+        if (mineData?.success) setMyTerritories(mineData.data.territories);
+      })
+      .catch(err => {
+        if (err.message === 'unauthorized') {
+          handleUnauthorized();
+        } else {
+          setError('Failed to load territories');
+        }
+      })
+      .finally(() => {
+        setLoading(false);
+        isFetchingRef.current = false;
+      });
+  }, [handleUnauthorized]);
+
+  // Invoked whenever GPS coordinates are obtained or updated (e.g. from LiveGridMap)
+  const handleLocationUpdate = useCallback((coords) => {
+    if (!coords?.lat || !coords?.lng) return;
+    setUserCoords(coords);
+
+    const prev = lastFetchedCoordsRef.current;
+    if (!prev) {
+      // First time obtaining real GPS fix: immediately fetch & seed outposts for this location!
+      loadTerritories(coords);
+    } else {
+      // If user moved more than 2 km from previous fetch, dynamically refresh sectors
+      const distKm = Math.hypot(
+        (coords.lat - prev.lat) * 111.32,
+        (coords.lng - prev.lng) * 111.32 * Math.cos((coords.lat * Math.PI) / 180)
+      );
+      if (distKm > 2.0 && !isFetchingRef.current) {
+        loadTerritories(coords);
+      }
+    }
+  }, [loadTerritories]);
+
   useEffect(() => {
     if (!user) return;
     
     setTimeout(() => setLoading(true), 0);
-    
-    const loadTerritories = (coords = null) => {
-      const fetchGlobal = territoryAPI.getAll(null, coords)
-        .then(res => {
-          if (res.status === 401) throw new Error('unauthorized');
-          return res.json();
-        });
-
-      const fetchMine = territoryAPI.getMine(null)
-        .then(res => {
-          if (res.status === 401) throw new Error('unauthorized');
-          return res.json();
-        });
-
-      Promise.all([fetchGlobal, fetchMine])
-        .then(([globalData, mineData]) => {
-          if (globalData?.success) setTerritories(globalData.data.territories);
-          if (mineData?.success) setMyTerritories(mineData.data.territories);
-        })
-        .catch(err => {
-          if (err.message === 'unauthorized') {
-            handleUnauthorized();
-          } else {
-            setError('Failed to load territories');
-          }
-        })
-        .finally(() => setLoading(false));
-    };
 
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => loadTerritories({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-        () => loadTerritories(),
-        { timeout: 5000, maximumAge: 60000 }
+        (pos) => {
+          const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          loadTerritories(coords);
+        },
+        (err) => {
+          console.warn('[TerritoryMap] Initial GPS fix delayed or denied:', err.message);
+          loadTerritories(null);
+        },
+        { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 }
       );
     } else {
-      loadTerritories();
+      loadTerritories(null);
     }
-  }, [user, handleUnauthorized]);
+  }, [user, loadTerritories]);
 
   const handleRename = async (gridId, newName) => {
     try {
@@ -255,8 +295,10 @@ function TerritoryMap() {
             <LiveGridMap 
               territories={filteredList} 
               currentUserId={user?.id || user?._id}
+              centerCoords={userCoords}
               onRename={handleRename}
               onUpdateFaction={openBannerModal}
+              onLocationUpdate={handleLocationUpdate}
             />
           </div>
         )}

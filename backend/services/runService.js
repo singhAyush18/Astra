@@ -4,6 +4,7 @@ const User = require("../models/User");
 const { calculateXP, updateStreak } = require("../controllers/gamificationController");
 const { getGridIdFromCoordinates, addInfluenceToGrid } = require("./Gridservices");
 const { validateRunIntegrity } = require("./antiCheatService");
+const { seedPhantomTerritories } = require("./phantomService");
 
 /**
  * Calculate pace in minutes and format as string (e.g., "5:30 min/km")
@@ -219,6 +220,16 @@ const completeRun = async (run, options = {}) => {
             if (lastGridSummary) {
                 lastGridSummary.influenceAdded = xpEarned;
                 gridSummary = lastGridSummary;
+            }
+
+            // Automatically seed tactical enemy warlord presence around the newly run territory
+            if (run.path && run.path.length > 0) {
+                const endPt = run.path[run.path.length - 1];
+                if (endPt && endPt.lat && endPt.lng) {
+                    seedPhantomTerritories(endPt.lat, endPt.lng).catch(e =>
+                        console.warn("[RunService] Auto-seed phantom error:", e.message)
+                    );
+                }
             }
         } else {
             // Flagged fraudulent/spoofed run: Withhold territory conquests & streaks

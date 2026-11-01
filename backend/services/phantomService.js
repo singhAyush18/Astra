@@ -73,19 +73,19 @@ function pickWarlordForGrid(row, col, warlordUsers) {
     return warlordUsers[hash % warlordUsers.length];
 }
 
-// Exactly 3 to 4 nearby tactical enemy outposts around player borders (1.2 to 2 km)
+// Tactical enemy outposts around player borders (1.0 to 1.5 km - directly visible on tactical radar!)
 const NEARBY_OUTPOST_OFFSETS = [
-    { dr: 1, dc: 2, role: 'outpost' },    // ~1.5 km North-East
-    { dr: 2, dc: -1, role: 'outpost' },   // ~1.8 km North-West
-    { dr: -2, dc: 1, role: 'outpost' },   // ~1.7 km South-East
-    { dr: -1, dc: -2, role: 'outpost' },  // ~1.6 km South-West
+    { dr: 0, dc: 1, role: 'outpost' },    // 1.0 km East (Directly adjacent border - visible on right)
+    { dr: 1, dc: -1, role: 'outpost' },   // ~1.4 km North-West (Diagonal border - visible top-left)
+    { dr: -1, dc: 0, role: 'outpost' },   // 1.0 km South (Directly adjacent border - visible bottom)
+    { dr: -1, dc: 1, role: 'outpost' },   // ~1.4 km South-East (Diagonal border - visible bottom-right)
 ];
 
-// 2 to 3 distant high-level boss citadels for long-run expeditions (3.5 to 5.5 km)
+// Distant high-level boss citadels for long-run expeditions (3.0 to 4.5 km)
 const DISTANT_CITADEL_OFFSETS = [
-    { dr: 4, dc: 3, role: 'citadel' },    // ~4.5 km Far North-East (Raid Boss)
-    { dr: -5, dc: -3, role: 'citadel' },  // ~5.2 km Far South-West (Raid Boss)
-    { dr: -4, dc: 4, role: 'citadel' },   // ~4.8 km Far South-East (Raid Boss)
+    { dr: 3, dc: 2, role: 'citadel' },    // ~3.6 km Far North-East (Raid Boss)
+    { dr: -3, dc: -2, role: 'citadel' },  // ~3.6 km Far South-West (Raid Boss)
+    { dr: 2, dc: -3, role: 'citadel' },   // ~3.6 km Far North-West (Raid Boss)
 ];
 
 const STRATEGIC_TARGET_OFFSETS = [
