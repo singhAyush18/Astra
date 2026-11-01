@@ -94,7 +94,7 @@ function ResetPassword() {
       }
 
       toast.success("Password reset successfully! You can now log in.");
-      navigate("/login");
+      navigate("/login", { replace: true });
     } catch (err) {
       console.error("Reset password error:", err);
       setError("Network error. Please try again.");
