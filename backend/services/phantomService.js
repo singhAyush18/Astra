@@ -268,9 +268,40 @@ async function cleanupExcessiveBotTerritories(centerLat, centerLng) {
     }
 }
 
+/**
+ * Global boot cleanup:
+ * Removes all legacy bot-owned grids and bot influence records worldwide.
+ * Guarantees a 100% clean slate: ALL human player territories are strictly preserved!
+ */
+async function purgeAllLegacyBotGrids() {
+    try {
+        const botUsers = await User.find({ isBot: true }).select("_id");
+        if (!botUsers || botUsers.length === 0) return { deletedGrids: 0 };
+
+        const botIds = botUsers.map(b => b._id);
+        const botGrids = await Grid.find({ ruler: { $in: botIds } }).select("_id");
+        const botGridIds = botGrids.map(g => g._id);
+
+        const gridResult = await Grid.deleteMany({ _id: { $in: botGridIds } });
+        const infResult = await GridInfluence.deleteMany({
+            $or: [
+                { userId: { $in: botIds } },
+                { gridId: { $in: botGridIds } }
+            ]
+        });
+
+        console.log(`[PhantomService] Global purge complete: Removed ${gridResult.deletedCount} legacy AI bot grids and ${infResult.deletedCount} influence records worldwide.`);
+        return { deletedGrids: gridResult.deletedCount, deletedInfluences: infResult.deletedCount };
+    } catch (err) {
+        console.error("[PhantomService] Error in purgeAllLegacyBotGrids:", err);
+        return { deletedGrids: 0, error: err.message };
+    }
+}
+
 module.exports = {
     initPhantomWarlords,
     seedPhantomTerritories,
     cleanupExcessiveBotTerritories,
+    purgeAllLegacyBotGrids,
     pickWarlordForGrid
 };

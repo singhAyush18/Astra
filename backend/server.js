@@ -99,13 +99,14 @@ if (fs.existsSync(indexHtmlPath)) {
 }
 
 const { syncGridCodes, syncAllGridRulers } = require("./services/Gridservices");
-const { initPhantomWarlords } = require("./services/phantomService");
+const { initPhantomWarlords, purgeAllLegacyBotGrids } = require("./services/phantomService");
 
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
     try {
         await connectDB(); // Wait for DB connection
+        await purgeAllLegacyBotGrids(); // Global clean slate for AI bot territories worldwide
         await syncGridCodes(); // Backfill readable grid codes
         await syncAllGridRulers(); // Retroactively claim all grids >= threshold
         await initPhantomWarlords(); // Ensure AI Phantom Warlords exist
