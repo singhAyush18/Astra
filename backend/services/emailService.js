@@ -82,7 +82,7 @@ async function sendPasswordResetEmail(email, token) {
         },
         body: JSON.stringify({
             sender: {
-                name: 'Runnn',
+                name: 'Astra: Stride Wars',
                 email: senderEmail,
             },
             to: [
@@ -90,18 +90,21 @@ async function sendPasswordResetEmail(email, token) {
                     email: email.trim(),
                 },
             ],
-            subject: 'Reset your Runnn Password',
+            subject: 'Reset your Astra Realm Password 🔐',
             htmlContent: `
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px;">
-                    <h2>Password Reset Request 🔐</h2>
-                    <p>We received a request to reset your password for your Runnn account.</p>
-                    <p>Click the button below to set a new password:</p>
-                    <p style="margin: 24px 0;">
-                        <a href="${resetUrl}" style="background-color: #2563eb; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 24px; background: #0a0a1a; color: #e8e0d0; border-radius: 12px; border: 1px solid rgba(212, 175, 55, 0.3);">
+                    <h2 style="color: #d4af37; margin-bottom: 8px;">Astra: Password Reset Request 🔐</h2>
+                    <p style="color: #a09880; font-size: 15px;">We received a request to reset the password for your Astra warrior account.</p>
+                    <p style="color: #e8e0d0; font-size: 15px;">Click the button below to proclaim a new password for your realm access:</p>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="${resetUrl}" style="background: linear-gradient(135deg, #d4af37, #aa820a); color: #0a0a1a; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 16px; display: inline-block; box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);">
                             Reset Password
                         </a>
+                    </div>
+                    <p style="color: #ff6b6b; font-size: 13px;">This reset link will expire in <strong>1 hour</strong>.</p>
+                    <p style="color: #6b6360; font-size: 12px; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 12px;">
+                        If you did not request this password reset, please ignore this missive. Your realm credentials remain secure.
                     </p>
-                    <p style="color: #666; font-size: 14px;">This link will expire in 1 hour. If you didn't request a password reset, you can safely ignore this email.</p>
                 </div>
             `,
         }),

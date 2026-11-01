@@ -87,6 +87,10 @@ const userSchema = new mongoose.Schema({
         type: Date,
         default: null
     },
+    passwordChangeOtpAttempts: {
+        type: Number,
+        default: 0
+    },
     sessionId: {
         type: String,
         default: null

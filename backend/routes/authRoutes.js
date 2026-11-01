@@ -28,6 +28,6 @@ router.put("/profile", auth, updateProfile);
 router.post("/forgot-password", authLimiter, forgotPassword);
 router.post("/reset-password", authLimiter, resetPassword);
 router.post("/change-password/request-otp", auth, authLimiter, requestPasswordChangeOtp);
-router.put("/change-password", auth, changePassword);
+router.put("/change-password", auth, authLimiter, changePassword);
 
 module.exports = router;

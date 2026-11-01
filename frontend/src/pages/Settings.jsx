@@ -278,6 +278,9 @@ function Settings() {
       const data = await res.json();
 
       if (data.success) {
+        if (data.token) {
+          localStorage.setItem("token", data.token);
+        }
         setPwdSuccess("Password changed successfully!");
         setCurrentPassword("");
         setNewPassword("");

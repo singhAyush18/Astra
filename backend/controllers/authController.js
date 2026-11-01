@@ -552,10 +552,20 @@ const resetPassword = async (req, res) => {
             });
         }
 
+                const isSame = await bcrypt.compare(newPassword, user.password);
+        if (isSame) {
+            return res.status(400).json({
+                success: false,
+                message: "New password must be different from your current password",
+            });
+        }
+
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         user.password = hashedPassword;
         user.resetPasswordToken = null;
         user.resetPasswordExpires = null;
+        // Invalidate all existing sessions on other devices
+        user.sessionId = crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString("hex");
         await user.save();
 
         res.status(200).json({
@@ -599,11 +609,12 @@ const requestPasswordChangeOtp = async (req, res) => {
             });
         }
 
-        // Generate a cryptographically secure 6-digit numeric OTP code
-        const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+                // Generate a genuinely cryptographically secure 6-digit numeric OTP code
+        const otpCode = crypto.randomInt(100000, 1000000).toString();
 
         user.passwordChangeOtp = otpCode;
         user.passwordChangeOtpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+        user.passwordChangeOtpAttempts = 0;
         await user.save();
 
         await sendPasswordChangeOtp(user.email, otpCode);
@@ -675,10 +686,25 @@ const changePassword = async (req, res) => {
             });
         }
 
-        if (user.passwordChangeOtp !== otpCode.trim()) {
+                // Brute-force protection: max 5 attempts per OTP
+        if (user.passwordChangeOtpAttempts >= 5) {
+            user.passwordChangeOtp = null;
+            user.passwordChangeOtpExpires = null;
+            user.passwordChangeOtpAttempts = 0;
+            await user.save();
             return res.status(400).json({
                 success: false,
-                message: "Invalid verification code. Please check your email.",
+                message: "Too many incorrect verification attempts. This code has been invalidated. Please request a new code.",
+            });
+        }
+
+        if (user.passwordChangeOtp !== otpCode.trim()) {
+            user.passwordChangeOtpAttempts = (user.passwordChangeOtpAttempts || 0) + 1;
+            await user.save();
+            const attemptsLeft = 5 - user.passwordChangeOtpAttempts;
+            return res.status(400).json({
+                success: false,
+                message: `Invalid verification code. ${attemptsLeft} attempt${attemptsLeft === 1 ? '' : 's'} remaining.`,
             });
         }
 
@@ -690,15 +716,29 @@ const changePassword = async (req, res) => {
             });
         }
 
-        user.password = await bcrypt.hash(newPassword, 10);
+                user.password = await bcrypt.hash(newPassword, 10);
         user.passwordChangeOtp = null;
         user.passwordChangeOtpExpires = null;
-        user.sessionId = crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString("hex");
+        user.passwordChangeOtpAttempts = 0;
+        
+        // Rotate sessionId to kick out other devices
+        const newSessionId = crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString("hex");
+        user.sessionId = newSessionId;
         await user.save();
+
+        // Issue refreshed session cookie & token to current user so they are NOT kicked out!
+        const refreshedToken = generateToken(user, newSessionId);
+        res.cookie('token', refreshedToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 30 * 24 * 60 * 60 * 1000
+        });
 
         res.status(200).json({
             success: true,
             message: "Password changed successfully!",
+            token: refreshedToken
         });
     } catch (error) {
         console.error("Change password error:", error);
