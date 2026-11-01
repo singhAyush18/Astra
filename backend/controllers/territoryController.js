@@ -1,16 +1,39 @@
 const Grid = require("../models/Grid");
 const GridInfluence = require("../models/Gridinfluence");
 const User = require("../models/User");
+const Run = require("../models/Run");
 const { seedPhantomTerritories } = require("../services/phantomService");
 
 const getAllGrids = async (req, res) => {
     try {
-        const { lat, lng } = req.query;
-        if (lat && lng) {
-            const parsedLat = parseFloat(lat);
-            const parsedLng = parseFloat(lng);
+        let rawLat = req.query.lat !== undefined ? req.query.lat : req.query.latitude;
+        let rawLng = req.query.lng !== undefined ? req.query.lng : req.query.longitude;
+
+        // Automatic fallback: If client hasn't obtained GPS yet, check runner's recent run location!
+        if ((!rawLat || !rawLng) && req.user?.id) {
+            try {
+                const lastRun = await Run.findOne({ userId: req.user.id, status: "completed" })
+                    .sort({ createdAt: -1 })
+                    .select("path");
+                if (lastRun && lastRun.path && lastRun.path.length > 0) {
+                    const lastPoint = lastRun.path[lastRun.path.length - 1];
+                    if (lastPoint && lastPoint.lat && lastPoint.lng) {
+                        rawLat = lastPoint.lat;
+                        rawLng = lastPoint.lng;
+                    }
+                }
+            } catch (runErr) {
+                console.warn("[TerritoryController] Error checking last run coords:", runErr.message);
+            }
+        }
+
+        let parsedLat = NaN;
+        let parsedLng = NaN;
+        if (rawLat !== undefined && rawLng !== undefined && rawLat !== null && rawLng !== null) {
+            parsedLat = parseFloat(rawLat);
+            parsedLng = parseFloat(rawLng);
             if (!isNaN(parsedLat) && !isNaN(parsedLng)) {
-                await seedPhantomTerritories(parsedLat, parsedLng, 3);
+                await seedPhantomTerritories(parsedLat, parsedLng);
             }
         }
 
@@ -21,7 +44,40 @@ const getAllGrids = async (req, res) => {
         // Filter out any orphaned claimed grids whose ruler was deleted
         const grids = rawGrids.filter(grid => grid.ruler && grid.ruler._id);
 
-        const gridIds = grids.map(grid => grid._id);
+        // Strict limit: Only 2 to 3 AI warlords appear within the user's local radius
+        let activeGrids = grids;
+        if (!isNaN(parsedLat) && !isNaN(parsedLng)) {
+            const metersPerDegreeLng = 111320 * Math.cos((parsedLat * Math.PI) / 180);
+            const pRow = Math.floor((parsedLat * 111320) / 1000);
+            const pCol = Math.floor((parsedLng * metersPerDegreeLng) / 1000);
+
+            const humanGrids = grids.filter(g => !g.ruler?.isBot);
+            const botGrids = grids.filter(g => Boolean(g.ruler?.isBot));
+
+            const botsWithDistance = botGrids.map(g => {
+                const match = g.gridId.match(/R(-?\d+)-C(-?\d+)/);
+                if (!match) return { grid: g, dist: Infinity };
+                const r = parseInt(match[1], 10);
+                const c = parseInt(match[2], 10);
+                const distSectors = Math.hypot(r - pRow, c - pCol);
+                return { grid: g, dist: distSectors };
+            });
+
+            // Keep only the closest 2 to 3 AI bot warlords in this radius (within ~5km)
+            const nearbyBots = botsWithDistance
+                .filter(b => b.dist <= 5)
+                .sort((a, b) => a.dist - b.dist)
+                .slice(0, 3)
+                .map(b => b.grid);
+
+            activeGrids = [...humanGrids, ...nearbyBots];
+        } else {
+            const humanGrids = grids.filter(g => !g.ruler?.isBot);
+            const botGrids = grids.filter(g => Boolean(g.ruler?.isBot)).slice(0, 3);
+            activeGrids = [...humanGrids, ...botGrids];
+        }
+
+        const gridIds = activeGrids.map(grid => grid._id);
         const currentUserId = req.user?.id ? req.user.id.toString() : null;
 
         // Fetch all influence records for these grids in a single query
@@ -38,7 +94,7 @@ const getAllGrids = async (req, res) => {
             }
         }
 
-        const formattedGrids = grids.map(grid => {
+        const formattedGrids = activeGrids.map(grid => {
             const gIdStr = grid._id.toString();
             const rulerIdStr = grid.ruler?._id ? grid.ruler._id.toString() : null;
             const rulerInfluence = rulerIdStr ? (influenceMap[`${gIdStr}_${rulerIdStr}`] || 0) : 0;

@@ -73,25 +73,14 @@ function pickWarlordForGrid(row, col, warlordUsers) {
     return warlordUsers[hash % warlordUsers.length];
 }
 
-// Tactical enemy outposts around player borders (1.0 to 1.5 km - directly visible on tactical radar!)
-const NEARBY_OUTPOST_OFFSETS = [
-    { dr: 0, dc: 1, role: 'outpost' },    // 1.0 km East (Directly adjacent border - visible on right)
-    { dr: 1, dc: -1, role: 'outpost' },   // ~1.4 km North-West (Diagonal border - visible top-left)
-    { dr: -1, dc: 0, role: 'outpost' },   // 1.0 km South (Directly adjacent border - visible bottom)
-    { dr: -1, dc: 1, role: 'outpost' },   // ~1.4 km South-East (Diagonal border - visible bottom-right)
-];
-
-// Distant high-level boss citadels for long-run expeditions (3.0 to 4.5 km)
-const DISTANT_CITADEL_OFFSETS = [
-    { dr: 3, dc: 2, role: 'citadel' },    // ~3.6 km Far North-East (Raid Boss)
-    { dr: -3, dc: -2, role: 'citadel' },  // ~3.6 km Far South-West (Raid Boss)
-    { dr: 2, dc: -3, role: 'citadel' },   // ~3.6 km Far North-West (Raid Boss)
-];
-
+// Strict rule: Exactly 2 to 3 tactical AI warlords in total per player radius
 const STRATEGIC_TARGET_OFFSETS = [
-    ...NEARBY_OUTPOST_OFFSETS,
-    ...DISTANT_CITADEL_OFFSETS
+    { dr: 0, dc: 1, role: 'outpost' },    // 1.0 km East (Directly adjacent border - visible on radar)
+    { dr: 1, dc: -1, role: 'outpost' },   // ~1.4 km North-West (Diagonal border - visible on radar)
+    { dr: -1, dc: 0, role: 'outpost' },   // 1.0 km South (Directly adjacent border - visible on radar)
 ];
+
+const MAX_WARLORDS_IN_RADIUS = 3;
 
 /**
  * Seeds sparse strategic enemy outposts and distant boss citadels.
@@ -114,7 +103,7 @@ async function seedPhantomTerritories(centerLat, centerLng) {
         const centerRow = Math.floor((centerLat * METERS_PER_DEGREE_LAT) / GRID_SIZE_METERS);
         const centerCol = Math.floor((centerLng * metersPerDegreeLng) / GRID_SIZE_METERS);
 
-        // Check if user already has 3 or more warlord targets in their surrounding sector (within ~3km)
+        // Check if user already has warlord targets in their surrounding sector (within ~3km)
         const botIds = bots.map(b => b._id);
         const surroundingGridIds = [];
         for (let dr = -3; dr <= 3; dr++) {
@@ -122,20 +111,45 @@ async function seedPhantomTerritories(centerLat, centerLng) {
                 surroundingGridIds.push(`R${centerRow + dr}-C${centerCol + dc}`);
             }
         }
-        const existingNearbyBotsCount = await Grid.countDocuments({
+
+        const existingNearbyBotGrids = await Grid.find({
             gridId: { $in: surroundingGridIds },
             ruler: { $in: botIds }
         });
 
-        // "only 3-4 enemy grids around new users or users with no enemy in surrounding should be shown"
-        // If there are already 3+ warlord grids nearby, preserve the wildlands and do not over-seed!
-        if (existingNearbyBotsCount >= 3) {
+        // Auto-cleanup: If sector was previously over-seeded from earlier versions,
+        // automatically prune the excess bot grids from DB to keep only the closest 2-3!
+        if (existingNearbyBotGrids.length > MAX_WARLORDS_IN_RADIUS) {
+            const sortedBots = existingNearbyBotGrids.sort((a, b) => {
+                const mA = a.gridId.match(/R(-?\d+)-C(-?\d+)/);
+                const mB = b.gridId.match(/R(-?\d+)-C(-?\d+)/);
+                const distA = mA ? Math.hypot(parseInt(mA[1], 10) - centerRow, parseInt(mA[2], 10) - centerCol) : Infinity;
+                const distB = mB ? Math.hypot(parseInt(mB[1], 10) - centerRow, parseInt(mB[2], 10) - centerCol) : Infinity;
+                return distA - distB;
+            });
+
+            const excessBots = sortedBots.slice(MAX_WARLORDS_IN_RADIUS);
+            for (const excess of excessBots) {
+                await GridInfluence.deleteMany({ gridId: excess._id });
+                await Grid.deleteOne({ _id: excess._id });
+            }
+            console.log(`[PhantomService] Pruned ${excessBots.length} excess bot grids around sector R${centerRow}-C${centerCol}.`);
+            return { seeded: 0, reason: "Pruned excess enemy presence" };
+        }
+
+        if (existingNearbyBotGrids.length >= MAX_WARLORDS_IN_RADIUS) {
             return { seeded: 0, reason: "Sufficient enemy presence already in sector" };
         }
 
+        const existingNearbyBotsCount = existingNearbyBotGrids.length;
         let seededCount = 0;
 
         for (const target of STRATEGIC_TARGET_OFFSETS) {
+            // Strict enforcement: Never exceed 2-3 warlords in the radius
+            if (existingNearbyBotsCount + seededCount >= MAX_WARLORDS_IN_RADIUS) {
+                break;
+            }
+
             const row = centerRow + target.dr;
             const col = centerCol + target.dc;
             const gridId = `R${row}-C${col}`;
